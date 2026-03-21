@@ -1,0 +1,21 @@
+services:
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/grocery-frontend:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/grocery-backend:latest
+    expose:
+      - "3000"
+    environment:
+      - DB_PATH=/data/grocery.db
+    volumes:
+      - grocery-data:/data
+    restart: unless-stopped
+
+volumes:
+  grocery-data:
