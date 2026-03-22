@@ -73,7 +73,7 @@ router.post('/add-to-list', (req, res) => {
 
 // POST /api/mealplan
 router.post('/', (req, res) => {
-  const { date, recipe_id, label } = req.body;
+  const { date, recipe_id, label, is_weekly } = req.body;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
   }
@@ -84,14 +84,15 @@ router.post('/', (req, res) => {
     if (!recipe) return res.status(404).json({ error: 'Recipe not found' });
   }
 
+  const isWeekly = is_weekly ? 1 : 0;
   const maxRow = db
-    .prepare('SELECT MAX(sort_order) as m FROM meal_plan_entries WHERE user_id = ? AND date = ?')
-    .get(req.user.id, date);
+    .prepare('SELECT MAX(sort_order) as m FROM meal_plan_entries WHERE user_id = ? AND date = ? AND is_weekly = ?')
+    .get(req.user.id, date, isWeekly);
   const sortOrder = (maxRow?.m ?? -1) + 1;
 
   const { lastInsertRowid } = db
-    .prepare('INSERT INTO meal_plan_entries (user_id, date, recipe_id, label, sort_order) VALUES (?, ?, ?, ?, ?)')
-    .run(req.user.id, date, recipe_id ?? null, label.trim(), sortOrder);
+    .prepare('INSERT INTO meal_plan_entries (user_id, date, recipe_id, label, sort_order, is_weekly) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(req.user.id, date, recipe_id ?? null, label.trim(), sortOrder, isWeekly);
 
   const entry = db.prepare('SELECT * FROM meal_plan_entries WHERE id = ?').get(lastInsertRowid);
   res.status(201).json(entry);

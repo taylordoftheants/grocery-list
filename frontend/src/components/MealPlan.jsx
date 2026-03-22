@@ -147,6 +147,84 @@ function DayColumn({ dateKey, dayLabel, entries, onDelete, onOpenPicker }) {
   );
 }
 
+// ── WeeklyBox ─────────────────────────────────────────────────────────────────
+
+function WeeklyBox({ entries, onDelete, onOpenPicker, isMobile }) {
+  if (isMobile) {
+    return (
+      <div style={{
+        background: '#fff',
+        border: '1px solid #e5e7eb',
+        borderRadius: '0.5rem',
+        padding: '0.75rem',
+        marginBottom: '0.5rem',
+      }}>
+        <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+          For the Week
+        </p>
+
+        {entries.length === 0 && (
+          <p style={{ fontSize: '0.8125rem', color: '#d1d5db', marginBottom: '0.375rem' }}>Nothing added yet</p>
+        )}
+
+        {entries.map(entry => (
+          <div key={entry.id} style={{
+            display: 'flex', alignItems: 'center', gap: '0.375rem',
+            background: entry.recipe_id ? '#eff6ff' : '#fefce8',
+            border: `1px solid ${entry.recipe_id ? '#bfdbfe' : '#fde68a'}`,
+            borderRadius: '0.375rem',
+            padding: '0.375rem 0.625rem',
+            marginBottom: '0.25rem',
+            fontSize: '0.875rem',
+          }}>
+            <span style={{ flex: 1, color: '#374151' }}>{entry.label}</span>
+            <button
+              onClick={() => onDelete(entry.id)}
+              style={{ border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 0.125rem', flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+
+        <button
+          onClick={onOpenPicker}
+          style={{ marginTop: '0.375rem', width: '100%', padding: '0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#6b7280', fontSize: '0.875rem', cursor: 'pointer' }}
+        >
+          + Add
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem', flexShrink: 0 }}>
+          For the Week
+        </span>
+        {entries.map(entry => (
+          <span key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: entry.recipe_id ? '#eff6ff' : '#fefce8', border: `1px solid ${entry.recipe_id ? '#bfdbfe' : '#fde68a'}`, borderRadius: '1rem', padding: '0.25rem 0.625rem', fontSize: '0.875rem', color: '#374151' }}>
+            {entry.label}
+            <button
+              onClick={() => onDelete(entry.id)}
+              style={{ border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1, padding: '0', flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <button
+          onClick={onOpenPicker}
+          style={{ border: '1px dashed #d1d5db', borderRadius: '1rem', background: 'transparent', color: '#6b7280', fontSize: '0.8125rem', padding: '0.25rem 0.625rem', cursor: 'pointer', flexShrink: 0 }}
+        >
+          + Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Mobile vertical layout ────────────────────────────────────────────────────
 
 function MobileDayCard({ dateKey, dayLabel, entries, onDelete, onOpenPicker }) {
@@ -196,9 +274,15 @@ function MobileDayCard({ dateKey, dayLabel, entries, onDelete, onOpenPicker }) {
   );
 }
 
-function MobilePlanView({ weekDays, entriesByDate, onDeleteEntry, onOpenPicker }) {
+function MobilePlanView({ weekDays, entriesByDate, weeklyItems, onDeleteEntry, onOpenPicker, onOpenWeeklyPicker }) {
   return (
     <div>
+      <WeeklyBox
+        entries={weeklyItems}
+        onDelete={onDeleteEntry}
+        onOpenPicker={onOpenWeeklyPicker}
+        isMobile={true}
+      />
       {weekDays.map(day => {
         const key = formatDateKey(day);
         return (
@@ -260,11 +344,14 @@ export default function MealPlan({ lists, isMobile }) {
 
   const weekDays = getWeekDays(weekStart);
 
-  const entriesByDate = entries.reduce((acc, e) => {
-    if (!acc[e.date]) acc[e.date] = [];
-    acc[e.date].push(e);
-    return acc;
-  }, {});
+  const weeklyItems = entries.filter(e => e.is_weekly);
+  const entriesByDate = entries
+    .filter(e => !e.is_weekly)
+    .reduce((acc, e) => {
+      if (!acc[e.date]) acc[e.date] = [];
+      acc[e.date].push(e);
+      return acc;
+    }, {});
 
   const handleAddEntry = async (entryData) => {
     const entry = await api.addMealPlanEntry(entryData);
@@ -277,7 +364,10 @@ export default function MealPlan({ lists, isMobile }) {
   };
 
   const handlePickerConfirm = async (entriesToAdd) => {
-    await Promise.all(entriesToAdd.map(e => handleAddEntry(e)));
+    const isWeekly = pickingForDate === 'weekly';
+    const date = isWeekly ? formatDateKey(weekStart) : pickingForDate;
+    const finalEntries = entriesToAdd.map(e => ({ ...e, date, is_weekly: isWeekly ? 1 : 0 }));
+    await Promise.all(finalEntries.map(e => handleAddEntry(e)));
     setPickingForDate(null);
   };
 
@@ -382,50 +472,61 @@ export default function MealPlan({ lists, isMobile }) {
         <MobilePlanView
           weekDays={weekDays}
           entriesByDate={entriesByDate}
+          weeklyItems={weeklyItems}
           onDeleteEntry={handleDeleteEntry}
           onOpenPicker={setPickingForDate}
+          onOpenWeeklyPicker={() => setPickingForDate('weekly')}
         />
       ) : (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
-          <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0 }}>
-            {/* Recipe source panel */}
-            <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto' }}>
-              {grouped.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>}
-              {grouped.map(group => (
-                <div key={group.category} style={{ marginBottom: '0.75rem' }}>
-                  <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
-                    {group.category}
-                  </p>
-                  <SortableContext items={group.items.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                    {group.items.map(r => <SortableRecipe key={r.id} recipe={r} />)}
-                  </SortableContext>
-                </div>
-              ))}
-            </div>
-
-            {/* Week grid */}
-            <div style={{ flex: 1, overflowX: 'auto' }}>
-              {weekGrid}
-            </div>
-          </div>
-
-          <DragOverlay>
-            {activeRecipe && (
-              <div style={{
-                padding: '0.5rem 0.75rem',
-                background: '#dbeafe',
-                border: '1px solid #93c5fd',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                color: '#1d4ed8',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                cursor: 'grabbing',
-              }}>
-                {activeRecipe.title}
+        <>
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+            <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0 }}>
+              {/* Recipe source panel */}
+              <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto' }}>
+                {grouped.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>}
+                {grouped.map(group => (
+                  <div key={group.category} style={{ marginBottom: '0.75rem' }}>
+                    <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                      {group.category}
+                    </p>
+                    <SortableContext items={group.items.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                      {group.items.map(r => <SortableRecipe key={r.id} recipe={r} />)}
+                    </SortableContext>
+                  </div>
+                ))}
               </div>
-            )}
-          </DragOverlay>
-        </DndContext>
+
+              {/* Week grid */}
+              <div style={{ flex: 1, overflowX: 'auto' }}>
+                {weekGrid}
+              </div>
+            </div>
+
+            <DragOverlay>
+              {activeRecipe && (
+                <div style={{
+                  padding: '0.5rem 0.75rem',
+                  background: '#dbeafe',
+                  border: '1px solid #93c5fd',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  color: '#1d4ed8',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  cursor: 'grabbing',
+                }}>
+                  {activeRecipe.title}
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+
+          <WeeklyBox
+            entries={weeklyItems}
+            onDelete={handleDeleteEntry}
+            onOpenPicker={() => setPickingForDate('weekly')}
+            isMobile={false}
+          />
+        </>
       )}
 
       {isAddToListOpen && (
@@ -440,8 +541,8 @@ export default function MealPlan({ lists, isMobile }) {
       {pickingForDate && (
         <AddToDayModal
           recipes={recipes}
-          date={pickingForDate}
-          dayLabel={dateKeyToLabel(pickingForDate)}
+          date={pickingForDate === 'weekly' ? formatDateKey(weekStart) : pickingForDate}
+          dayLabel={pickingForDate === 'weekly' ? 'For the Week' : dateKeyToLabel(pickingForDate)}
           onConfirm={handlePickerConfirm}
           onClose={() => setPickingForDate(null)}
         />

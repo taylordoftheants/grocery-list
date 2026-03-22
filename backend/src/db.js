@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -27,6 +27,10 @@ if (user_version < 1) {
 if (user_version === 2) {
   db.exec("ALTER TABLE recipes ADD COLUMN category TEXT NOT NULL DEFAULT 'Core Meals'");
   db.exec('ALTER TABLE recipes ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+}
+// v3 → v4: add is_weekly flag to meal_plan_entries
+if (user_version === 3) {
+  db.exec('ALTER TABLE meal_plan_entries ADD COLUMN is_weekly INTEGER NOT NULL DEFAULT 0');
 }
 
 if (user_version < SCHEMA_VERSION) {
