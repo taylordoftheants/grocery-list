@@ -169,9 +169,7 @@ function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker
 
 // ── WeeklyBox ─────────────────────────────────────────────────────────────────
 
-function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'weekly' });
-
+function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDropRef, isOver }) {
   if (isMobile) {
     return (
       <div style={{
@@ -228,7 +226,7 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile }) {
   }
 
   return (
-    <div ref={setNodeRef} style={{ background: isOver ? '#eff6ff' : '#fff', border: `1px solid ${isOver ? '#bfdbfe' : '#e5e7eb'}`, transition: 'background 0.15s, border-color 0.15s', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
+    <div ref={setDropRef} style={{ background: isOver ? '#eff6ff' : '#fff', border: `1px solid ${isOver ? '#bfdbfe' : '#e5e7eb'}`, transition: 'background 0.15s, border-color 0.15s', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem', flexShrink: 0, paddingTop: '0.25rem' }}>
           For the Week
@@ -361,6 +359,7 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
   const [pickingForDate, setPickingForDate] = useState(null);
   const [preCheckedRecipeId, setPreCheckedRecipeId] = useState(null);
   const isDraggingRef = useRef(false);
+  const { setNodeRef: setWeeklyRef, isOver: isWeeklyOver } = useDroppable({ id: 'weekly' });
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -564,6 +563,8 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
                 onDelete={handleDeleteEntry}
                 onOpenPicker={() => setPickingForDate('weekly')}
                 isMobile={false}
+                setDropRef={setWeeklyRef}
+                isOver={isWeeklyOver}
               />
             </div>
           </div>

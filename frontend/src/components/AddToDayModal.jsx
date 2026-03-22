@@ -115,7 +115,7 @@ export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedI
                             <>
                               <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#92400e', marginBottom: '0.25rem' }}>Side Options</p>
                               {sideOpts.map(ing => {
-                                const ingLabel = [ing.amount, ing.name].filter(Boolean).join(' ');
+                                const ingLabel = ing.name;
                                 const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
                                 return (
                                   <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: '0.25rem', cursor: 'pointer', background: isSelected ? '#fffbeb' : 'transparent', marginBottom: '0.125rem' }}>
@@ -130,7 +130,7 @@ export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedI
                             <>
                               <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#1e40af', marginBottom: '0.25rem', marginTop: sideOpts.length > 0 ? '0.375rem' : 0 }}>Protein Options</p>
                               {proteinOpts.map(ing => {
-                                const ingLabel = [ing.amount, ing.name].filter(Boolean).join(' ');
+                                const ingLabel = ing.name;
                                 const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
                                 return (
                                   <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: '0.25rem', cursor: 'pointer', background: isSelected ? '#eff6ff' : 'transparent', marginBottom: '0.125rem' }}>
