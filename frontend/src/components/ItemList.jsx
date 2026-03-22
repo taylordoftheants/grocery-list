@@ -90,6 +90,11 @@ function Item({ item, onToggle, onDelete }) {
         textDecoration: item.purchased ? 'line-through' : 'none',
       }}>
         {item.name}
+        {item.source_recipe && (
+          <span style={{ display: 'inline-block', marginLeft: '0.5rem', padding: '0.1rem 0.5rem', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '1rem', fontSize: '0.625rem', color: '#9ca3af', verticalAlign: 'middle', fontWeight: '500' }}>
+            {item.source_recipe}
+          </span>
+        )}
       </span>
       <button
         onClick={() => onDelete(item.id)}

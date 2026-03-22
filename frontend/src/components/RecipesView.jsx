@@ -427,6 +427,12 @@ export default function RecipesView({ isMobile }) {
     setActiveId(null);
   };
 
+  const handleBackToList = () => {
+    setSelectedId(null);
+    setIsEditing(false);
+    setShowNew(false);
+  };
+
   const grouped = CATEGORIES
     .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
     .filter(g => g.items.length > 0);
@@ -524,6 +530,22 @@ export default function RecipesView({ isMobile }) {
       )}
     </div>
   );
+
+  if (isMobile && (selectedId !== null || showNew)) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ flexShrink: 0, borderBottom: '1px solid #e5e7eb', background: '#fff', padding: '0.625rem 1rem' }}>
+          <button
+            onClick={handleBackToList}
+            style={{ border: 'none', background: 'transparent', color: '#2563eb', fontSize: '0.9375rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+          >
+            ← Recipes
+          </button>
+        </div>
+        {mainPanel}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: '100%' }}>

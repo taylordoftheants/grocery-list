@@ -37,7 +37,7 @@ router.post('/add-to-list', (req, res) => {
     .prepare('SELECT * FROM meal_plan_entries WHERE user_id = ? AND date >= ? AND date <= ?')
     .all(req.user.id, weekStart, weekEnd);
 
-  const itemNames = new Set();
+  const itemsMap = new Map(); // name → source_recipe (string | null)
 
   for (const entry of entries) {
     if (entry.recipe_id) {
@@ -54,26 +54,27 @@ router.post('/add-to-list', (req, res) => {
 
       for (const ing of ings) {
         if (!ing.is_optional || selectedOptionalIds.has(ing.id)) {
-          const label = [ing.amount, ing.name].filter(Boolean).join(' ').trim();
-          if (label) itemNames.add(label);
+          const label = ing.name.trim();
+          if (label && !itemsMap.has(label)) itemsMap.set(label, entry.label);
         }
       }
     } else if (entry.label?.trim()) {
-      itemNames.add(entry.label.trim());
+      const label = entry.label.trim();
+      if (!itemsMap.has(label)) itemsMap.set(label, null);
     }
   }
 
-  const insertItem = db.prepare('INSERT INTO items (list_id, name) VALUES (?, ?)');
+  const insertItem = db.prepare('INSERT INTO items (list_id, name, source_recipe) VALUES (?, ?, ?)');
   db.exec('BEGIN');
   try {
-    for (const name of itemNames) insertItem.run(listId, name);
+    for (const [name, sourceRecipe] of itemsMap) insertItem.run(listId, name, sourceRecipe ?? null);
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
     throw e;
   }
 
-  res.json({ added: itemNames.size });
+  res.json({ added: itemsMap.size });
 });
 
 // POST /api/mealplan

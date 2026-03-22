@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -42,6 +42,10 @@ if (user_version === 5) {
   db.exec("ALTER TABLE recipe_ingredients ADD COLUMN optional_category TEXT NOT NULL DEFAULT ''");
   db.exec("UPDATE recipe_ingredients SET optional_category = 'sides' WHERE is_optional = 1");
   db.exec("UPDATE recipes SET category = 'Core Meals' WHERE category = 'Protein Options'");
+}
+// v6 → v7: add source_recipe to items
+if (user_version === 6) {
+  db.exec('ALTER TABLE items ADD COLUMN source_recipe TEXT');
 }
 
 if (user_version < SCHEMA_VERSION) {
