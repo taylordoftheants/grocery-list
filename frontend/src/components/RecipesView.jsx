@@ -1,10 +1,66 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 
-// ── RecipeEditor ────────────────────────────────────────────────────────────
+const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
+
+// ── SortableRecipeItem ────────────────────────────────────────────────────────
+
+function SortableRecipeItem({ recipe, isSelected, onClick }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: recipe.id });
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1, listStyle: 'none' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', borderRadius: '0.375rem', background: isSelected ? '#eff6ff' : 'transparent' }}>
+        <span
+          {...attributes}
+          {...listeners}
+          style={{ cursor: 'grab', color: '#d1d5db', padding: '0.25rem 0.375rem', touchAction: 'none', userSelect: 'none', fontSize: '0.875rem', lineHeight: 1, flexShrink: 0 }}
+        >
+          ⠿
+        </span>
+        <button
+          onClick={onClick}
+          style={{
+            flex: 1, textAlign: 'left',
+            padding: '0.5rem 0.5rem 0.5rem 0',
+            border: 'none', borderRadius: '0.375rem',
+            background: 'transparent',
+            color: isSelected ? '#1d4ed8' : '#374151',
+            fontWeight: isSelected ? '600' : 'normal',
+            fontSize: '0.9375rem', cursor: 'pointer',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+        >
+          {recipe.title}
+        </button>
+      </div>
+    </li>
+  );
+}
+
+// ── RecipeEditor ──────────────────────────────────────────────────────────────
 
 function RecipeEditor({ recipe, onSave, onCancel }) {
   const [title, setTitle] = useState(recipe?.title ?? '');
+  const [category, setCategory] = useState(recipe?.category ?? 'Core Meals');
   const [ingredients, setIngredients] = useState(
     recipe?.ingredients?.length ? recipe.ingredients : [{ name: '', amount: '' }]
   );
@@ -24,8 +80,8 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
     setLoading(true);
     try {
       const saved = recipe
-        ? await api.updateRecipe(recipe.id, title, validIngs)
-        : await api.createRecipe(title, validIngs);
+        ? await api.updateRecipe(recipe.id, title, validIngs, category)
+        : await api.createRecipe(title, validIngs, category);
       onSave(saved);
     } catch (err) {
       setError(err.message);
@@ -57,6 +113,19 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
           required
           style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', boxSizing: 'border-box' }}
         />
+      </div>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+          Category
+        </label>
+        <select
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', background: '#fff' }}
+        >
+          {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        </select>
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
@@ -112,14 +181,14 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
   );
 }
 
-// ── RecipeDetail ─────────────────────────────────────────────────────────────
+// ── RecipeDetail ──────────────────────────────────────────────────────────────
 
 function RecipeDetail({ recipe, onEdit, onDelete }) {
   return (
     <div style={{ padding: '1.5rem', maxWidth: '480px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827' }}>{recipe.title}</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, marginLeft: '0.5rem' }}>
           <button onClick={onEdit} style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: 'transparent', fontSize: '0.875rem', cursor: 'pointer', color: '#374151' }}>
             Edit
           </button>
@@ -128,6 +197,7 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
           </button>
         </div>
       </div>
+      <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '1rem' }}>{recipe.category}</p>
 
       {recipe.ingredients.length === 0 ? (
         <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No ingredients added.</p>
@@ -152,16 +222,30 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
   );
 }
 
-// ── RecipesView ──────────────────────────────────────────────────────────────
+// ── RecipesView ───────────────────────────────────────────────────────────────
 
 export default function RecipesView({ isMobile }) {
   const [recipes, setRecipes] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [activeId, setActiveId] = useState(null);
+  const isDraggingRef = useRef(false);
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
 
   useEffect(() => {
     api.getRecipes().then(setRecipes);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!isDraggingRef.current) api.getRecipes().then(setRecipes);
+    }, 5000);
+    return () => clearInterval(id);
   }, []);
 
   const selectedRecipe = recipes.find(r => r.id === selectedId);
@@ -182,9 +266,40 @@ export default function RecipesView({ isMobile }) {
     setSelectedId(null);
   };
 
+  const handleDragStart = (event) => {
+    isDraggingRef.current = true;
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = (event) => {
+    isDraggingRef.current = false;
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const src = recipes.find(r => r.id === active.id);
+    const dst = recipes.find(r => r.id === over.id);
+    if (!src || !dst || src.category !== dst.category) return;
+    const oldIndex = recipes.findIndex(r => r.id === active.id);
+    const newIndex = recipes.findIndex(r => r.id === over.id);
+    const newOrder = arrayMove(recipes, oldIndex, newIndex);
+    setRecipes(newOrder);
+    api.reorderRecipes(newOrder.map(r => r.id));
+  };
+
+  const handleDragCancel = () => {
+    isDraggingRef.current = false;
+    setActiveId(null);
+  };
+
+  const grouped = CATEGORIES
+    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
+    .filter(g => g.items.length > 0);
+
+  const activeRecipe = activeId != null ? recipes.find(r => r.id === activeId) : null;
+
   const listPanel = (
     <div style={{
-      width: isMobile ? '100%' : '220px',
+      width: isMobile ? '100%' : '240px',
       borderRight: isMobile ? 'none' : '1px solid #e5e7eb',
       borderBottom: isMobile ? '1px solid #e5e7eb' : 'none',
       background: '#fff',
@@ -192,6 +307,7 @@ export default function RecipesView({ isMobile }) {
       display: 'flex',
       flexDirection: 'column',
       padding: '1rem',
+      overflowY: 'auto',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
         <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Recipes</h2>
@@ -202,28 +318,51 @@ export default function RecipesView({ isMobile }) {
           + New
         </button>
       </div>
-      <ul style={{ listStyle: 'none', overflowY: 'auto', flex: 1 }}>
-        {recipes.length === 0 && <li style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</li>}
-        {recipes.map(r => (
-          <li key={r.id}>
-            <button
-              onClick={() => { setSelectedId(r.id); setIsEditing(false); setShowNew(false); }}
-              style={{
-                width: '100%', textAlign: 'left',
-                padding: '0.5rem 0.5rem',
-                border: 'none', borderRadius: '0.375rem',
-                background: selectedId === r.id ? '#eff6ff' : 'transparent',
-                color: selectedId === r.id ? '#1d4ed8' : '#374151',
-                fontWeight: selectedId === r.id ? '600' : 'normal',
-                fontSize: '0.9375rem', cursor: 'pointer',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}
-            >
-              {r.title}
-            </button>
-          </li>
+
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        {grouped.length === 0 && (
+          <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>
+        )}
+        {grouped.map(group => (
+          <div key={group.category} style={{ marginBottom: '0.75rem' }}>
+            <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', margin: '0 0 0.25rem 0' }}>
+              {group.category}
+            </p>
+            <SortableContext items={group.items.map(r => r.id)} strategy={verticalListSortingStrategy}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {group.items.map(r => (
+                  <SortableRecipeItem
+                    key={r.id}
+                    recipe={r}
+                    isSelected={selectedId === r.id}
+                    onClick={() => { setSelectedId(r.id); setIsEditing(false); setShowNew(false); }}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </div>
         ))}
-      </ul>
+        <DragOverlay>
+          {activeRecipe && (
+            <div style={{
+              padding: '0.4rem 0.75rem',
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '0.375rem',
+              fontSize: '0.9375rem',
+              color: '#1d4ed8',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            }}>
+              {activeRecipe.title}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 

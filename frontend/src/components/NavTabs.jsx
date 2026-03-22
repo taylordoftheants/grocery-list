@@ -1,7 +1,7 @@
 const TABS = [
-  { id: 'lists',    label: 'Grocery Lists' },
-  { id: 'recipes',  label: 'Recipes' },
+  { id: 'lists',    label: 'Shopping Lists' },
   { id: 'mealplan', label: 'Meal Plan' },
+  { id: 'recipes',  label: 'Recipes' },
 ];
 
 export default function NavTabs({ currentView, onChangeView }) {

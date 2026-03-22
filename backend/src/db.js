@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -23,6 +23,11 @@ if (user_version < 1) {
   db.exec('DROP TABLE IF EXISTS users');
 }
 // v1 → v2: only add new tables, no destructive changes
+// v2 → v3: add category and sort_order to recipes
+if (user_version === 2) {
+  db.exec("ALTER TABLE recipes ADD COLUMN category TEXT NOT NULL DEFAULT 'Core Meals'");
+  db.exec('ALTER TABLE recipes ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+}
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -56,6 +61,8 @@ db.exec(`
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title      TEXT NOT NULL,
+    category   TEXT NOT NULL DEFAULT 'Core Meals',
+    sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 

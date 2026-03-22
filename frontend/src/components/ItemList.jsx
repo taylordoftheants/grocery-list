@@ -9,6 +9,11 @@ export default function ItemList({ list, isMobile }) {
     api.getItems(list.id).then(setItems);
   }, [list.id]);
 
+  useEffect(() => {
+    const id = setInterval(() => api.getItems(list.id).then(setItems), 5000);
+    return () => clearInterval(id);
+  }, [list.id]);
+
   const handleAdd = async (name) => {
     const item = await api.addItem(list.id, name);
     setItems(prev => [...prev, item]);

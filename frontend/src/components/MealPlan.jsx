@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -7,16 +7,24 @@ import {
   useSensor,
   useSensors,
   useDroppable,
-  useDraggable,
 } from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 import AddToListModal from './AddToListModal';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getMondayOf(date) {
   const d = new Date(date);
-  const day = d.getDay(); // 0=Sun, 1=Mon…
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
@@ -24,7 +32,7 @@ function getMondayOf(date) {
 }
 
 function formatDateKey(date) {
-  return date.toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+  return date.toLocaleDateString('en-CA');
 }
 
 function getWeekDays(monday) {
@@ -46,13 +54,10 @@ function formatWeekRange(monday) {
   return `${monday.toLocaleDateString('en-US', opts)} – ${sunday.toLocaleDateString('en-US', opts)}`;
 }
 
-// ── DraggableRecipe ───────────────────────────────────────────────────────────
+// ── SortableRecipe (desktop drag source — also droppable for reorder) ─────────
 
-function DraggableRecipe({ recipe }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `recipe-${recipe.id}`,
-    data: { recipeId: recipe.id, label: recipe.title },
-  });
+function SortableRecipe({ recipe }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: recipe.id });
 
   return (
     <div
@@ -60,6 +65,8 @@ function DraggableRecipe({ recipe }) {
       {...listeners}
       {...attributes}
       style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
         padding: '0.5rem 0.75rem',
         background: isDragging ? '#dbeafe' : '#fff',
         border: '1px solid #e5e7eb',
@@ -70,6 +77,7 @@ function DraggableRecipe({ recipe }) {
         cursor: 'grab',
         opacity: isDragging ? 0.4 : 1,
         userSelect: 'none',
+        touchAction: 'none',
       }}
     >
       {recipe.title}
@@ -169,9 +177,12 @@ function DayColumn({ dateKey, dayLabel, entries, onDelete, onAddManual }) {
 function MobilePlanView({ weekDays, entriesByDate, recipes, onAddEntry, onDeleteEntry }) {
   const [expandRecipes, setExpandRecipes] = useState(false);
 
+  const grouped = CATEGORIES
+    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
+    .filter(g => g.items.length > 0);
+
   return (
     <div>
-      {/* Recipe accordion */}
       <div style={{ marginBottom: '1rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden' }}>
         <button
           onClick={() => setExpandRecipes(e => !e)}
@@ -183,14 +194,20 @@ function MobilePlanView({ weekDays, entriesByDate, recipes, onAddEntry, onDelete
         {expandRecipes && (
           <div style={{ background: '#f9fafb', borderTop: '1px solid #e5e7eb', padding: '0.75rem' }}>
             {recipes.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>}
-            {recipes.map(recipe => (
-              <MobileRecipeRow key={recipe.id} recipe={recipe} weekDays={weekDays} onAdd={onAddEntry} />
+            {grouped.map(group => (
+              <div key={group.category} style={{ marginBottom: '0.75rem' }}>
+                <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                  {group.category}
+                </p>
+                {group.items.map(recipe => (
+                  <MobileRecipeRow key={recipe.id} recipe={recipe} weekDays={weekDays} onAdd={onAddEntry} />
+                ))}
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Day list */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 140px)', gap: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.5rem' }}>
         {weekDays.map(day => {
           const key = formatDateKey(day);
@@ -259,6 +276,7 @@ export default function MealPlan({ lists, isMobile }) {
   const [addToListLoading, setAddToListLoading] = useState(false);
   const [addToListSuccess, setAddToListSuccess] = useState(null);
   const [activeRecipe, setActiveRecipe] = useState(null);
+  const isDraggingRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -272,6 +290,22 @@ export default function MealPlan({ lists, isMobile }) {
   useEffect(() => {
     const key = formatDateKey(weekStart);
     api.getMealPlan(key).then(setEntries);
+  }, [weekStart]);
+
+  // Polling for real-time sync
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!isDraggingRef.current) api.getRecipes().then(setRecipes);
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const key = formatDateKey(weekStart);
+    const id = setInterval(() => {
+      if (!isDraggingRef.current) api.getMealPlan(key).then(setEntries);
+    }, 5000);
+    return () => clearInterval(id);
   }, [weekStart]);
 
   const weekDays = getWeekDays(weekStart);
@@ -293,16 +327,37 @@ export default function MealPlan({ lists, isMobile }) {
   };
 
   const handleDragStart = (event) => {
-    const recipe = recipes.find(r => `recipe-${r.id}` === event.active.id);
+    isDraggingRef.current = true;
+    const recipe = recipes.find(r => r.id === event.active.id);
     setActiveRecipe(recipe ?? null);
   };
 
   const handleDragEnd = (event) => {
+    isDraggingRef.current = false;
     setActiveRecipe(null);
-    const { over, active } = event;
+    const { active, over } = event;
     if (!over) return;
-    const { recipeId, label } = active.data.current;
-    handleAddEntry({ date: over.id, recipe_id: recipeId, label });
+
+    if (typeof over.id === 'string') {
+      // Dropped on a day column (date string)
+      const recipe = recipes.find(r => r.id === active.id);
+      if (recipe) handleAddEntry({ date: over.id, recipe_id: recipe.id, label: recipe.title });
+    } else if (active.id !== over.id) {
+      // Reorder within recipe list (same category only)
+      const src = recipes.find(r => r.id === active.id);
+      const dst = recipes.find(r => r.id === over.id);
+      if (!src || !dst || src.category !== dst.category) return;
+      const oldIndex = recipes.findIndex(r => r.id === active.id);
+      const newIndex = recipes.findIndex(r => r.id === over.id);
+      const newOrder = arrayMove(recipes, oldIndex, newIndex);
+      setRecipes(newOrder);
+      api.reorderRecipes(newOrder.map(r => r.id));
+    }
+  };
+
+  const handleDragCancel = () => {
+    isDraggingRef.current = false;
+    setActiveRecipe(null);
   };
 
   const handleAddToList = async (listId) => {
@@ -317,6 +372,10 @@ export default function MealPlan({ lists, isMobile }) {
       setAddToListLoading(false);
     }
   };
+
+  const grouped = CATEGORIES
+    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
+    .filter(g => g.items.length > 0);
 
   const weekGrid = (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem', minWidth: 0 }}>
@@ -375,15 +434,21 @@ export default function MealPlan({ lists, isMobile }) {
           onDeleteEntry={handleDeleteEntry}
         />
       ) : (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
           <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0 }}>
             {/* Recipe source panel */}
             <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto' }}>
-              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Recipes
-              </p>
-              {recipes.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>}
-              {recipes.map(r => <DraggableRecipe key={r.id} recipe={r} />)}
+              {grouped.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>}
+              {grouped.map(group => (
+                <div key={group.category} style={{ marginBottom: '0.75rem' }}>
+                  <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                    {group.category}
+                  </p>
+                  <SortableContext items={group.items.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                    {group.items.map(r => <SortableRecipe key={r.id} recipe={r} />)}
+                  </SortableContext>
+                </div>
+              ))}
             </div>
 
             {/* Week grid */}

@@ -34,10 +34,11 @@ export const api = {
   deleteItem: (listId, itemId)            => request('DELETE', `/lists/${listId}/items/${itemId}`),
 
   // Recipes
-  getRecipes:    ()                         => request('GET',    '/recipes'),
-  createRecipe:  (title, ingredients)       => request('POST',   '/recipes',       { title, ingredients }),
-  updateRecipe:  (id, title, ingredients)   => request('PUT',    `/recipes/${id}`, { title, ingredients }),
-  deleteRecipe:  (id)                       => request('DELETE', `/recipes/${id}`),
+  getRecipes:    ()                                  => request('GET',    '/recipes'),
+  createRecipe:  (title, ingredients, category)      => request('POST',   '/recipes',          { title, ingredients, category }),
+  updateRecipe:  (id, title, ingredients, category)  => request('PUT',    `/recipes/${id}`,    { title, ingredients, category }),
+  deleteRecipe:  (id)                                => request('DELETE', `/recipes/${id}`),
+  reorderRecipes: (ids)                              => request('POST',   '/recipes/reorder',  { ids }),
 
   // Meal Plan
   getMealPlan:         (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),
