@@ -124,7 +124,7 @@ export default function App() {
                   )
               )}
               {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
-              {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} />}
+              {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} />}
             </div>
           </div>
         </div>

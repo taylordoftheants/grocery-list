@@ -348,7 +348,7 @@ function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDelet
 
 // ── MealPlan ──────────────────────────────────────────────────────────────────
 
-export default function MealPlan({ lists, isMobile }) {
+export default function MealPlan({ lists, isMobile, onCreateList }) {
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date()));
   const [entries, setEntries] = useState([]);
   const [recipes, setRecipes] = useState([]);
@@ -589,6 +589,7 @@ export default function MealPlan({ lists, isMobile }) {
           onConfirm={handleAddToList}
           onClose={() => setIsAddToListOpen(false)}
           loading={addToListLoading}
+          onCreate={onCreateList}
         />
       )}
 

@@ -4,6 +4,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -104,30 +105,52 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
 
       <ul style={{ listStyle: 'none', flex: 1, overflowY: 'auto' }}>
         {lists.map(list => (
-          <li key={list.id} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
-            <button
-              onClick={() => onSelect(list.id)}
-              style={{
-                flex: 1, textAlign: 'left',
-                padding: '0.5rem 0.5rem',
-                borderRadius: '0.375rem', border: 'none',
-                background: selectedListId === list.id ? '#eff6ff' : 'transparent',
-                fontWeight: selectedListId === list.id ? '600' : 'normal',
-                color: selectedListId === list.id ? '#1d4ed8' : '#374151',
-                fontSize: '0.9375rem',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                cursor: 'pointer',
-              }}
-            >
-              {list.name}
-            </button>
-            <button
-              onClick={() => onDelete(list.id)}
-              aria-label={`Delete ${list.name}`}
-              style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', padding: '0.375rem', borderRadius: '0.25rem', lineHeight: 1, cursor: 'pointer' }}
-            >
-              ×
-            </button>
+          <li key={list.id} style={{ marginBottom: '0.25rem' }}>
+            {confirmDeleteId === list.id ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.5rem', borderRadius: '0.375rem', background: '#fee2e2', border: '1px solid #fca5a5' }}>
+                <span style={{ flex: 1, fontSize: '0.8125rem', color: '#991b1b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Delete "{list.name}"?
+                </span>
+                <button
+                  onClick={() => { onDelete(list.id); setConfirmDeleteId(null); }}
+                  style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '0.25rem', fontSize: '0.75rem', padding: '0.2rem 0.5rem', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  style={{ border: '1px solid #d1d5db', background: 'transparent', color: '#6b7280', borderRadius: '0.25rem', fontSize: '0.75rem', padding: '0.2rem 0.5rem', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <button
+                  onClick={() => onSelect(list.id)}
+                  style={{
+                    flex: 1, textAlign: 'left',
+                    padding: '0.5rem 0.5rem',
+                    borderRadius: '0.375rem', border: 'none',
+                    background: selectedListId === list.id ? '#eff6ff' : 'transparent',
+                    fontWeight: selectedListId === list.id ? '600' : 'normal',
+                    color: selectedListId === list.id ? '#1d4ed8' : '#374151',
+                    fontSize: '0.9375rem',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {list.name}
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteId(list.id)}
+                  aria-label={`Delete ${list.name}`}
+                  style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', padding: '0.375rem', borderRadius: '0.25rem', lineHeight: 1, cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
           </li>
         ))}
       </ul>
