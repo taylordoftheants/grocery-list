@@ -7,6 +7,7 @@ import {
   useSensor,
   useSensors,
   useDroppable,
+  pointerWithin,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -261,6 +262,13 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDrop
   );
 }
 
+// ── WeeklyDropZone (desktop only — must render inside DndContext) ─────────────
+
+function WeeklyDropZone(props) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'weekly' });
+  return <WeeklyBox {...props} setDropRef={setNodeRef} isOver={isOver} isMobile={false} />;
+}
+
 // ── Mobile vertical layout ────────────────────────────────────────────────────
 
 function MobileDayCard({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker }) {
@@ -359,7 +367,6 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
   const [pickingForDate, setPickingForDate] = useState(null);
   const [preCheckedRecipeId, setPreCheckedRecipeId] = useState(null);
   const isDraggingRef = useRef(false);
-  const { setNodeRef: setWeeklyRef, isOver: isWeeklyOver } = useDroppable({ id: 'weekly' });
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -537,7 +544,7 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
           onOpenWeeklyPicker={() => setPickingForDate('weekly')}
         />
       ) : (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+        <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
           <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0 }}>
             {/* Recipe source panel */}
             <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto' }}>
@@ -557,14 +564,11 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
             {/* Week grid + For the Week */}
             <div style={{ flex: 1, overflowX: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {weekGrid}
-              <WeeklyBox
+              <WeeklyDropZone
                 entries={weeklyItems}
                 recipes={recipes}
                 onDelete={handleDeleteEntry}
                 onOpenPicker={() => setPickingForDate('weekly')}
-                isMobile={false}
-                setDropRef={setWeeklyRef}
-                isOver={isWeeklyOver}
               />
             </div>
           </div>
