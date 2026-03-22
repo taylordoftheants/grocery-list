@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -31,6 +31,11 @@ if (user_version === 2) {
 // v3 → v4: add is_weekly flag to meal_plan_entries
 if (user_version === 3) {
   db.exec('ALTER TABLE meal_plan_entries ADD COLUMN is_weekly INTEGER NOT NULL DEFAULT 0');
+}
+// v4 → v5: add is_optional to recipe_ingredients; add selected_optional_ids to meal_plan_entries
+if (user_version === 4) {
+  db.exec('ALTER TABLE recipe_ingredients ADD COLUMN is_optional INTEGER NOT NULL DEFAULT 0');
+  db.exec("ALTER TABLE meal_plan_entries ADD COLUMN selected_optional_ids TEXT NOT NULL DEFAULT ''");
 }
 
 if (user_version < SCHEMA_VERSION) {
@@ -71,19 +76,22 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS recipe_ingredients (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
-    name      TEXT NOT NULL,
-    amount    TEXT NOT NULL DEFAULT ''
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id   INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    amount      TEXT NOT NULL DEFAULT '',
+    is_optional INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS meal_plan_entries (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    date       TEXT NOT NULL,
-    recipe_id  INTEGER REFERENCES recipes(id) ON DELETE SET NULL,
-    label      TEXT NOT NULL,
-    sort_order INTEGER NOT NULL DEFAULT 0
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id               INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date                  TEXT NOT NULL,
+    recipe_id             INTEGER REFERENCES recipes(id) ON DELETE SET NULL,
+    label                 TEXT NOT NULL,
+    sort_order            INTEGER NOT NULL DEFAULT 0,
+    is_weekly             INTEGER NOT NULL DEFAULT 0,
+    selected_optional_ids TEXT NOT NULL DEFAULT ''
   );
 `);
 

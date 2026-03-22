@@ -61,7 +61,7 @@ router.post('/', (req, res) => {
 
   const { c: count } = db.prepare('SELECT COUNT(*) as c FROM recipes WHERE user_id = ?').get(req.user.id);
   const insertRecipe = db.prepare('INSERT INTO recipes (user_id, title, category, sort_order) VALUES (?, ?, ?, ?)');
-  const insertIng = db.prepare('INSERT INTO recipe_ingredients (recipe_id, name, amount) VALUES (?, ?, ?)');
+  const insertIng = db.prepare('INSERT INTO recipe_ingredients (recipe_id, name, amount, is_optional) VALUES (?, ?, ?, ?)');
 
   let recipeId;
   db.exec('BEGIN');
@@ -69,7 +69,7 @@ router.post('/', (req, res) => {
     const { lastInsertRowid } = insertRecipe.run(req.user.id, title.trim(), category, count);
     recipeId = Number(lastInsertRowid);
     for (const ing of ingredients) {
-      if (ing.name?.trim()) insertIng.run(recipeId, ing.name.trim(), ing.amount?.trim() ?? '');
+      if (ing.name?.trim()) insertIng.run(recipeId, ing.name.trim(), ing.amount?.trim() ?? '', ing.is_optional ? 1 : 0);
     }
     db.exec('COMMIT');
   } catch (e) {
@@ -99,14 +99,14 @@ router.put('/:id', (req, res) => {
 
   const updateRecipe = db.prepare('UPDATE recipes SET title = ?, category = ? WHERE id = ?');
   const deleteIngs = db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?');
-  const insertIng = db.prepare('INSERT INTO recipe_ingredients (recipe_id, name, amount) VALUES (?, ?, ?)');
+  const insertIng = db.prepare('INSERT INTO recipe_ingredients (recipe_id, name, amount, is_optional) VALUES (?, ?, ?, ?)');
 
   db.exec('BEGIN');
   try {
     updateRecipe.run(title.trim(), category, req.params.id);
     deleteIngs.run(req.params.id);
     for (const ing of ingredients) {
-      if (ing.name?.trim()) insertIng.run(req.params.id, ing.name.trim(), ing.amount?.trim() ?? '');
+      if (ing.name?.trim()) insertIng.run(req.params.id, ing.name.trim(), ing.amount?.trim() ?? '', ing.is_optional ? 1 : 0);
     }
     db.exec('COMMIT');
   } catch (e) {

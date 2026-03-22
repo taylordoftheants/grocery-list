@@ -62,26 +62,36 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
   const [title, setTitle] = useState(recipe?.title ?? '');
   const [category, setCategory] = useState(recipe?.category ?? 'Core Meals');
   const [ingredients, setIngredients] = useState(
-    recipe?.ingredients?.length ? recipe.ingredients : [{ name: '', amount: '' }]
+    recipe?.ingredients?.filter(i => !i.is_optional).length
+      ? recipe.ingredients.filter(i => !i.is_optional)
+      : [{ name: '', amount: '' }]
+  );
+  const [optionals, setOptionals] = useState(
+    recipe?.ingredients?.filter(i => i.is_optional) ?? []
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const setIng = (i, field, value) =>
     setIngredients(prev => prev.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing));
-
   const addIng = () => setIngredients(prev => [...prev, { name: '', amount: '' }]);
   const removeIng = (i) => setIngredients(prev => prev.filter((_, idx) => idx !== i));
+
+  const setOpt = (i, field, value) =>
+    setOptionals(prev => prev.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing));
+  const addOpt = () => setOptionals(prev => [...prev, { name: '', amount: '' }]);
+  const removeOpt = (i) => setOptionals(prev => prev.filter((_, idx) => idx !== i));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    const validIngs = ingredients.filter(i => i.name.trim());
+    const validIngs = ingredients.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 0 }));
+    const validOpts = optionals.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 1 }));
     setLoading(true);
     try {
       const saved = recipe
-        ? await api.updateRecipe(recipe.id, title, validIngs, category)
-        : await api.createRecipe(title, validIngs, category);
+        ? await api.updateRecipe(recipe.id, title, [...validIngs, ...validOpts], category)
+        : await api.createRecipe(title, [...validIngs, ...validOpts], category);
       onSave(saved);
     } catch (err) {
       setError(err.message);
@@ -159,6 +169,41 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
         ))}
       </div>
 
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#92400e' }}>Optional Additions</label>
+          <button type="button" onClick={addOpt} style={{ fontSize: '0.8125rem', color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+            + Add optional
+          </button>
+        </div>
+
+        {optionals.length === 0 ? (
+          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>
+            None — add sides or accompaniments here (e.g. green beans, bread rolls).
+          </p>
+        ) : (
+          optionals.map((ing, i) => (
+            <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
+              <input
+                value={ing.amount}
+                onChange={e => setOpt(i, 'amount', e.target.value)}
+                placeholder="Amount"
+                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#fffbeb' }}
+              />
+              <input
+                value={ing.name}
+                onChange={e => setOpt(i, 'name', e.target.value)}
+                placeholder="Optional item"
+                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#fffbeb' }}
+              />
+              <button type="button" onClick={() => removeOpt(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>
+                ×
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button
           type="submit"
@@ -184,6 +229,9 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
 // ── RecipeDetail ──────────────────────────────────────────────────────────────
 
 function RecipeDetail({ recipe, onEdit, onDelete }) {
+  const required = recipe.ingredients.filter(i => !i.is_optional);
+  const optional = recipe.ingredients.filter(i => i.is_optional);
+
   return (
     <div style={{ padding: '1.5rem', maxWidth: '480px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
@@ -199,24 +247,51 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
       </div>
       <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '1rem' }}>{recipe.category}</p>
 
-      {recipe.ingredients.length === 0 ? (
+      {required.length === 0 && optional.length === 0 ? (
         <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No ingredients added.</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {recipe.ingredients.map(ing => (
-            <li key={ing.id} style={{
-              padding: '0.4rem 0.75rem',
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.375rem',
-              marginBottom: '0.375rem',
-              fontSize: '0.9375rem',
-              color: '#374151',
-            }}>
-              {[ing.amount, ing.name].filter(Boolean).join(' ')}
-            </li>
-          ))}
-        </ul>
+        <>
+          {required.length > 0 && (
+            <ul style={{ listStyle: 'none', padding: 0, marginBottom: optional.length > 0 ? '1rem' : 0 }}>
+              {required.map(ing => (
+                <li key={ing.id} style={{
+                  padding: '0.4rem 0.75rem',
+                  background: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.375rem',
+                  marginBottom: '0.375rem',
+                  fontSize: '0.9375rem',
+                  color: '#374151',
+                }}>
+                  {[ing.amount, ing.name].filter(Boolean).join(' ')}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {optional.length > 0 && (
+            <div>
+              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                Optional Additions
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                {optional.map(ing => (
+                  <li key={ing.id} style={{
+                    padding: '0.4rem 0.75rem',
+                    background: '#fffbeb',
+                    border: '1px solid #fde68a',
+                    borderRadius: '0.375rem',
+                    marginBottom: '0.375rem',
+                    fontSize: '0.9375rem',
+                    color: '#78350f',
+                  }}>
+                    {[ing.amount, ing.name].filter(Boolean).join(' ')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

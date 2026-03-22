@@ -4,14 +4,28 @@ const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
 
 export default function AddToDayModal({ recipes, date, dayLabel, onConfirm, onClose }) {
   const [checkedIds, setCheckedIds] = useState(new Set());
+  const [selectedOptionals, setSelectedOptionals] = useState({});
   const [manualText, setManualText] = useState('');
   const [loading, setLoading] = useState(false);
 
   const toggleId = (id) => setCheckedIds(prev => {
     const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+      setSelectedOptionals(prev => { const n = { ...prev }; delete n[id]; return n; });
+    } else {
+      next.add(id);
+    }
     return next;
   });
+
+  const toggleOptional = (recipeId, ingId) => {
+    setSelectedOptionals(prev => {
+      const currentSet = new Set(prev[recipeId] ?? []);
+      if (currentSet.has(ingId)) currentSet.delete(ingId); else currentSet.add(ingId);
+      return { ...prev, [recipeId]: currentSet };
+    });
+  };
 
   const totalCount = checkedIds.size + (manualText.trim() ? 1 : 0);
 
@@ -20,7 +34,12 @@ export default function AddToDayModal({ recipes, date, dayLabel, onConfirm, onCl
     const entries = [];
     for (const recipe of recipes) {
       if (checkedIds.has(recipe.id)) {
-        entries.push({ date, recipe_id: recipe.id, label: recipe.title });
+        entries.push({
+          date,
+          recipe_id: recipe.id,
+          label: recipe.title,
+          selected_optional_ids: [...(selectedOptionals[recipe.id] ?? [])],
+        });
       }
     }
     if (manualText.trim()) {
@@ -66,26 +85,61 @@ export default function AddToDayModal({ recipes, date, dayLabel, onConfirm, onCl
                 <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
                   {group.category}
                 </p>
-                {group.items.map(recipe => (
-                  <label
-                    key={recipe.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.625rem',
-                      padding: '0.5rem 0.625rem', borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      background: checkedIds.has(recipe.id) ? '#eff6ff' : 'transparent',
-                      marginBottom: '0.125rem',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checkedIds.has(recipe.id)}
-                      onChange={() => toggleId(recipe.id)}
-                      style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0 }}
-                    />
-                    <span style={{ fontSize: '0.9375rem', color: '#374151' }}>{recipe.title}</span>
-                  </label>
-                ))}
+                {group.items.map(recipe => {
+                  const optionals = recipe.ingredients?.filter(i => i.is_optional) ?? [];
+                  const isChecked = checkedIds.has(recipe.id);
+                  return (
+                    <div key={recipe.id}>
+                      <label
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.625rem',
+                          padding: '0.5rem 0.625rem', borderRadius: '0.375rem',
+                          cursor: 'pointer',
+                          background: isChecked ? '#eff6ff' : 'transparent',
+                          marginBottom: '0.125rem',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleId(recipe.id)}
+                          style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0 }}
+                        />
+                        <span style={{ fontSize: '0.9375rem', color: '#374151' }}>{recipe.title}</span>
+                      </label>
+
+                      {isChecked && optionals.length > 0 && (
+                        <div style={{ paddingLeft: '2.125rem', paddingBottom: '0.375rem' }}>
+                          <p style={{ fontSize: '0.6875rem', color: '#9ca3af', marginBottom: '0.25rem' }}>Add sides:</p>
+                          {optionals.map(ing => {
+                            const ingLabel = [ing.amount, ing.name].filter(Boolean).join(' ');
+                            const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
+                            return (
+                              <label
+                                key={ing.id}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                  padding: '0.3rem 0.5rem', borderRadius: '0.25rem',
+                                  cursor: 'pointer',
+                                  background: isSelected ? '#fffbeb' : 'transparent',
+                                  marginBottom: '0.125rem',
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleOptional(recipe.id, ing.id)}
+                                  style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0 }}
+                                />
+                                <span style={{ fontSize: '0.875rem', color: '#92400e' }}>{ingLabel}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))
           )}

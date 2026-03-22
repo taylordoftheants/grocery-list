@@ -39,21 +39,26 @@ router.post('/add-to-list', (req, res) => {
 
   const itemNames = new Set();
 
-  // Collect ingredients from recipe entries
-  const recipeIds = [...new Set(entries.map(e => e.recipe_id).filter(Boolean))];
-  if (recipeIds.length > 0) {
-    const ings = db
-      .prepare(`SELECT name, amount FROM recipe_ingredients WHERE recipe_id IN (${recipeIds.map(() => '?').join(',')})`)
-      .all(...recipeIds);
-    for (const ing of ings) {
-      const label = [ing.amount, ing.name].filter(Boolean).join(' ').trim();
-      if (label) itemNames.add(label);
-    }
-  }
-
-  // Collect manual entries (no recipe)
   for (const entry of entries) {
-    if (!entry.recipe_id && entry.label?.trim()) {
+    if (entry.recipe_id) {
+      // Parse which optional ingredient IDs were selected for this specific entry
+      let selectedOptionalIds = new Set();
+      try {
+        const parsed = JSON.parse(entry.selected_optional_ids || '[]');
+        if (Array.isArray(parsed)) selectedOptionalIds = new Set(parsed);
+      } catch (_) {}
+
+      const ings = db
+        .prepare('SELECT id, name, amount, is_optional FROM recipe_ingredients WHERE recipe_id = ?')
+        .all(entry.recipe_id);
+
+      for (const ing of ings) {
+        if (!ing.is_optional || selectedOptionalIds.has(ing.id)) {
+          const label = [ing.amount, ing.name].filter(Boolean).join(' ').trim();
+          if (label) itemNames.add(label);
+        }
+      }
+    } else if (entry.label?.trim()) {
       itemNames.add(entry.label.trim());
     }
   }
@@ -73,7 +78,7 @@ router.post('/add-to-list', (req, res) => {
 
 // POST /api/mealplan
 router.post('/', (req, res) => {
-  const { date, recipe_id, label, is_weekly } = req.body;
+  const { date, recipe_id, label, is_weekly, selected_optional_ids } = req.body;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
   }
@@ -85,14 +90,21 @@ router.post('/', (req, res) => {
   }
 
   const isWeekly = is_weekly ? 1 : 0;
+
+  let selectedOptionalIdsStr = '';
+  if (recipe_id != null && Array.isArray(selected_optional_ids) && selected_optional_ids.length > 0) {
+    const ids = selected_optional_ids.filter(id => Number.isInteger(id));
+    if (ids.length > 0) selectedOptionalIdsStr = JSON.stringify(ids);
+  }
+
   const maxRow = db
     .prepare('SELECT MAX(sort_order) as m FROM meal_plan_entries WHERE user_id = ? AND date = ? AND is_weekly = ?')
     .get(req.user.id, date, isWeekly);
   const sortOrder = (maxRow?.m ?? -1) + 1;
 
   const { lastInsertRowid } = db
-    .prepare('INSERT INTO meal_plan_entries (user_id, date, recipe_id, label, sort_order, is_weekly) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(req.user.id, date, recipe_id ?? null, label.trim(), sortOrder, isWeekly);
+    .prepare('INSERT INTO meal_plan_entries (user_id, date, recipe_id, label, sort_order, is_weekly, selected_optional_ids) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(req.user.id, date, recipe_id ?? null, label.trim(), sortOrder, isWeekly, selectedOptionalIdsStr);
 
   const entry = db.prepare('SELECT * FROM meal_plan_entries WHERE id = ?').get(lastInsertRowid);
   res.status(201).json(entry);
