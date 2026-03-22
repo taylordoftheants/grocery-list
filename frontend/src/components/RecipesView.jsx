@@ -16,7 +16,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 
-const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
+const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 
 // ── SortableRecipeItem ────────────────────────────────────────────────────────
 
@@ -66,8 +66,11 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
       ? recipe.ingredients.filter(i => !i.is_optional)
       : [{ name: '', amount: '' }]
   );
-  const [optionals, setOptionals] = useState(
-    recipe?.ingredients?.filter(i => i.is_optional) ?? []
+  const [sideOptions, setSideOptions] = useState(
+    recipe?.ingredients?.filter(i => i.optional_category === 'sides') ?? []
+  );
+  const [proteinOptions, setProteinOptions] = useState(
+    recipe?.ingredients?.filter(i => i.optional_category === 'protein') ?? []
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -77,21 +80,27 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
   const addIng = () => setIngredients(prev => [...prev, { name: '', amount: '' }]);
   const removeIng = (i) => setIngredients(prev => prev.filter((_, idx) => idx !== i));
 
-  const setOpt = (i, field, value) =>
-    setOptionals(prev => prev.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing));
-  const addOpt = () => setOptionals(prev => [...prev, { name: '', amount: '' }]);
-  const removeOpt = (i) => setOptionals(prev => prev.filter((_, idx) => idx !== i));
+  const setSide = (i, field, value) =>
+    setSideOptions(prev => prev.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing));
+  const addSide = () => setSideOptions(prev => [...prev, { name: '', amount: '' }]);
+  const removeSide = (i) => setSideOptions(prev => prev.filter((_, idx) => idx !== i));
+
+  const setProtein = (i, field, value) =>
+    setProteinOptions(prev => prev.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing));
+  const addProtein = () => setProteinOptions(prev => [...prev, { name: '', amount: '' }]);
+  const removeProtein = (i) => setProteinOptions(prev => prev.filter((_, idx) => idx !== i));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    const validIngs = ingredients.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 0 }));
-    const validOpts = optionals.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 1 }));
+    const validIngs = ingredients.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 0, optional_category: '' }));
+    const validSides = sideOptions.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 1, optional_category: 'sides' }));
+    const validProteins = proteinOptions.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 1, optional_category: 'protein' }));
     setLoading(true);
     try {
       const saved = recipe
-        ? await api.updateRecipe(recipe.id, title, [...validIngs, ...validOpts], category)
-        : await api.createRecipe(title, [...validIngs, ...validOpts], category);
+        ? await api.updateRecipe(recipe.id, title, [...validIngs, ...validSides, ...validProteins], category)
+        : await api.createRecipe(title, [...validIngs, ...validSides, ...validProteins], category);
       onSave(saved);
     } catch (err) {
       setError(err.message);
@@ -169,36 +178,45 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
         ))}
       </div>
 
-      <div style={{ marginBottom: '1.25rem' }}>
+      <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#92400e' }}>Optional Additions</label>
-          <button type="button" onClick={addOpt} style={{ fontSize: '0.8125rem', color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
-            + Add optional
+          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#92400e' }}>Side Options</label>
+          <button type="button" onClick={addSide} style={{ fontSize: '0.8125rem', color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+            + Add side
           </button>
         </div>
-
-        {optionals.length === 0 ? (
-          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>
-            None — add sides or accompaniments here (e.g. green beans, bread rolls).
-          </p>
+        {sideOptions.length === 0 ? (
+          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>e.g. green beans, roasted potatoes, rice</p>
         ) : (
-          optionals.map((ing, i) => (
+          sideOptions.map((ing, i) => (
             <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
-              <input
-                value={ing.amount}
-                onChange={e => setOpt(i, 'amount', e.target.value)}
-                placeholder="Amount"
-                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#fffbeb' }}
-              />
-              <input
-                value={ing.name}
-                onChange={e => setOpt(i, 'name', e.target.value)}
-                placeholder="Optional item"
-                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#fffbeb' }}
-              />
-              <button type="button" onClick={() => removeOpt(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>
-                ×
-              </button>
+              <input value={ing.amount} onChange={e => setSide(i, 'amount', e.target.value)} placeholder="Amount"
+                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#fffbeb' }} />
+              <input value={ing.name} onChange={e => setSide(i, 'name', e.target.value)} placeholder="Side option"
+                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#fffbeb' }} />
+              <button type="button" onClick={() => removeSide(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1e40af' }}>Protein Options</label>
+          <button type="button" onClick={addProtein} style={{ fontSize: '0.8125rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+            + Add protein
+          </button>
+        </div>
+        {proteinOptions.length === 0 ? (
+          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>e.g. chicken breast, tofu, shrimp</p>
+        ) : (
+          proteinOptions.map((ing, i) => (
+            <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
+              <input value={ing.amount} onChange={e => setProtein(i, 'amount', e.target.value)} placeholder="Amount"
+                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#eff6ff' }} />
+              <input value={ing.name} onChange={e => setProtein(i, 'name', e.target.value)} placeholder="Protein option"
+                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#eff6ff' }} />
+              <button type="button" onClick={() => removeProtein(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
             </div>
           ))
         )}
@@ -230,7 +248,8 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
 
 function RecipeDetail({ recipe, onEdit, onDelete }) {
   const required = recipe.ingredients.filter(i => !i.is_optional);
-  const optional = recipe.ingredients.filter(i => i.is_optional);
+  const sideOptions = recipe.ingredients.filter(i => i.optional_category === 'sides');
+  const proteinOptions = recipe.ingredients.filter(i => i.optional_category === 'protein');
 
   return (
     <div style={{ padding: '1.5rem', maxWidth: '480px' }}>
@@ -247,44 +266,43 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
       </div>
       <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '1rem' }}>{recipe.category}</p>
 
-      {required.length === 0 && optional.length === 0 ? (
+      {required.length === 0 && sideOptions.length === 0 && proteinOptions.length === 0 ? (
         <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No ingredients added.</p>
       ) : (
         <>
           {required.length > 0 && (
-            <ul style={{ listStyle: 'none', padding: 0, marginBottom: optional.length > 0 ? '1rem' : 0 }}>
+            <ul style={{ listStyle: 'none', padding: 0, marginBottom: (sideOptions.length > 0 || proteinOptions.length > 0) ? '1rem' : 0 }}>
               {required.map(ing => (
-                <li key={ing.id} style={{
-                  padding: '0.4rem 0.75rem',
-                  background: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '0.375rem',
-                  marginBottom: '0.375rem',
-                  fontSize: '0.9375rem',
-                  color: '#374151',
-                }}>
+                <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#374151' }}>
                   {[ing.amount, ing.name].filter(Boolean).join(' ')}
                 </li>
               ))}
             </ul>
           )}
 
-          {optional.length > 0 && (
-            <div>
+          {sideOptions.length > 0 && (
+            <div style={{ marginBottom: proteinOptions.length > 0 ? '1rem' : 0 }}>
               <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                Optional Additions
+                Side Options
               </p>
               <ul style={{ listStyle: 'none', padding: 0 }}>
-                {optional.map(ing => (
-                  <li key={ing.id} style={{
-                    padding: '0.4rem 0.75rem',
-                    background: '#fffbeb',
-                    border: '1px solid #fde68a',
-                    borderRadius: '0.375rem',
-                    marginBottom: '0.375rem',
-                    fontSize: '0.9375rem',
-                    color: '#78350f',
-                  }}>
+                {sideOptions.map(ing => (
+                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#78350f' }}>
+                    {[ing.amount, ing.name].filter(Boolean).join(' ')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {proteinOptions.length > 0 && (
+            <div>
+              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                Protein Options
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                {proteinOptions.map(ing => (
+                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#1e40af' }}>
                     {[ing.amount, ing.name].filter(Boolean).join(' ')}
                   </li>
                 ))}

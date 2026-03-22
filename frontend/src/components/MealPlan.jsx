@@ -19,7 +19,7 @@ import { api } from '../api';
 import AddToListModal from './AddToListModal';
 import AddToDayModal from './AddToDayModal';
 
-const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
+const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

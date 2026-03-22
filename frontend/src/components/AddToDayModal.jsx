@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
+const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 
 export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedId, onConfirm, onClose }) {
   const [checkedIds, setCheckedIds] = useState(() => initialCheckedId ? new Set([initialCheckedId]) : new Set());
@@ -86,7 +86,8 @@ export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedI
                   {group.category}
                 </p>
                 {group.items.map(recipe => {
-                  const optionals = recipe.ingredients?.filter(i => i.is_optional) ?? [];
+                  const sideOpts = recipe.ingredients?.filter(i => i.optional_category === 'sides') ?? [];
+                  const proteinOpts = recipe.ingredients?.filter(i => i.optional_category === 'protein') ?? [];
                   const isChecked = checkedIds.has(recipe.id);
                   return (
                     <div key={recipe.id}>
@@ -108,33 +109,38 @@ export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedI
                         <span style={{ fontSize: '0.9375rem', color: '#374151' }}>{recipe.title}</span>
                       </label>
 
-                      {isChecked && optionals.length > 0 && (
+                      {isChecked && (sideOpts.length > 0 || proteinOpts.length > 0) && (
                         <div style={{ paddingLeft: '2.125rem', paddingBottom: '0.375rem' }}>
-                          <p style={{ fontSize: '0.6875rem', color: '#9ca3af', marginBottom: '0.25rem' }}>Add sides:</p>
-                          {optionals.map(ing => {
-                            const ingLabel = [ing.amount, ing.name].filter(Boolean).join(' ');
-                            const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
-                            return (
-                              <label
-                                key={ing.id}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                  padding: '0.3rem 0.5rem', borderRadius: '0.25rem',
-                                  cursor: 'pointer',
-                                  background: isSelected ? '#fffbeb' : 'transparent',
-                                  marginBottom: '0.125rem',
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => toggleOptional(recipe.id, ing.id)}
-                                  style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0 }}
-                                />
-                                <span style={{ fontSize: '0.875rem', color: '#92400e' }}>{ingLabel}</span>
-                              </label>
-                            );
-                          })}
+                          {sideOpts.length > 0 && (
+                            <>
+                              <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#92400e', marginBottom: '0.25rem' }}>Side Options</p>
+                              {sideOpts.map(ing => {
+                                const ingLabel = [ing.amount, ing.name].filter(Boolean).join(' ');
+                                const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
+                                return (
+                                  <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: '0.25rem', cursor: 'pointer', background: isSelected ? '#fffbeb' : 'transparent', marginBottom: '0.125rem' }}>
+                                    <input type="checkbox" checked={isSelected} onChange={() => toggleOptional(recipe.id, ing.id)} style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0 }} />
+                                    <span style={{ fontSize: '0.875rem', color: '#92400e' }}>{ingLabel}</span>
+                                  </label>
+                                );
+                              })}
+                            </>
+                          )}
+                          {proteinOpts.length > 0 && (
+                            <>
+                              <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#1e40af', marginBottom: '0.25rem', marginTop: sideOpts.length > 0 ? '0.375rem' : 0 }}>Protein Options</p>
+                              {proteinOpts.map(ing => {
+                                const ingLabel = [ing.amount, ing.name].filter(Boolean).join(' ');
+                                const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
+                                return (
+                                  <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: '0.25rem', cursor: 'pointer', background: isSelected ? '#eff6ff' : 'transparent', marginBottom: '0.125rem' }}>
+                                    <input type="checkbox" checked={isSelected} onChange={() => toggleOptional(recipe.id, ing.id)} style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0 }} />
+                                    <span style={{ fontSize: '0.875rem', color: '#1e40af' }}>{ingLabel}</span>
+                                  </label>
+                                );
+                              })}
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

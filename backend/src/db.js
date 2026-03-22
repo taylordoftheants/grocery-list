@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -36,6 +36,12 @@ if (user_version === 3) {
 if (user_version === 4) {
   db.exec('ALTER TABLE recipe_ingredients ADD COLUMN is_optional INTEGER NOT NULL DEFAULT 0');
   db.exec("ALTER TABLE meal_plan_entries ADD COLUMN selected_optional_ids TEXT NOT NULL DEFAULT ''");
+}
+// v5 → v6: add optional_category to recipe_ingredients; migrate Protein Options recipes to Core Meals
+if (user_version === 5) {
+  db.exec("ALTER TABLE recipe_ingredients ADD COLUMN optional_category TEXT NOT NULL DEFAULT ''");
+  db.exec("UPDATE recipe_ingredients SET optional_category = 'sides' WHERE is_optional = 1");
+  db.exec("UPDATE recipes SET category = 'Core Meals' WHERE category = 'Protein Options'");
 }
 
 if (user_version < SCHEMA_VERSION) {
@@ -76,11 +82,12 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS recipe_ingredients (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    recipe_id   INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
-    name        TEXT NOT NULL,
-    amount      TEXT NOT NULL DEFAULT '',
-    is_optional INTEGER NOT NULL DEFAULT 0
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipe_id         INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+    name              TEXT NOT NULL,
+    amount            TEXT NOT NULL DEFAULT '',
+    is_optional       INTEGER NOT NULL DEFAULT 0,
+    optional_category TEXT NOT NULL DEFAULT ''
   );
 
   CREATE TABLE IF NOT EXISTS meal_plan_entries (
