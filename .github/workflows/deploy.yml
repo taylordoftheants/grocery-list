@@ -55,6 +55,7 @@ jobs:
           script: |
             cd /opt/grocery-list
             echo "GITHUB_REPOSITORY=${{ github.repository }}" > .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             docker compose pull
             docker compose up -d
             docker image prune -f

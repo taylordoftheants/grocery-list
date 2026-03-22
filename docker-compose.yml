@@ -13,6 +13,7 @@ services:
       - "3000"
     environment:
       - DB_PATH=/data/grocery.db
+      - JWT_SECRET=${JWT_SECRET}
     volumes:
       - grocery-data:/data
     restart: unless-stopped

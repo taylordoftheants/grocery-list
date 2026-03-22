@@ -2,22 +2,35 @@ import { useState, useEffect } from 'react';
 import { api } from './api';
 import ListSidebar from './components/ListSidebar';
 import ItemList from './components/ItemList';
+import AuthForm from './components/AuthForm';
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelected] = useState(null);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
+  // Restore session on load
   useEffect(() => {
+    api.getMe()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setAuthLoading(false));
+  }, []);
+
+  // Load lists when user is set
+  useEffect(() => {
+    if (!user) return;
     api.getLists()
       .then(data => {
         setLists(data);
         if (data.length > 0) setSelected(data[0].id);
       })
       .catch(e => setError(e.message));
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -28,6 +41,19 @@ export default function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const handleAuth = (loggedInUser) => {
+    setUser(loggedInUser);
+    setLists([]);
+    setSelected(null);
+  };
+
+  const handleLogout = async () => {
+    await api.logout();
+    setUser(null);
+    setLists([]);
+    setSelected(null);
+  };
 
   const handleCreateList = async (name) => {
     const list = await api.createList(name);
@@ -45,6 +71,18 @@ export default function App() {
       return next;
     });
   };
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
+        <p style={{ color: '#9ca3af' }}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthForm onAuth={handleAuth} />;
+  }
 
   const selectedList = lists.find(l => l.id === selectedListId);
 
@@ -77,6 +115,8 @@ export default function App() {
         onSelect={setSelected}
         onCreate={handleCreateList}
         onDelete={handleDeleteList}
+        onLogout={handleLogout}
+        user={user}
         isOpen={isSidebarOpen}
         isMobile={isMobile}
         onToggle={() => setIsSidebarOpen(o => !o)}
