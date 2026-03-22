@@ -170,6 +170,8 @@ function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker
 // ── WeeklyBox ─────────────────────────────────────────────────────────────────
 
 function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile }) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'weekly' });
+
   if (isMobile) {
     return (
       <div style={{
@@ -226,7 +228,7 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile }) {
   }
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
+    <div ref={setNodeRef} style={{ background: isOver ? '#eff6ff' : '#fff', border: `1px solid ${isOver ? '#bfdbfe' : '#e5e7eb'}`, transition: 'background 0.15s, border-color 0.15s', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem', flexShrink: 0, paddingTop: '0.25rem' }}>
           For the Week
@@ -437,6 +439,8 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
       if (hasOptionals) {
         setPreCheckedRecipeId(recipe.id);
         setPickingForDate(over.id);
+      } else if (over.id === 'weekly') {
+        handleAddEntry({ date: formatDateKey(weekStart), recipe_id: recipe.id, label: recipe.title, is_weekly: 1 });
       } else {
         handleAddEntry({ date: over.id, recipe_id: recipe.id, label: recipe.title });
       }
