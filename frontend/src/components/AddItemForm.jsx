@@ -16,6 +16,8 @@ export default function AddItemForm({ onAdd }) {
     }
   };
 
+  const canSubmit = name.trim().length > 0 && !loading;
+
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
       <input
@@ -24,22 +26,24 @@ export default function AddItemForm({ onAdd }) {
         placeholder="Add item..."
         style={{
           flex: 1,
-          padding: '0.5rem 0.75rem',
+          padding: '0.625rem 0.75rem',
           border: '1px solid #d1d5db',
           borderRadius: '0.375rem',
-          fontSize: '0.875rem',
+          fontSize: '1rem',
         }}
       />
       <button
         type="submit"
-        disabled={loading}
+        disabled={!canSubmit}
         style={{
-          padding: '0.5rem 1rem',
-          background: '#2563eb',
+          padding: '0.625rem 1.25rem',
+          background: canSubmit ? '#2563eb' : '#d1d5db',
           color: '#fff',
           border: 'none',
           borderRadius: '0.375rem',
-          fontSize: '0.875rem',
+          fontSize: '1rem',
+          cursor: canSubmit ? 'pointer' : 'default',
+          transition: 'background 0.15s',
         }}
       >
         Add

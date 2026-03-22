@@ -7,6 +7,8 @@ export default function App() {
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelected] = useState(null);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
   useEffect(() => {
     api.getLists()
@@ -15,6 +17,16 @@ export default function App() {
         if (data.length > 0) setSelected(data[0].id);
       })
       .catch(e => setError(e.message));
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(true);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handleCreateList = async (name) => {
@@ -37,31 +49,50 @@ export default function App() {
   const selectedList = lists.find(l => l.id === selectedListId);
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {error && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,
           background: '#fee2e2', color: '#991b1b', padding: '0.75rem 1rem',
-          zIndex: 100,
+          zIndex: 400,
         }}>
           {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem' }}>Dismiss</button>
         </div>
       )}
+
+      {isMobile && isSidebarOpen && (
+        <div
+          onClick={() => setIsSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 150,
+          }}
+        />
+      )}
+
       <ListSidebar
         lists={lists}
         selectedListId={selectedListId}
         onSelect={setSelected}
         onCreate={handleCreateList}
         onDelete={handleDeleteList}
+        isOpen={isSidebarOpen}
+        isMobile={isMobile}
+        onToggle={() => setIsSidebarOpen(o => !o)}
+        onClose={() => setIsSidebarOpen(false)}
       />
-      {selectedList
-        ? <ItemList list={selectedList} />
-        : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-            <p>Create or select a list to get started.</p>
-          </div>
-        )
-      }
+
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {selectedList
+          ? <ItemList list={selectedList} isMobile={isMobile} />
+          : (
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+              <p>Create or select a list to get started.</p>
+            </div>
+          )
+        }
+      </div>
     </div>
   );
 }
