@@ -71,12 +71,14 @@ export default function AuthForm({ onAuth }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <form id="auth-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+            <label htmlFor="email" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
               Email
             </label>
             <input
+              id="email"
+              name="email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -94,10 +96,12 @@ export default function AuthForm({ onAuth }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+            <label htmlFor="password" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
               Password
             </label>
             <input
+              id="password"
+              name="password"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -121,10 +125,12 @@ export default function AuthForm({ onAuth }) {
 
           {mode === 'register' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+              <label htmlFor="confirm-password" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
                 Confirm Password
               </label>
               <input
+                id="confirm-password"
+                name="confirm-password"
                 type="password"
                 value={confirm}
                 onChange={e => setConfirm(e.target.value)}
