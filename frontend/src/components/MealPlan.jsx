@@ -311,6 +311,7 @@ export default function MealPlan({ lists, isMobile }) {
   const [addToListSuccess, setAddToListSuccess] = useState(null);
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [pickingForDate, setPickingForDate] = useState(null);
+  const [preCheckedRecipeId, setPreCheckedRecipeId] = useState(null);
   const isDraggingRef = useRef(false);
 
   const sensors = useSensors(
@@ -385,7 +386,14 @@ export default function MealPlan({ lists, isMobile }) {
 
     if (typeof over.id === 'string') {
       const recipe = recipes.find(r => r.id === active.id);
-      if (recipe) handleAddEntry({ date: over.id, recipe_id: recipe.id, label: recipe.title });
+      if (!recipe) return;
+      const hasOptionals = recipe.ingredients?.some(i => i.is_optional);
+      if (hasOptionals) {
+        setPreCheckedRecipeId(recipe.id);
+        setPickingForDate(over.id);
+      } else {
+        handleAddEntry({ date: over.id, recipe_id: recipe.id, label: recipe.title });
+      }
     } else if (active.id !== over.id) {
       const src = recipes.find(r => r.id === active.id);
       const dst = recipes.find(r => r.id === over.id);
@@ -543,8 +551,9 @@ export default function MealPlan({ lists, isMobile }) {
           recipes={recipes}
           date={pickingForDate === 'weekly' ? formatDateKey(weekStart) : pickingForDate}
           dayLabel={pickingForDate === 'weekly' ? 'For the Week' : dateKeyToLabel(pickingForDate)}
+          initialCheckedId={preCheckedRecipeId}
           onConfirm={handlePickerConfirm}
-          onClose={() => setPickingForDate(null)}
+          onClose={() => { setPickingForDate(null); setPreCheckedRecipeId(null); }}
         />
       )}
     </div>

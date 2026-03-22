@@ -2,8 +2,8 @@ import { useState } from 'react';
 
 const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
 
-export default function AddToDayModal({ recipes, date, dayLabel, onConfirm, onClose }) {
-  const [checkedIds, setCheckedIds] = useState(new Set());
+export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedId, onConfirm, onClose }) {
+  const [checkedIds, setCheckedIds] = useState(() => initialCheckedId ? new Set([initialCheckedId]) : new Set());
   const [selectedOptionals, setSelectedOptionals] = useState({});
   const [manualText, setManualText] = useState('');
   const [loading, setLoading] = useState(false);
