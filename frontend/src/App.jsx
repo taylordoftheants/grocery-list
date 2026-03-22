@@ -98,31 +98,35 @@ export default function App() {
         </div>
       )}
 
-      {/* Desktop sidebar — static flex sibling */}
-      {showSidebar && !isMobile && (
-        <ListSidebar {...sidebarProps} isMobile={false} />
-      )}
-
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <NavTabs currentView={currentView} onChangeView={setCurrentView} />
 
-        {/* Mobile inline list bar — sits below tabs, above content */}
-        {showSidebar && isMobile && (
-          <ListSidebar {...sidebarProps} isMobile={true} />
-        )}
-
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {currentView === 'lists' && (
-            selectedList
-              ? <ItemList list={selectedList} isMobile={isMobile} />
-              : (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-                  <p>Create or select a list to get started.</p>
-                </div>
-              )
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* Desktop sidebar — nested below nav bar */}
+          {showSidebar && !isMobile && (
+            <ListSidebar {...sidebarProps} isMobile={false} />
           )}
-          {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
-          {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} />}
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+            {/* Mobile inline list bar — sits below tabs, above content */}
+            {showSidebar && isMobile && (
+              <ListSidebar {...sidebarProps} isMobile={true} />
+            )}
+
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {currentView === 'lists' && (
+                selectedList
+                  ? <ItemList list={selectedList} isMobile={isMobile} />
+                  : (
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+                      <p>Create or select a list to get started.</p>
+                    </div>
+                  )
+              )}
+              {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
+              {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} />}
+            </div>
+          </div>
         </div>
       </div>
     </div>
