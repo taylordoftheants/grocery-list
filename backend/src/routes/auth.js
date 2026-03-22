@@ -8,7 +8,8 @@ const router = Router();
 const COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: 'strict',
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
@@ -17,7 +18,7 @@ function setAuthCookie(res, user) {
   const token = jwt.sign(
     { id: user.id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: '30d' }
+    { expiresIn: '7d' }
   );
   res.cookie('token', token, COOKIE_OPTIONS);
 }

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { rateLimit } from 'express-rate-limit';
 import listsRouter from './routes/lists.js';
 import itemsRouter from './routes/items.js';
 import authRouter from './routes/auth.js';
@@ -15,11 +16,20 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigin = process.env.ALLOWED_ORIGIN || false;
+app.use(cors({ origin: allowedOrigin, credentials: true }));
+
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later' },
+});
 app.use(express.json());
 app.use(cookieParser());
 
-app.use('/api/auth', authRouter);
+app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/lists', listsRouter);
 app.use('/api/lists/:listId/items', itemsRouter);
 app.use('/api/recipes', recipesRouter);
