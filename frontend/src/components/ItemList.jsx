@@ -32,6 +32,17 @@ export default function ItemList({ list, isMobile }) {
   const unpurchased = items.filter(i => !i.purchased);
   const purchased = items.filter(i => i.purchased);
 
+  const groupMap = new Map();
+  for (const item of unpurchased) {
+    const key = item.source_recipe ?? null;
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key).push(item);
+  }
+  const recipeGroups = [...groupMap.entries()]
+    .filter(([key]) => key !== null)
+    .sort(([a], [b]) => a.localeCompare(b));
+  const otherItems = groupMap.get(null) ?? [];
+
   return (
     <main style={{ padding: '1.5rem', background: '#f9fafb', minHeight: '100%' }}>
       <h1 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
@@ -43,11 +54,33 @@ export default function ItemList({ list, isMobile }) {
         <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No items yet. Add one above.</p>
       )}
 
-      <ul style={{ listStyle: 'none' }}>
-        {unpurchased.map(item => (
-          <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
-        ))}
-      </ul>
+      {recipeGroups.map(([recipeName, groupItems]) => (
+        <div key={recipeName} style={{ marginBottom: '0.75rem' }}>
+          <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.375rem 0' }}>
+            {recipeName}
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {groupItems.map(item => (
+              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
+            ))}
+          </ul>
+        </div>
+      ))}
+
+      {otherItems.length > 0 && (
+        <div style={{ marginBottom: '0.75rem' }}>
+          {recipeGroups.length > 0 && (
+            <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.375rem 0' }}>
+              Other
+            </p>
+          )}
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {otherItems.map(item => (
+              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
+            ))}
+          </ul>
+        </div>
+      )}
 
       {purchased.length > 0 && (
         <>
@@ -90,11 +123,6 @@ function Item({ item, onToggle, onDelete }) {
         textDecoration: item.purchased ? 'line-through' : 'none',
       }}>
         {item.name}
-        {item.source_recipe && (
-          <span style={{ display: 'inline-block', marginLeft: '0.5rem', padding: '0.1rem 0.5rem', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '1rem', fontSize: '0.625rem', color: '#9ca3af', verticalAlign: 'middle', fontWeight: '500' }}>
-            {item.source_recipe}
-          </span>
-        )}
       </span>
       <button
         onClick={() => onDelete(item.id)}
