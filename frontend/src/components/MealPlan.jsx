@@ -349,7 +349,7 @@ export default function MealPlan({ lists, isMobile }) {
   );
 
   return (
-    <div style={{ padding: '1rem', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+    <div style={{ padding: '1rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

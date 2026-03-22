@@ -91,7 +91,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
       {error && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: '#fee2e2', color: '#991b1b', padding: '0.75rem 1rem', zIndex: 400 }}>
           {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem' }}>Dismiss</button>
