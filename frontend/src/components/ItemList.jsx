@@ -28,7 +28,7 @@ export default function ItemList({ list, isMobile }) {
   const purchased = items.filter(i => i.purchased);
 
   return (
-    <main style={{ padding: '1.5rem', paddingTop: isMobile ? '3.5rem' : '1.5rem', background: '#f9fafb', minHeight: '100%' }}>
+    <main style={{ padding: '1.5rem', background: '#f9fafb', minHeight: '100%' }}>
       <h1 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
         {list.name}
       </h1>

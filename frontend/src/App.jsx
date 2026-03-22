@@ -3,6 +3,9 @@ import { api } from './api';
 import ListSidebar from './components/ListSidebar';
 import ItemList from './components/ItemList';
 import AuthForm from './components/AuthForm';
+import NavTabs from './components/NavTabs';
+import RecipesView from './components/RecipesView';
+import MealPlan from './components/MealPlan';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -12,8 +15,8 @@ export default function App() {
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
+  const [currentView, setCurrentView] = useState('lists');
 
-  // Restore session on load
   useEffect(() => {
     api.getMe()
       .then(setUser)
@@ -21,7 +24,6 @@ export default function App() {
       .finally(() => setAuthLoading(false));
   }, []);
 
-  // Load lists when user is set
   useEffect(() => {
     if (!user) return;
     api.getLists()
@@ -65,9 +67,7 @@ export default function App() {
     await api.deleteList(listId);
     setLists(prev => {
       const next = prev.filter(l => l.id !== listId);
-      if (selectedListId === listId) {
-        setSelected(next[0]?.id ?? null);
-      }
+      if (selectedListId === listId) setSelected(next[0]?.id ?? null);
       return next;
     });
   };
@@ -80,58 +80,54 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return <AuthForm onAuth={handleAuth} />;
-  }
+  if (!user) return <AuthForm onAuth={handleAuth} />;
 
   const selectedList = lists.find(l => l.id === selectedListId);
+  const showSidebar = currentView === 'lists';
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {error && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0,
-          background: '#fee2e2', color: '#991b1b', padding: '0.75rem 1rem',
-          zIndex: 400,
-        }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: '#fee2e2', color: '#991b1b', padding: '0.75rem 1rem', zIndex: 400 }}>
           {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem' }}>Dismiss</button>
         </div>
       )}
 
-      {isMobile && isSidebarOpen && (
-        <div
-          onClick={() => setIsSidebarOpen(false)}
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            zIndex: 150,
-          }}
+      {showSidebar && isMobile && isSidebarOpen && (
+        <div onClick={() => setIsSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 150 }} />
+      )}
+
+      {showSidebar && (
+        <ListSidebar
+          lists={lists}
+          selectedListId={selectedListId}
+          onSelect={setSelected}
+          onCreate={handleCreateList}
+          onDelete={handleDeleteList}
+          onLogout={handleLogout}
+          user={user}
+          isOpen={isSidebarOpen}
+          isMobile={isMobile}
+          onToggle={() => setIsSidebarOpen(o => !o)}
+          onClose={() => setIsSidebarOpen(false)}
         />
       )}
 
-      <ListSidebar
-        lists={lists}
-        selectedListId={selectedListId}
-        onSelect={setSelected}
-        onCreate={handleCreateList}
-        onDelete={handleDeleteList}
-        onLogout={handleLogout}
-        user={user}
-        isOpen={isSidebarOpen}
-        isMobile={isMobile}
-        onToggle={() => setIsSidebarOpen(o => !o)}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {selectedList
-          ? <ItemList list={selectedList} isMobile={isMobile} />
-          : (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-              <p>Create or select a list to get started.</p>
-            </div>
-          )
-        }
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <NavTabs currentView={currentView} onChangeView={setCurrentView} />
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {currentView === 'lists' && (
+            selectedList
+              ? <ItemList list={selectedList} isMobile={isMobile} />
+              : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+                  <p>Create or select a list to get started.</p>
+                </div>
+              )
+          )}
+          {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
+          {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} />}
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,8 @@ import cookieParser from 'cookie-parser';
 import listsRouter from './routes/lists.js';
 import itemsRouter from './routes/items.js';
 import authRouter from './routes/auth.js';
+import recipesRouter from './routes/recipes.js';
+import mealplanRouter from './routes/mealplan.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +22,8 @@ app.use(cookieParser());
 app.use('/api/auth', authRouter);
 app.use('/api/lists', listsRouter);
 app.use('/api/lists/:listId/items', itemsRouter);
+app.use('/api/recipes', recipesRouter);
+app.use('/api/mealplan', mealplanRouter);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

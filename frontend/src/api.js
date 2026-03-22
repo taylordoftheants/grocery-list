@@ -32,4 +32,16 @@ export const api = {
   addItem:    (listId, name)              => request('POST',   `/lists/${listId}/items`,       { name }),
   toggleItem: (listId, itemId, purchased) => request('PATCH',  `/lists/${listId}/items/${itemId}`, { purchased }),
   deleteItem: (listId, itemId)            => request('DELETE', `/lists/${listId}/items/${itemId}`),
+
+  // Recipes
+  getRecipes:    ()                         => request('GET',    '/recipes'),
+  createRecipe:  (title, ingredients)       => request('POST',   '/recipes',       { title, ingredients }),
+  updateRecipe:  (id, title, ingredients)   => request('PUT',    `/recipes/${id}`, { title, ingredients }),
+  deleteRecipe:  (id)                       => request('DELETE', `/recipes/${id}`),
+
+  // Meal Plan
+  getMealPlan:         (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),
+  addMealPlanEntry:    (entry)              => request('POST',   '/mealplan',              entry),
+  deleteMealPlanEntry: (id)                 => request('DELETE', `/mealplan/${id}`),
+  addMealPlanToList:   (listId, weekStart)  => request('POST',   '/mealplan/add-to-list',  { listId, weekStart }),
 };
