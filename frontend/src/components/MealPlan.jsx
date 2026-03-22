@@ -356,7 +356,7 @@ function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDelet
 
 // ── MealPlan ──────────────────────────────────────────────────────────────────
 
-export default function MealPlan({ lists, isMobile, onCreateList }) {
+export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRecipes }) {
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date()));
   const [entries, setEntries] = useState([]);
   const [recipes, setRecipes] = useState([]);
@@ -548,7 +548,14 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
           <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0 }}>
             {/* Recipe source panel */}
             <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto' }}>
-              {grouped.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>}
+              {grouped.length === 0 && (
+                <div>
+                  <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>
+                  <button type="button" onClick={onNavigateToRecipes} style={{ marginTop: '0.5rem', display: 'block', width: '100%', padding: '0.3rem 0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#9ca3af', fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left' }}>
+                    + New recipe
+                  </button>
+                </div>
+              )}
               {grouped.map(group => (
                 <div key={group.category} style={{ marginBottom: '0.75rem' }}>
                   <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
@@ -557,6 +564,9 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
                   <SortableContext items={group.items.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     {group.items.map(r => <SortableRecipe key={r.id} recipe={r} />)}
                   </SortableContext>
+                  <button type="button" onClick={onNavigateToRecipes} style={{ display: 'block', width: '100%', marginTop: '0.25rem', padding: '0.3rem 0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#9ca3af', fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left' }}>
+                    + New recipe
+                  </button>
                 </div>
               ))}
             </div>
@@ -610,6 +620,7 @@ export default function MealPlan({ lists, isMobile, onCreateList }) {
           initialCheckedId={preCheckedRecipeId}
           onConfirm={handlePickerConfirm}
           onClose={() => { setPickingForDate(null); setPreCheckedRecipeId(null); }}
+          onNewRecipe={onNavigateToRecipes}
         />
       )}
     </div>

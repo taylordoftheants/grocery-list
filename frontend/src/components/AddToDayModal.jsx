@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 
-export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedId, onConfirm, onClose }) {
+export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedId, onConfirm, onClose, onNewRecipe }) {
   const [checkedIds, setCheckedIds] = useState(() => initialCheckedId ? new Set([initialCheckedId]) : new Set());
   const [selectedOptionals, setSelectedOptionals] = useState({});
   const [manualText, setManualText] = useState('');
@@ -148,6 +148,16 @@ export default function AddToDayModal({ recipes, date, dayLabel, initialCheckedI
                 })}
               </div>
             ))
+          )}
+
+          {onNewRecipe && (
+            <button
+              type="button"
+              onClick={() => { onClose(); onNewRecipe(); }}
+              style={{ display: 'block', width: '100%', padding: '0.375rem 0.75rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#6b7280', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left', marginBottom: '0.5rem' }}
+            >
+              + Create a new recipe
+            </button>
           )}
 
           <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
