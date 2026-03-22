@@ -14,8 +14,7 @@ export default function App() {
   const [selectedListId, setSelected] = useState(null);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
-  const [currentView, setCurrentView] = useState('lists');
+  const [currentView, setCurrentView] = useState('mealplan');
 
   useEffect(() => {
     api.getMe()
@@ -35,11 +34,7 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setIsSidebarOpen(true);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -85,6 +80,16 @@ export default function App() {
   const selectedList = lists.find(l => l.id === selectedListId);
   const showSidebar = currentView === 'lists';
 
+  const sidebarProps = {
+    lists,
+    selectedListId,
+    onSelect: setSelected,
+    onCreate: handleCreateList,
+    onDelete: handleDeleteList,
+    onLogout: handleLogout,
+    user,
+  };
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {error && (
@@ -93,28 +98,19 @@ export default function App() {
         </div>
       )}
 
-      {showSidebar && isMobile && isSidebarOpen && (
-        <div onClick={() => setIsSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 150 }} />
-      )}
-
-      {showSidebar && (
-        <ListSidebar
-          lists={lists}
-          selectedListId={selectedListId}
-          onSelect={setSelected}
-          onCreate={handleCreateList}
-          onDelete={handleDeleteList}
-          onLogout={handleLogout}
-          user={user}
-          isOpen={isSidebarOpen}
-          isMobile={isMobile}
-          onToggle={() => setIsSidebarOpen(o => !o)}
-          onClose={() => setIsSidebarOpen(false)}
-        />
+      {/* Desktop sidebar — static flex sibling */}
+      {showSidebar && !isMobile && (
+        <ListSidebar {...sidebarProps} isMobile={false} />
       )}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         <NavTabs currentView={currentView} onChangeView={setCurrentView} />
+
+        {/* Mobile inline list bar — sits below tabs, above content */}
+        {showSidebar && isMobile && (
+          <ListSidebar {...sidebarProps} isMobile={true} />
+        )}
+
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {currentView === 'lists' && (
             selectedList

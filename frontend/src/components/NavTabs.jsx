@@ -1,6 +1,6 @@
 const TABS = [
-  { id: 'lists',    label: 'Shopping Lists' },
   { id: 'mealplan', label: 'Meal Plan' },
+  { id: 'lists',    label: 'Shopping Lists' },
   { id: 'recipes',  label: 'Recipes' },
 ];
 

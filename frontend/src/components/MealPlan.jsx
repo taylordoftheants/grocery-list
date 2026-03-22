@@ -17,6 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 import AddToListModal from './AddToListModal';
+import AddToDayModal from './AddToDayModal';
 
 const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
 
@@ -54,7 +55,11 @@ function formatWeekRange(monday) {
   return `${monday.toLocaleDateString('en-US', opts)} – ${sunday.toLocaleDateString('en-US', opts)}`;
 }
 
-// ── SortableRecipe (desktop drag source — also droppable for reorder) ─────────
+function dateKeyToLabel(dateKey) {
+  return formatDayLabel(new Date(dateKey + 'T00:00:00'));
+}
+
+// ── SortableRecipe ────────────────────────────────────────────────────────────
 
 function SortableRecipe({ recipe }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: recipe.id });
@@ -85,26 +90,10 @@ function SortableRecipe({ recipe }) {
   );
 }
 
-// ── DayColumn ─────────────────────────────────────────────────────────────────
+// ── DayColumn (desktop) ───────────────────────────────────────────────────────
 
-function DayColumn({ dateKey, dayLabel, entries, onDelete, onAddManual }) {
+function DayColumn({ dateKey, dayLabel, entries, onDelete, onOpenPicker }) {
   const { setNodeRef, isOver } = useDroppable({ id: dateKey });
-  const [manualInput, setManualInput] = useState('');
-  const [showInput, setShowInput] = useState(false);
-  const [adding, setAdding] = useState(false);
-
-  const handleManualAdd = async (e) => {
-    e.preventDefault();
-    if (!manualInput.trim() || adding) return;
-    setAdding(true);
-    try {
-      await onAddManual(dateKey, manualInput.trim());
-      setManualInput('');
-      setShowInput(false);
-    } finally {
-      setAdding(false);
-    }
-  };
 
   return (
     <div
@@ -148,120 +137,81 @@ function DayColumn({ dateKey, dayLabel, entries, onDelete, onAddManual }) {
         ))}
       </div>
 
-      {showInput ? (
-        <form onSubmit={handleManualAdd} style={{ marginTop: '0.25rem', display: 'flex', gap: '0.25rem' }}>
-          <input
-            autoFocus
-            value={manualInput}
-            onChange={e => setManualInput(e.target.value)}
-            placeholder="Meal name"
-            style={{ flex: 1, padding: '0.25rem 0.375rem', border: '1px solid #d1d5db', borderRadius: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}
-          />
-          <button type="submit" disabled={adding} style={{ padding: '0.25rem 0.375rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '0.25rem', fontSize: '0.8125rem', cursor: 'pointer' }}>✓</button>
-          <button type="button" onClick={() => setShowInput(false)} style={{ padding: '0.25rem 0.375rem', background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.25rem', fontSize: '0.8125rem', cursor: 'pointer', color: '#6b7280' }}>✕</button>
-        </form>
-      ) : (
-        <button
-          onClick={() => setShowInput(true)}
-          style={{ marginTop: '0.25rem', width: '100%', padding: '0.25rem', border: '1px dashed #d1d5db', borderRadius: '0.25rem', background: 'transparent', color: '#9ca3af', fontSize: '0.75rem', cursor: 'pointer' }}
-        >
-          + Add
-        </button>
-      )}
+      <button
+        onClick={() => onOpenPicker(dateKey)}
+        style={{ marginTop: '0.25rem', width: '100%', padding: '0.25rem', border: '1px dashed #d1d5db', borderRadius: '0.25rem', background: 'transparent', color: '#9ca3af', fontSize: '0.75rem', cursor: 'pointer' }}
+      >
+        + Add
+      </button>
     </div>
   );
 }
 
-// ── MobilePlanView ────────────────────────────────────────────────────────────
+// ── Mobile vertical layout ────────────────────────────────────────────────────
 
-function MobilePlanView({ weekDays, entriesByDate, recipes, onAddEntry, onDeleteEntry }) {
-  const [expandRecipes, setExpandRecipes] = useState(false);
+function MobileDayCard({ dateKey, dayLabel, entries, onDelete, onOpenPicker }) {
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid #e5e7eb',
+      borderRadius: '0.5rem',
+      padding: '0.75rem',
+      marginBottom: '0.5rem',
+    }}>
+      <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+        {dayLabel}
+      </p>
 
-  const grouped = CATEGORIES
-    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
-    .filter(g => g.items.length > 0);
+      {entries.length === 0 && (
+        <p style={{ fontSize: '0.8125rem', color: '#d1d5db', marginBottom: '0.375rem' }}>Nothing planned</p>
+      )}
 
+      {entries.map(entry => (
+        <div key={entry.id} style={{
+          display: 'flex', alignItems: 'center', gap: '0.375rem',
+          background: entry.recipe_id ? '#eff6ff' : '#f0fdf4',
+          border: `1px solid ${entry.recipe_id ? '#bfdbfe' : '#bbf7d0'}`,
+          borderRadius: '0.375rem',
+          padding: '0.375rem 0.625rem',
+          marginBottom: '0.25rem',
+          fontSize: '0.875rem',
+        }}>
+          <span style={{ flex: 1, color: '#374151' }}>{entry.label}</span>
+          <button
+            onClick={() => onDelete(entry.id)}
+            style={{ border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 0.125rem', flexShrink: 0 }}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
+      <button
+        onClick={() => onOpenPicker(dateKey)}
+        style={{ marginTop: '0.375rem', width: '100%', padding: '0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#6b7280', fontSize: '0.875rem', cursor: 'pointer' }}
+      >
+        + Add
+      </button>
+    </div>
+  );
+}
+
+function MobilePlanView({ weekDays, entriesByDate, onDeleteEntry, onOpenPicker }) {
   return (
     <div>
-      <div style={{ marginBottom: '1rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden' }}>
-        <button
-          onClick={() => setExpandRecipes(e => !e)}
-          style={{ width: '100%', padding: '0.75rem 1rem', background: '#fff', border: 'none', textAlign: 'left', fontSize: '0.875rem', fontWeight: '600', color: '#374151', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}
-        >
-          Add Recipe to Plan
-          <span>{expandRecipes ? '▲' : '▼'}</span>
-        </button>
-        {expandRecipes && (
-          <div style={{ background: '#f9fafb', borderTop: '1px solid #e5e7eb', padding: '0.75rem' }}>
-            {recipes.length === 0 && <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>}
-            {grouped.map(group => (
-              <div key={group.category} style={{ marginBottom: '0.75rem' }}>
-                <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
-                  {group.category}
-                </p>
-                {group.items.map(recipe => (
-                  <MobileRecipeRow key={recipe.id} recipe={recipe} weekDays={weekDays} onAdd={onAddEntry} />
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 140px)', gap: '0.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '0.5rem' }}>
-        {weekDays.map(day => {
-          const key = formatDateKey(day);
-          return (
-            <DayColumn
-              key={key}
-              dateKey={key}
-              dayLabel={formatDayLabel(day)}
-              entries={entriesByDate[key] ?? []}
-              onDelete={onDeleteEntry}
-              onAddManual={(dateKey, label) => onAddEntry({ date: dateKey, recipe_id: null, label })}
-            />
-          );
-        })}
-      </div>
-      <p style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', marginTop: '0.25rem' }}>← scroll to see all days →</p>
-    </div>
-  );
-}
-
-function MobileRecipeRow({ recipe, weekDays, onAdd }) {
-  const [selectedDate, setSelectedDate] = useState(formatDateKey(weekDays[0]));
-  const [adding, setAdding] = useState(false);
-
-  const handleAdd = async () => {
-    setAdding(true);
-    try {
-      await onAdd({ date: selectedDate, recipe_id: recipe.id, label: recipe.title });
-    } finally {
-      setAdding(false);
-    }
-  };
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-      <span style={{ flex: 1, fontSize: '0.875rem', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{recipe.title}</span>
-      <select
-        value={selectedDate}
-        onChange={e => setSelectedDate(e.target.value)}
-        style={{ padding: '0.3rem 0.375rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.8125rem', background: '#fff' }}
-      >
-        {weekDays.map(d => (
-          <option key={formatDateKey(d)} value={formatDateKey(d)}>
-            {d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={handleAdd}
-        disabled={adding}
-        style={{ padding: '0.3rem 0.5rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.8125rem', cursor: adding ? 'default' : 'pointer' }}
-      >
-        Add
-      </button>
+      {weekDays.map(day => {
+        const key = formatDateKey(day);
+        return (
+          <MobileDayCard
+            key={key}
+            dateKey={key}
+            dayLabel={formatDayLabel(day)}
+            entries={entriesByDate[key] ?? []}
+            onDelete={onDeleteEntry}
+            onOpenPicker={onOpenPicker}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -276,6 +226,7 @@ export default function MealPlan({ lists, isMobile }) {
   const [addToListLoading, setAddToListLoading] = useState(false);
   const [addToListSuccess, setAddToListSuccess] = useState(null);
   const [activeRecipe, setActiveRecipe] = useState(null);
+  const [pickingForDate, setPickingForDate] = useState(null);
   const isDraggingRef = useRef(false);
 
   const sensors = useSensors(
@@ -292,7 +243,6 @@ export default function MealPlan({ lists, isMobile }) {
     api.getMealPlan(key).then(setEntries);
   }, [weekStart]);
 
-  // Polling for real-time sync
   useEffect(() => {
     const id = setInterval(() => {
       if (!isDraggingRef.current) api.getRecipes().then(setRecipes);
@@ -326,6 +276,11 @@ export default function MealPlan({ lists, isMobile }) {
     setEntries(prev => prev.filter(e => e.id !== id));
   };
 
+  const handlePickerConfirm = async (entriesToAdd) => {
+    await Promise.all(entriesToAdd.map(e => handleAddEntry(e)));
+    setPickingForDate(null);
+  };
+
   const handleDragStart = (event) => {
     isDraggingRef.current = true;
     const recipe = recipes.find(r => r.id === event.active.id);
@@ -339,11 +294,9 @@ export default function MealPlan({ lists, isMobile }) {
     if (!over) return;
 
     if (typeof over.id === 'string') {
-      // Dropped on a day column (date string)
       const recipe = recipes.find(r => r.id === active.id);
       if (recipe) handleAddEntry({ date: over.id, recipe_id: recipe.id, label: recipe.title });
     } else if (active.id !== over.id) {
-      // Reorder within recipe list (same category only)
       const src = recipes.find(r => r.id === active.id);
       const dst = recipes.find(r => r.id === over.id);
       if (!src || !dst || src.category !== dst.category) return;
@@ -388,7 +341,7 @@ export default function MealPlan({ lists, isMobile }) {
             dayLabel={formatDayLabel(day)}
             entries={entriesByDate[key] ?? []}
             onDelete={handleDeleteEntry}
-            onAddManual={(dateKey, label) => handleAddEntry({ date: dateKey, recipe_id: null, label })}
+            onOpenPicker={setPickingForDate}
           />
         );
       })}
@@ -429,9 +382,8 @@ export default function MealPlan({ lists, isMobile }) {
         <MobilePlanView
           weekDays={weekDays}
           entriesByDate={entriesByDate}
-          recipes={recipes}
-          onAddEntry={handleAddEntry}
           onDeleteEntry={handleDeleteEntry}
+          onOpenPicker={setPickingForDate}
         />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
@@ -482,6 +434,16 @@ export default function MealPlan({ lists, isMobile }) {
           onConfirm={handleAddToList}
           onClose={() => setIsAddToListOpen(false)}
           loading={addToListLoading}
+        />
+      )}
+
+      {pickingForDate && (
+        <AddToDayModal
+          recipes={recipes}
+          date={pickingForDate}
+          dayLabel={dateKeyToLabel(pickingForDate)}
+          onConfirm={handlePickerConfirm}
+          onClose={() => setPickingForDate(null)}
         />
       )}
     </div>

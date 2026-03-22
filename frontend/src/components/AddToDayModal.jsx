@@ -1,0 +1,129 @@
+import { useState } from 'react';
+
+const CATEGORIES = ['Core Meals', 'Protein Options', 'Extras / Sauces'];
+
+export default function AddToDayModal({ recipes, date, dayLabel, onConfirm, onClose }) {
+  const [checkedIds, setCheckedIds] = useState(new Set());
+  const [manualText, setManualText] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const toggleId = (id) => setCheckedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const totalCount = checkedIds.size + (manualText.trim() ? 1 : 0);
+
+  const handleSubmit = async () => {
+    if (totalCount === 0) { onClose(); return; }
+    const entries = [];
+    for (const recipe of recipes) {
+      if (checkedIds.has(recipe.id)) {
+        entries.push({ date, recipe_id: recipe.id, label: recipe.title });
+      }
+    }
+    if (manualText.trim()) {
+      entries.push({ date, recipe_id: null, label: manualText.trim() });
+    }
+    setLoading(true);
+    try {
+      await onConfirm(entries);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const grouped = CATEGORIES
+    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
+    .filter(g => g.items.length > 0);
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 500,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1rem',
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: '0.75rem',
+        padding: '1.5rem', width: '100%', maxWidth: '380px',
+        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+      }}>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1rem', color: '#111827', flexShrink: 0 }}>
+          Add to {dayLabel}
+        </h2>
+
+        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem' }}>
+          {grouped.length === 0 ? (
+            <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
+              No recipes yet — use the custom entry below.
+            </p>
+          ) : (
+            grouped.map(group => (
+              <div key={group.category} style={{ marginBottom: '0.875rem' }}>
+                <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                  {group.category}
+                </p>
+                {group.items.map(recipe => (
+                  <label
+                    key={recipe.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.625rem',
+                      padding: '0.5rem 0.625rem', borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      background: checkedIds.has(recipe.id) ? '#eff6ff' : 'transparent',
+                      marginBottom: '0.125rem',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checkedIds.has(recipe.id)}
+                      onChange={() => toggleId(recipe.id)}
+                      style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '0.9375rem', color: '#374151' }}>{recipe.title}</span>
+                  </label>
+                ))}
+              </div>
+            ))
+          )}
+
+          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+            <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.375rem' }}>Or add something custom</p>
+            <input
+              value={manualText}
+              onChange={e => setManualText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && totalCount > 0 && handleSubmit()}
+              placeholder="e.g. Leftovers, Date night out..."
+              style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+          <button
+            onClick={handleSubmit}
+            disabled={loading || totalCount === 0}
+            style={{
+              flex: 1, padding: '0.625rem',
+              background: loading || totalCount === 0 ? '#d1d5db' : '#2563eb',
+              color: '#fff', border: 'none', borderRadius: '0.375rem',
+              fontSize: '0.9375rem', fontWeight: '600',
+              cursor: loading || totalCount === 0 ? 'default' : 'pointer',
+            }}
+          >
+            {loading ? 'Adding...' : totalCount > 0 ? `Add (${totalCount})` : 'Add'}
+          </button>
+          <button
+            onClick={onClose}
+            style={{ padding: '0.625rem 1rem', background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', cursor: 'pointer', color: '#6b7280' }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
