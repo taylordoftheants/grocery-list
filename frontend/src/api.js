@@ -29,7 +29,7 @@ export const api = {
 
   // Items
   getItems:   (listId)                    => request('GET',    `/lists/${listId}/items`),
-  addItem:    (listId, name)              => request('POST',   `/lists/${listId}/items`,       { name }),
+  addItem:    (listId, name, amount = '') => request('POST',   `/lists/${listId}/items`,       { name, amount }),
   toggleItem: (listId, itemId, purchased) => request('PATCH',  `/lists/${listId}/items/${itemId}`, { purchased }),
   deleteItem: (listId, itemId)            => request('DELETE', `/lists/${listId}/items/${itemId}`),
 

@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -47,6 +47,10 @@ if (user_version === 5) {
 if (user_version === 6) {
   db.exec('ALTER TABLE items ADD COLUMN source_recipe TEXT');
 }
+// v7 → v8: add amount to items
+if (user_version === 7) {
+  db.exec("ALTER TABLE items ADD COLUMN amount TEXT NOT NULL DEFAULT ''");
+}
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -72,6 +76,7 @@ db.exec(`
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     list_id    INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
+    amount     TEXT NOT NULL DEFAULT '',
     purchased  INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );

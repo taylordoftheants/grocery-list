@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 export default function AddItemForm({ onAdd }) {
   const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -9,8 +10,9 @@ export default function AddItemForm({ onAdd }) {
     if (!name.trim() || loading) return;
     setLoading(true);
     try {
-      await onAdd(name.trim());
+      await onAdd(name.trim(), amount.trim());
       setName('');
+      setAmount('');
     } finally {
       setLoading(false);
     }
@@ -26,6 +28,18 @@ export default function AddItemForm({ onAdd }) {
         placeholder="Add item..."
         style={{
           flex: 1,
+          padding: '0.625rem 0.75rem',
+          border: '1px solid #d1d5db',
+          borderRadius: '0.375rem',
+          fontSize: '1rem',
+        }}
+      />
+      <input
+        value={amount}
+        onChange={e => setAmount(e.target.value)}
+        placeholder="Qty"
+        style={{
+          width: '5rem',
           padding: '0.625rem 0.75rem',
           border: '1px solid #d1d5db',
           borderRadius: '0.375rem',

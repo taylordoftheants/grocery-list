@@ -26,11 +26,11 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   if (!verifyListOwnership(req.params.listId, req.user.id, res)) return;
-  const { name } = req.body;
+  const { name, amount = '' } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name is required' });
   const result = db
-    .prepare('INSERT INTO items (list_id, name) VALUES (?, ?)')
-    .run(req.params.listId, name.trim());
+    .prepare('INSERT INTO items (list_id, name, amount) VALUES (?, ?, ?)')
+    .run(req.params.listId, name.trim(), (amount ?? '').toString().trim());
   const item = db.prepare('SELECT * FROM items WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(item);
 });

@@ -14,8 +14,8 @@ export default function ItemList({ list, isMobile }) {
     return () => clearInterval(id);
   }, [list.id]);
 
-  const handleAdd = async (name) => {
-    const item = await api.addItem(list.id, name);
+  const handleAdd = async (name, amount) => {
+    const item = await api.addItem(list.id, name, amount);
     setItems(prev => [...prev, item]);
   };
 
@@ -124,6 +124,15 @@ function Item({ item, onToggle, onDelete }) {
       }}>
         {item.name}
       </span>
+      {item.amount && (
+        <span style={{
+          fontSize: '0.75rem',
+          color: '#9ca3af',
+          whiteSpace: 'nowrap',
+        }}>
+          {item.amount}
+        </span>
+      )}
       <button
         onClick={() => onDelete(item.id)}
         aria-label={`Remove ${item.name}`}
