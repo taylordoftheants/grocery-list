@@ -58,7 +58,7 @@ function SortableRecipeItem({ recipe, isSelected, onClick }) {
 
 // ── RecipeEditor ──────────────────────────────────────────────────────────────
 
-function RecipeEditor({ recipe, onSave, onCancel }) {
+function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
   const [title, setTitle] = useState(recipe?.title ?? '');
   const [category, setCategory] = useState(recipe?.category ?? 'Core Meals');
   const [ingredients, setIngredients] = useState(
@@ -108,6 +108,27 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
       setLoading(false);
     }
   };
+
+  const currentSideNames = new Set(sideOptions.map(i => i.name.trim().toLowerCase()).filter(Boolean));
+  const currentProteinNames = new Set(proteinOptions.map(i => i.name.trim().toLowerCase()).filter(Boolean));
+  const suggestedSides = [];
+  const suggestedProteins = [];
+  const seenSides = new Set(currentSideNames);
+  const seenProteins = new Set(currentProteinNames);
+  for (const r of allRecipes ?? []) {
+    if (r.id === recipe?.id) continue;
+    for (const ing of r.ingredients ?? []) {
+      const lname = ing.name.trim().toLowerCase();
+      if (!lname) continue;
+      if (ing.optional_category === 'sides' && !seenSides.has(lname)) {
+        suggestedSides.push(ing.name.trim());
+        seenSides.add(lname);
+      } else if (ing.optional_category === 'protein' && !seenProteins.has(lname)) {
+        suggestedProteins.push(ing.name.trim());
+        seenProteins.add(lname);
+      }
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit} style={{ padding: '1.5rem', maxWidth: '480px' }}>
@@ -198,6 +219,17 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
             </div>
           ))
         )}
+        {suggestedSides.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#9ca3af', alignSelf: 'center', marginRight: '0.125rem' }}>Suggestions:</span>
+            {suggestedSides.map(name => (
+              <button key={name} type="button" onClick={() => setSideOptions(prev => [...prev, { name, amount: '' }])}
+                style={{ padding: '0.2rem 0.625rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '1rem', fontSize: '0.8125rem', color: '#92400e', cursor: 'pointer' }}>
+                + {name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ marginBottom: '1.25rem' }}>
@@ -219,6 +251,17 @@ function RecipeEditor({ recipe, onSave, onCancel }) {
               <button type="button" onClick={() => removeProtein(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
             </div>
           ))
+        )}
+        {suggestedProteins.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#9ca3af', alignSelf: 'center', marginRight: '0.125rem' }}>Suggestions:</span>
+            {suggestedProteins.map(name => (
+              <button key={name} type="button" onClick={() => setProteinOptions(prev => [...prev, { name, amount: '' }])}
+                style={{ padding: '0.2rem 0.625rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '1rem', fontSize: '0.8125rem', color: '#1e40af', cursor: 'pointer' }}>
+                + {name}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
@@ -462,7 +505,7 @@ export default function RecipesView({ isMobile }) {
   const mainPanel = (
     <div style={{ flex: 1, overflowY: 'auto', background: '#f9fafb' }}>
       {showNew && (
-        <RecipeEditor recipe={null} onSave={handleSave} onCancel={() => setShowNew(false)} />
+        <RecipeEditor recipe={null} onSave={handleSave} onCancel={() => setShowNew(false)} allRecipes={recipes} />
       )}
       {!showNew && selectedRecipe && !isEditing && (
         <RecipeDetail
@@ -472,7 +515,7 @@ export default function RecipesView({ isMobile }) {
         />
       )}
       {!showNew && selectedRecipe && isEditing && (
-        <RecipeEditor recipe={selectedRecipe} onSave={handleSave} onCancel={() => setIsEditing(false)} />
+        <RecipeEditor recipe={selectedRecipe} onSave={handleSave} onCancel={() => setIsEditing(false)} allRecipes={recipes} />
       )}
       {!showNew && !selectedRecipe && (
         <div style={{ padding: '2rem', color: '#9ca3af', fontSize: '0.875rem' }}>
