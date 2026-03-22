@@ -14,7 +14,6 @@ services:
     environment:
       - DB_PATH=/data/grocery.db
       - JWT_SECRET=${JWT_SECRET}
-      - NODE_ENV=production
       - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
     volumes:
       - grocery-data:/data
