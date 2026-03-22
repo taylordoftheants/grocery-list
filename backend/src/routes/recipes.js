@@ -41,16 +41,19 @@ router.post('/', (req, res) => {
   const insertRecipe = db.prepare('INSERT INTO recipes (user_id, title) VALUES (?, ?)');
   const insertIng = db.prepare('INSERT INTO recipe_ingredients (recipe_id, name, amount) VALUES (?, ?, ?)');
 
-  const run = db.transaction(() => {
+  let recipeId;
+  db.exec('BEGIN');
+  try {
     const { lastInsertRowid } = insertRecipe.run(req.user.id, title.trim());
-    const recipeId = Number(lastInsertRowid);
+    recipeId = Number(lastInsertRowid);
     for (const ing of ingredients) {
       if (ing.name?.trim()) insertIng.run(recipeId, ing.name.trim(), ing.amount?.trim() ?? '');
     }
-    return recipeId;
-  });
-
-  const recipeId = run();
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
   const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(recipeId);
   const ings = db.prepare('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id ASC').all(recipeId);
   res.status(201).json({ ...recipe, ingredients: ings });
@@ -74,13 +77,18 @@ router.put('/:id', (req, res) => {
   const deleteIngs = db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?');
   const insertIng = db.prepare('INSERT INTO recipe_ingredients (recipe_id, name, amount) VALUES (?, ?, ?)');
 
-  db.transaction(() => {
+  db.exec('BEGIN');
+  try {
     updateRecipe.run(title.trim(), req.params.id);
     deleteIngs.run(req.params.id);
     for (const ing of ingredients) {
       if (ing.name?.trim()) insertIng.run(req.params.id, ing.name.trim(), ing.amount?.trim() ?? '');
     }
-  })();
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
 
   const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
   const ings = db.prepare('SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY id ASC').all(req.params.id);

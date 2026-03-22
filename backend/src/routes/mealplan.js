@@ -59,9 +59,14 @@ router.post('/add-to-list', (req, res) => {
   }
 
   const insertItem = db.prepare('INSERT INTO items (list_id, name) VALUES (?, ?)');
-  db.transaction(() => {
+  db.exec('BEGIN');
+  try {
     for (const name of itemNames) insertItem.run(listId, name);
-  })();
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
 
   res.json({ added: itemNames.size });
 });
