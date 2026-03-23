@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from './api';
 import ListSidebar from './components/ListSidebar';
 import ItemList from './components/ItemList';
-import AuthForm from './components/AuthForm';
+import LandingPage from './components/LandingPage';
 import NavTabs from './components/NavTabs';
 import RecipesView from './components/RecipesView';
 import MealPlan from './components/MealPlan';
@@ -75,7 +75,7 @@ export default function App() {
     );
   }
 
-  if (!user) return <AuthForm onAuth={handleAuth} />;
+  if (!user) return <LandingPage onAuth={handleAuth} />;
 
   const selectedList = lists.find(l => l.id === selectedListId);
   const showSidebar = currentView === 'lists';
