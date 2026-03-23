@@ -46,6 +46,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Copy config files to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "docker-compose.yml,Caddyfile"
+          target: /opt/grocery-list/
+
       - name: Deploy to Oracle Cloud VM
         uses: appleboy/ssh-action@v1.0.3
         with:

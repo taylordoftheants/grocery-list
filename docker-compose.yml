@@ -1,8 +1,20 @@
 services:
-  frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY}/grocery-frontend:latest
+  caddy:
+    image: caddy:2-alpine
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/grocery-frontend:latest
+    expose:
+      - "80"
     depends_on:
       - backend
     restart: unless-stopped
@@ -15,9 +27,11 @@ services:
       - DB_PATH=/data/grocery.db
       - JWT_SECRET=${JWT_SECRET}
       - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
+      - NODE_ENV=production
     volumes:
       - grocery-data:/data
     restart: unless-stopped
 
 volumes:
   grocery-data:
+  caddy_data:

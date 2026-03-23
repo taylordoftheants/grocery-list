@@ -1,0 +1,7 @@
+www.taykate.com {
+  redir https://taykate.com{uri} permanent
+}
+
+taykate.com {
+  reverse_proxy frontend:80
+}
