@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function ListSidebar({ lists, selectedListId, onSelect, onCreate, onDelete, onLogout, user, isMobile }) {
+export default function ListSidebar({ lists, selectedListId, onSelect, onCreate, onDelete, isMobile }) {
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -70,13 +70,6 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
               + New
             </button>
           )}
-
-          <button
-            onClick={onLogout}
-            style={{ flexShrink: 0, marginLeft: 'auto', padding: '0.3rem 0.625rem', border: '1px solid #e5e7eb', borderRadius: '1rem', background: 'transparent', color: '#9ca3af', fontSize: '0.8125rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >
-            Sign Out
-          </button>
         </div>
       </div>
     );
@@ -95,13 +88,9 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
       padding: '1rem',
       flexShrink: 0,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Lists</h2>
       </div>
-
-      <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {user?.email}
-      </p>
 
       <ul style={{ listStyle: 'none', flex: 1, overflowY: 'auto' }}>
         {lists.map(list => (
@@ -176,23 +165,6 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
           +
         </button>
       </form>
-
-      <button
-        onClick={onLogout}
-        style={{
-          marginTop: '0.75rem',
-          width: '100%',
-          padding: '0.5rem',
-          background: 'transparent',
-          color: '#6b7280',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.375rem',
-          fontSize: '0.875rem',
-          cursor: 'pointer',
-        }}
-      >
-        Sign Out
-      </button>
     </aside>
   );
 }

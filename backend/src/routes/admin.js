@@ -1,0 +1,22 @@
+import { Router } from 'express';
+import db from '../db.js';
+import { authMiddleware } from '../middleware/auth.js';
+
+const router = Router();
+router.use(authMiddleware);
+
+router.use((req, res, next) => {
+  const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(req.user.id);
+  if (!user?.is_admin) return res.status(403).json({ error: 'Forbidden' });
+  next();
+});
+
+// GET /api/admin/users
+router.get('/users', (req, res) => {
+  const users = db
+    .prepare('SELECT id, email, created_at, last_login, is_admin FROM users ORDER BY id ASC')
+    .all();
+  res.json(users);
+});
+
+export default router;

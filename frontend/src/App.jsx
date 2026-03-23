@@ -6,6 +6,8 @@ import LandingPage from './components/LandingPage';
 import NavTabs from './components/NavTabs';
 import RecipesView from './components/RecipesView';
 import MealPlan from './components/MealPlan';
+import ProfileMenu from './components/ProfileMenu';
+import AdminView from './components/AdminView';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -15,6 +17,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentView, setCurrentView] = useState('mealplan');
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     api.getMe()
@@ -50,6 +53,7 @@ export default function App() {
     setUser(null);
     setLists([]);
     setSelected(null);
+    setShowProfile(false);
   };
 
   const handleCreateList = async (name) => {
@@ -86,7 +90,6 @@ export default function App() {
     onSelect: setSelected,
     onCreate: handleCreateList,
     onDelete: handleDeleteList,
-    onLogout: handleLogout,
     user,
   };
 
@@ -99,7 +102,22 @@ export default function App() {
       )}
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        <NavTabs currentView={currentView} onChangeView={setCurrentView} />
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <NavTabs
+            currentView={currentView}
+            onChangeView={setCurrentView}
+            user={user}
+            onProfileClick={() => setShowProfile(v => !v)}
+          />
+          {showProfile && (
+            <ProfileMenu
+              user={user}
+              onLogout={handleLogout}
+              onNavigateAdmin={() => setCurrentView('admin')}
+              onClose={() => setShowProfile(false)}
+            />
+          )}
+        </div>
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           {/* Desktop sidebar — nested below nav bar */}
@@ -125,6 +143,7 @@ export default function App() {
               )}
               {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
               {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} onNavigateToRecipes={() => setCurrentView('recipes')} />}
+              {currentView === 'admin' && <AdminView />}
             </div>
           </div>
         </div>

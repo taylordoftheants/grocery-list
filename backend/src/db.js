@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -54,6 +54,12 @@ if (user_version === 7) {
 // v8 → v9: add is_spice to items
 if (user_version === 8) {
   db.exec('ALTER TABLE items ADD COLUMN is_spice INTEGER NOT NULL DEFAULT 0');
+}
+// v9 → v10: add last_login and is_admin to users; grant admin to first user
+if (user_version === 9) {
+  db.exec('ALTER TABLE users ADD COLUMN last_login TEXT');
+  db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+  db.exec('UPDATE users SET is_admin = 1 WHERE id = (SELECT MIN(id) FROM users)');
 }
 
 if (user_version < SCHEMA_VERSION) {

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../db.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -68,8 +69,9 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
+  db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(user.id);
   setAuthCookie(res, { id: user.id, email: user.email });
-  res.json({ id: user.id, email: user.email });
+  res.json({ id: user.id, email: user.email, is_admin: user.is_admin });
 });
 
 // POST /api/auth/logout
@@ -85,10 +87,32 @@ router.get('/me', (req, res) => {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    res.json({ id: payload.id, email: payload.email });
+    const dbUser = db.prepare('SELECT id, email, is_admin FROM users WHERE id = ?').get(payload.id);
+    if (!dbUser) return res.status(401).json({ error: 'User not found' });
+    res.json({ id: dbUser.id, email: dbUser.email, is_admin: dbUser.is_admin });
   } catch {
     res.status(401).json({ error: 'Session expired' });
   }
+});
+
+// POST /api/auth/change-password
+router.post('/change-password', authMiddleware, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'currentPassword and newPassword are required' });
+  }
+  if (!PASSWORD_REGEX.test(newPassword)) {
+    return res.status(400).json({
+      error: 'New password must be at least 8 characters and include uppercase, lowercase, a number, and a special character',
+    });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+  const hashed = await bcrypt.hash(newPassword, 10);
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashed, req.user.id);
+  res.json({ ok: true });
 });
 
 export default router;

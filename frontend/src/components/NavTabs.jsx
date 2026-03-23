@@ -4,10 +4,13 @@ const TABS = [
   { id: 'recipes',  label: 'Recipes' },
 ];
 
-export default function NavTabs({ currentView, onChangeView }) {
+export default function NavTabs({ currentView, onChangeView, user, onProfileClick }) {
+  const initial = user?.email?.[0]?.toUpperCase() ?? '?';
+
   return (
     <div style={{
       display: 'flex',
+      alignItems: 'stretch',
       borderBottom: '2px solid #e5e7eb',
       background: '#fff',
       flexShrink: 0,
@@ -32,6 +35,31 @@ export default function NavTabs({ currentView, onChangeView }) {
           {tab.label}
         </button>
       ))}
+
+      <button
+        onClick={onProfileClick}
+        aria-label="Profile"
+        style={{
+          marginLeft: 'auto',
+          marginRight: '0.75rem',
+          alignSelf: 'center',
+          width: '2rem',
+          height: '2rem',
+          borderRadius: '50%',
+          background: '#1a2744',
+          color: '#f2ead8',
+          border: 'none',
+          fontSize: '0.8125rem',
+          fontWeight: '700',
+          cursor: 'pointer',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {initial}
+      </button>
     </div>
   );
 }

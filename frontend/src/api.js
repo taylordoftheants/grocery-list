@@ -20,7 +20,11 @@ export const api = {
   getMe:      ()                          => request('GET',    '/auth/me'),
   login:      (email, password)           => request('POST',   '/auth/login',    { email, password }),
   register:   (email, password)           => request('POST',   '/auth/register', { email, password }),
-  logout:     ()                          => request('POST',   '/auth/logout'),
+  logout:          ()                                 => request('POST',   '/auth/logout'),
+  changePassword:  (currentPassword, newPassword)    => request('POST',   '/auth/change-password', { currentPassword, newPassword }),
+
+  // Admin
+  getAdminUsers:   ()                                => request('GET',    '/admin/users'),
 
   // Lists
   getLists:   ()                          => request('GET',    '/lists'),
