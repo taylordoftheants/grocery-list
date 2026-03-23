@@ -42,7 +42,7 @@ export default function LandingPage({ onAuth }) {
       {/* Crest */}
       <img
         src="/crest.png"
-        alt="DuBois Family Crest"
+        alt="Dubois Family Crest"
         style={{
           width: '220px',
           maxWidth: '60vw',
@@ -61,7 +61,7 @@ export default function LandingPage({ onAuth }) {
         marginBottom: '0.375rem',
         textAlign: 'center',
       }}>
-        DuBois Family
+        Dubois Family
       </h1>
       <p style={{
         fontFamily: "'Cinzel', serif",
