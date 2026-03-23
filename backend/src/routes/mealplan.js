@@ -37,11 +37,12 @@ router.post('/add-to-list', (req, res) => {
     .prepare('SELECT * FROM meal_plan_entries WHERE user_id = ? AND date >= ? AND date <= ?')
     .all(req.user.id, weekStart, weekEnd);
 
-  const itemsMap = new Map(); // name → { source_recipe, amount }
+  const insertItems = [];       // all non-spice items in order
+  const spicesMap = new Map();  // global spice dedup: name → { amount }
+  const manualSeen = new Set(); // dedup non-recipe manual entries
 
   for (const entry of entries) {
     if (entry.recipe_id) {
-      // Parse which optional ingredient IDs were selected for this specific entry
       let selectedOptionalIds = new Set();
       try {
         const parsed = JSON.parse(entry.selected_optional_ids || '[]');
@@ -52,44 +53,49 @@ router.post('/add-to-list', (req, res) => {
         .prepare('SELECT id, name, amount, is_optional, optional_category FROM recipe_ingredients WHERE recipe_id = ?')
         .all(entry.recipe_id);
 
+      const seenInEntry = new Set();
       for (const ing of ings) {
         const isSpice = ing.optional_category === 'spices';
         if (!ing.is_optional || selectedOptionalIds.has(ing.id) || isSpice) {
           const label = ing.name.trim();
           if (!label) continue;
           if (isSpice) {
-            const key = `__spice__${label}`;
-            if (!itemsMap.has(key)) itemsMap.set(key, { source_recipe: null, amount: ing.amount ?? '', is_spice: 1 });
-          } else {
-            if (!itemsMap.has(label)) itemsMap.set(label, { source_recipe: entry.label, amount: ing.amount ?? '', is_spice: 0 });
+            if (!spicesMap.has(label)) spicesMap.set(label, { amount: ing.amount ?? '' });
+          } else if (!seenInEntry.has(label)) {
+            seenInEntry.add(label);
+            insertItems.push({ name: label, source_recipe: entry.label, amount: ing.amount ?? '', is_spice: 0 });
           }
         }
       }
-    } else if (entry.label?.trim()) {
+    } else if (!entry.is_leftovers && entry.label?.trim()) {
       const label = entry.label.trim();
-      if (!itemsMap.has(label)) itemsMap.set(label, { source_recipe: null, amount: '' });
+      if (!manualSeen.has(label)) {
+        manualSeen.add(label);
+        insertItems.push({ name: label, source_recipe: null, amount: '', is_spice: 0 });
+      }
     }
   }
+
+  for (const [name, { amount }] of spicesMap)
+    insertItems.push({ name, source_recipe: null, amount, is_spice: 1 });
 
   const insertItem = db.prepare('INSERT INTO items (list_id, name, amount, source_recipe, is_spice) VALUES (?, ?, ?, ?, ?)');
   db.exec('BEGIN');
   try {
-    for (const [key, { source_recipe, amount, is_spice }] of itemsMap) {
-      const name = is_spice ? key.slice('__spice__'.length) : key;
-      insertItem.run(listId, name, amount, source_recipe ?? null, is_spice ?? 0);
-    }
+    for (const { name, source_recipe, amount, is_spice } of insertItems)
+      insertItem.run(listId, name, amount, source_recipe ?? null, is_spice);
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
     throw e;
   }
 
-  res.json({ added: itemsMap.size });
+  res.json({ added: insertItems.length });
 });
 
 // POST /api/mealplan
 router.post('/', (req, res) => {
-  const { date, recipe_id, label, is_weekly, selected_optional_ids } = req.body;
+  const { date, recipe_id, label, is_weekly, selected_optional_ids, is_leftovers } = req.body;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
   }
@@ -101,6 +107,7 @@ router.post('/', (req, res) => {
   }
 
   const isWeekly = is_weekly ? 1 : 0;
+  const isLeftovers = is_leftovers ? 1 : 0;
 
   let selectedOptionalIdsStr = '';
   if (recipe_id != null && Array.isArray(selected_optional_ids) && selected_optional_ids.length > 0) {
@@ -114,8 +121,8 @@ router.post('/', (req, res) => {
   const sortOrder = (maxRow?.m ?? -1) + 1;
 
   const { lastInsertRowid } = db
-    .prepare('INSERT INTO meal_plan_entries (user_id, date, recipe_id, label, sort_order, is_weekly, selected_optional_ids) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .run(req.user.id, date, recipe_id ?? null, label.trim(), sortOrder, isWeekly, selectedOptionalIdsStr);
+    .prepare('INSERT INTO meal_plan_entries (user_id, date, recipe_id, label, sort_order, is_weekly, selected_optional_ids, is_leftovers) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(req.user.id, date, recipe_id ?? null, label.trim(), sortOrder, isWeekly, selectedOptionalIdsStr, isLeftovers);
 
   const entry = db.prepare('SELECT * FROM meal_plan_entries WHERE id = ?').get(lastInsertRowid);
   res.status(201).json(entry);

@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 10;
+const SCHEMA_VERSION = 11;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -60,6 +60,10 @@ if (user_version === 9) {
   db.exec('ALTER TABLE users ADD COLUMN last_login TEXT');
   db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
   db.exec('UPDATE users SET is_admin = 1 WHERE id = (SELECT MIN(id) FROM users)');
+}
+// v10 → v11: add is_leftovers to meal_plan_entries
+if (user_version === 10) {
+  db.exec('ALTER TABLE meal_plan_entries ADD COLUMN is_leftovers INTEGER NOT NULL DEFAULT 0');
 }
 
 if (user_version < SCHEMA_VERSION) {
@@ -117,7 +121,8 @@ db.exec(`
     label                 TEXT NOT NULL,
     sort_order            INTEGER NOT NULL DEFAULT 0,
     is_weekly             INTEGER NOT NULL DEFAULT 0,
-    selected_optional_ids TEXT NOT NULL DEFAULT ''
+    selected_optional_ids TEXT NOT NULL DEFAULT '',
+    is_leftovers          INTEGER NOT NULL DEFAULT 0
   );
 `);
 
