@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -50,6 +50,10 @@ if (user_version === 6) {
 // v7 → v8: add amount to items
 if (user_version === 7) {
   db.exec("ALTER TABLE items ADD COLUMN amount TEXT NOT NULL DEFAULT ''");
+}
+// v8 → v9: add is_spice to items
+if (user_version === 8) {
+  db.exec('ALTER TABLE items ADD COLUMN is_spice INTEGER NOT NULL DEFAULT 0');
 }
 
 if (user_version < SCHEMA_VERSION) {

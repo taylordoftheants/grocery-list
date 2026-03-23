@@ -72,6 +72,9 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
   const [proteinOptions, setProteinOptions] = useState(
     recipe?.ingredients?.filter(i => i.optional_category === 'protein') ?? []
   );
+  const [spiceItems, setSpiceItems] = useState(
+    recipe?.ingredients?.filter(i => i.optional_category === 'spices') ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -90,17 +93,23 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
   const addProtein = () => setProteinOptions(prev => [...prev, { name: '', amount: '' }]);
   const removeProtein = (i) => setProteinOptions(prev => prev.filter((_, idx) => idx !== i));
 
+  const setSpice = (i, field, value) =>
+    setSpiceItems(prev => prev.map((ing, idx) => idx === i ? { ...ing, [field]: value } : ing));
+  const addSpice = () => setSpiceItems(prev => [...prev, { name: '', amount: '' }]);
+  const removeSpice = (i) => setSpiceItems(prev => prev.filter((_, idx) => idx !== i));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     const validIngs = ingredients.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 0, optional_category: '' }));
     const validSides = sideOptions.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 1, optional_category: 'sides' }));
     const validProteins = proteinOptions.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 1, optional_category: 'protein' }));
+    const validSpices = spiceItems.filter(i => i.name.trim()).map(i => ({ ...i, is_optional: 1, optional_category: 'spices' }));
     setLoading(true);
     try {
       const saved = recipe
-        ? await api.updateRecipe(recipe.id, title, [...validIngs, ...validSides, ...validProteins], category)
-        : await api.createRecipe(title, [...validIngs, ...validSides, ...validProteins], category);
+        ? await api.updateRecipe(recipe.id, title, [...validIngs, ...validSides, ...validProteins, ...validSpices], category)
+        : await api.createRecipe(title, [...validIngs, ...validSides, ...validProteins, ...validSpices], category);
       onSave(saved);
     } catch (err) {
       setError(err.message);
@@ -111,10 +120,13 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
 
   const currentSideNames = new Set(sideOptions.map(i => i.name.trim().toLowerCase()).filter(Boolean));
   const currentProteinNames = new Set(proteinOptions.map(i => i.name.trim().toLowerCase()).filter(Boolean));
+  const currentSpiceNames = new Set(spiceItems.map(i => i.name.trim().toLowerCase()).filter(Boolean));
   const suggestedSides = [];
   const suggestedProteins = [];
+  const suggestedSpices = [];
   const seenSides = new Set(currentSideNames);
   const seenProteins = new Set(currentProteinNames);
+  const seenSpices = new Set(currentSpiceNames);
   for (const r of allRecipes ?? []) {
     if (r.id === recipe?.id) continue;
     for (const ing of r.ingredients ?? []) {
@@ -126,6 +138,9 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
       } else if (ing.optional_category === 'protein' && !seenProteins.has(lname)) {
         suggestedProteins.push(ing.name.trim());
         seenProteins.add(lname);
+      } else if (ing.optional_category === 'spices' && !seenSpices.has(lname)) {
+        suggestedSpices.push(ing.name.trim());
+        seenSpices.add(lname);
       }
     }
   }
@@ -265,6 +280,39 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
         )}
       </div>
 
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#065f46' }}>Spices and Such</label>
+          <button type="button" onClick={addSpice} style={{ fontSize: '0.8125rem', color: '#059669', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+            + Add spice
+          </button>
+        </div>
+        {spiceItems.length === 0 ? (
+          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>e.g. cumin, paprika, red pepper flakes</p>
+        ) : (
+          spiceItems.map((ing, i) => (
+            <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
+              <input value={ing.amount} onChange={e => setSpice(i, 'amount', e.target.value)} placeholder="Amount"
+                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #6ee7b7', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#d1fae5' }} />
+              <input value={ing.name} onChange={e => setSpice(i, 'name', e.target.value)} placeholder="Spice or seasoning"
+                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #6ee7b7', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#d1fae5' }} />
+              <button type="button" onClick={() => removeSpice(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+            </div>
+          ))
+        )}
+        {suggestedSpices.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#9ca3af', alignSelf: 'center', marginRight: '0.125rem' }}>Suggestions:</span>
+            {suggestedSpices.map(name => (
+              <button key={name} type="button" onClick={() => setSpiceItems(prev => [...prev, { name, amount: '' }])}
+                style={{ padding: '0.2rem 0.625rem', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '1rem', fontSize: '0.8125rem', color: '#065f46', cursor: 'pointer' }}>
+                + {name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button
           type="submit"
@@ -293,6 +341,7 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
   const required = recipe.ingredients.filter(i => !i.is_optional);
   const sideOptions = recipe.ingredients.filter(i => i.optional_category === 'sides');
   const proteinOptions = recipe.ingredients.filter(i => i.optional_category === 'protein');
+  const spiceItems = recipe.ingredients.filter(i => i.optional_category === 'spices');
 
   return (
     <div style={{ padding: '1.5rem', maxWidth: '480px' }}>
@@ -309,12 +358,12 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
       </div>
       <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '1rem' }}>{recipe.category}</p>
 
-      {required.length === 0 && sideOptions.length === 0 && proteinOptions.length === 0 ? (
+      {required.length === 0 && sideOptions.length === 0 && proteinOptions.length === 0 && spiceItems.length === 0 ? (
         <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No ingredients added.</p>
       ) : (
         <>
           {required.length > 0 && (
-            <ul style={{ listStyle: 'none', padding: 0, marginBottom: (sideOptions.length > 0 || proteinOptions.length > 0) ? '1rem' : 0 }}>
+            <ul style={{ listStyle: 'none', padding: 0, marginBottom: (sideOptions.length > 0 || proteinOptions.length > 0 || spiceItems.length > 0) ? '1rem' : 0 }}>
               {required.map(ing => (
                 <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#374151' }}>
                   {[ing.amount, ing.name].filter(Boolean).join(' ')}
@@ -324,7 +373,7 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
           )}
 
           {sideOptions.length > 0 && (
-            <div style={{ marginBottom: proteinOptions.length > 0 ? '1rem' : 0 }}>
+            <div style={{ marginBottom: (proteinOptions.length > 0 || spiceItems.length > 0) ? '1rem' : 0 }}>
               <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
                 Side Options
               </p>
@@ -339,13 +388,28 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
           )}
 
           {proteinOptions.length > 0 && (
-            <div>
+            <div style={{ marginBottom: spiceItems.length > 0 ? '1rem' : 0 }}>
               <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
                 Protein Options
               </p>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 {proteinOptions.map(ing => (
                   <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#1e40af' }}>
+                    {[ing.amount, ing.name].filter(Boolean).join(' ')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {spiceItems.length > 0 && (
+            <div>
+              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                Spices and Such
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0 }}>
+                {spiceItems.map(ing => (
+                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#065f46' }}>
                     {[ing.amount, ing.name].filter(Boolean).join(' ')}
                   </li>
                 ))}

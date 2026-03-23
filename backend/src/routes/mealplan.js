@@ -49,13 +49,20 @@ router.post('/add-to-list', (req, res) => {
       } catch (_) {}
 
       const ings = db
-        .prepare('SELECT id, name, amount, is_optional FROM recipe_ingredients WHERE recipe_id = ?')
+        .prepare('SELECT id, name, amount, is_optional, optional_category FROM recipe_ingredients WHERE recipe_id = ?')
         .all(entry.recipe_id);
 
       for (const ing of ings) {
-        if (!ing.is_optional || selectedOptionalIds.has(ing.id)) {
+        const isSpice = ing.optional_category === 'spices';
+        if (!ing.is_optional || selectedOptionalIds.has(ing.id) || isSpice) {
           const label = ing.name.trim();
-          if (label && !itemsMap.has(label)) itemsMap.set(label, { source_recipe: entry.label, amount: ing.amount ?? '' });
+          if (!label) continue;
+          if (isSpice) {
+            const key = `__spice__${label}`;
+            if (!itemsMap.has(key)) itemsMap.set(key, { source_recipe: null, amount: ing.amount ?? '', is_spice: 1 });
+          } else {
+            if (!itemsMap.has(label)) itemsMap.set(label, { source_recipe: entry.label, amount: ing.amount ?? '', is_spice: 0 });
+          }
         }
       }
     } else if (entry.label?.trim()) {
@@ -64,10 +71,13 @@ router.post('/add-to-list', (req, res) => {
     }
   }
 
-  const insertItem = db.prepare('INSERT INTO items (list_id, name, amount, source_recipe) VALUES (?, ?, ?, ?)');
+  const insertItem = db.prepare('INSERT INTO items (list_id, name, amount, source_recipe, is_spice) VALUES (?, ?, ?, ?, ?)');
   db.exec('BEGIN');
   try {
-    for (const [name, { source_recipe, amount }] of itemsMap) insertItem.run(listId, name, amount, source_recipe ?? null);
+    for (const [key, { source_recipe, amount, is_spice }] of itemsMap) {
+      const name = is_spice ? key.slice('__spice__'.length) : key;
+      insertItem.run(listId, name, amount, source_recipe ?? null, is_spice ?? 0);
+    }
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');

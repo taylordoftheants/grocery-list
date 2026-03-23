@@ -29,7 +29,8 @@ export default function ItemList({ list, isMobile }) {
     setItems(prev => prev.filter(i => i.id !== itemId));
   };
 
-  const unpurchased = items.filter(i => !i.purchased);
+  const unpurchased = items.filter(i => !i.purchased && !i.is_spice);
+  const spiceItems = items.filter(i => !i.purchased && i.is_spice);
   const purchased = items.filter(i => i.purchased);
 
   const groupMap = new Map();
@@ -50,7 +51,7 @@ export default function ItemList({ list, isMobile }) {
       </h1>
       <AddItemForm onAdd={handleAdd} />
 
-      {unpurchased.length === 0 && purchased.length === 0 && (
+      {unpurchased.length === 0 && spiceItems.length === 0 && purchased.length === 0 && (
         <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No items yet. Add one above.</p>
       )}
 
@@ -76,6 +77,19 @@ export default function ItemList({ list, isMobile }) {
           )}
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {otherItems.map(item => (
+              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {spiceItems.length > 0 && (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.375rem 0' }}>
+            Spices and Such
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {spiceItems.map(item => (
               <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
             ))}
           </ul>
