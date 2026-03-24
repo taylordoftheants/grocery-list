@@ -160,9 +160,10 @@ export default function ItemList({ list, isMobile }) {
 function AggregatedItem({ group, onToggle, onDelete }) {
   const { name, items, recipes } = group;
   const count = items.length;
-  const amounts = [...new Set(items.map(i => i.amount).filter(Boolean))];
-  const amountText = amounts.join(', ');
-  const recipeList = [...recipes].sort().join(', ');
+  const bullets = items.map(item => ({
+    label: item.source_recipe ?? 'Added manually',
+    amount: item.amount ?? '',
+  }));
   const allPurchased = items.every(i => i.purchased);
 
   const handleGroupToggle = () => {
@@ -200,19 +201,18 @@ function AggregatedItem({ group, onToggle, onDelete }) {
               color: colors.white, background: colors.blue,
               borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
             }}>
-              ×{count}
-            </span>
-          )}
-          {amountText && (
-            <span style={{ fontSize: fontSizes.sm, color: colors.textSubtle, whiteSpace: 'nowrap' }}>
-              {amountText}
+              used {count}x
             </span>
           )}
         </div>
-        {recipeList && (
-          <p style={{ margin: '0.2rem 0 0', fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
-            {recipeList}
-          </p>
+        {bullets.length > 0 && (
+          <ul style={{ margin: '0.25rem 0 0', padding: '0 0 0 1rem', listStyle: 'disc' }}>
+            {bullets.map((b, i) => (
+              <li key={i} style={{ fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans, lineHeight: 1.6 }}>
+                {b.label}{b.amount ? `: ${b.amount}` : ''}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
       <button
