@@ -39,7 +39,6 @@ router.post('/add-to-list', (req, res) => {
 
   const insertItems = [];       // all non-spice items in order
   const spicesMap = new Map();  // global spice dedup: name → { amount }
-  const manualSeen = new Set(); // dedup non-recipe manual entries
 
   for (const entry of entries) {
     if (entry.recipe_id) {
@@ -69,10 +68,7 @@ router.post('/add-to-list', (req, res) => {
       }
     } else if (!entry.is_leftovers && entry.label?.trim()) {
       const label = entry.label.trim();
-      if (!manualSeen.has(label)) {
-        manualSeen.add(label);
-        insertItems.push({ name: label, source_recipe: null, amount: '', is_spice: 0 });
-      }
+      insertItems.push({ name: label, source_recipe: null, amount: '', is_spice: 0 });
     }
   }
 
