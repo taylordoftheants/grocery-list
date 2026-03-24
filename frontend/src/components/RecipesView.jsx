@@ -27,33 +27,34 @@ function SortableRecipeItem({ recipe, isSelected, onClick }) {
   return (
     <li
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1, listStyle: 'none' }}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1, listStyle: 'none', marginBottom: '0.375rem' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', borderRadius: radii.md, background: isSelected ? colors.blueLight : 'transparent', transition: 'background 0.15s ease' }}>
-        <span
-          {...attributes}
-          {...listeners}
-          style={{ cursor: 'grab', color: colors.borderMid, padding: '0.25rem 0.375rem', touchAction: 'none', userSelect: 'none', fontSize: fontSizes.base, lineHeight: 1, flexShrink: 0 }}
-        >
-          ⠿
-        </span>
-        <button
-          onClick={onClick}
-          style={{
-            flex: 1, textAlign: 'left',
-            padding: '0.5rem 0.5rem 0.5rem 0',
-            border: 'none', borderRadius: radii.md,
-            background: 'transparent',
-            color: isSelected ? colors.blueDark : colors.textSecondary,
-            fontWeight: isSelected ? fontWeights.semibold : fontWeights.normal,
-            fontSize: fontSizes.md, cursor: 'pointer',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            fontFamily: fonts.sans,
-          }}
-        >
-          {recipe.title}
-        </button>
-      </div>
+      <button
+        onClick={onClick}
+        {...attributes}
+        {...listeners}
+        style={{
+          width: '100%',
+          textAlign: 'left',
+          padding: '0.5rem 0.75rem',
+          background: isDragging ? colors.blueLight : isSelected ? colors.blueLight : colors.bgCard,
+          border: `1px solid ${isSelected || isDragging ? colors.blueBorder : colors.border}`,
+          borderRadius: radii.md,
+          fontSize: fontSizes.base,
+          color: isSelected ? colors.blueDark : colors.textSecondary,
+          fontWeight: isSelected ? fontWeights.semibold : fontWeights.normal,
+          cursor: 'grab',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          fontFamily: fonts.sans,
+          boxSizing: 'border-box',
+          touchAction: 'none',
+          userSelect: 'none',
+        }}
+      >
+        {recipe.title}
+      </button>
     </li>
   );
 }
