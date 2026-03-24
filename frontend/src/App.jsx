@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from './api';
+import { colors, fonts } from './theme';
 import ListSidebar from './components/ListSidebar';
 import ItemList from './components/ItemList';
 import LandingPage from './components/LandingPage';
@@ -73,8 +74,8 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
-        <p style={{ color: '#9ca3af' }}>Loading...</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.bgPage, fontFamily: fonts.sans }}>
+        <p style={{ color: colors.textSubtle }}>Loading...</p>
       </div>
     );
   }
@@ -94,10 +95,10 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', fontFamily: fonts.sans }}>
       {error && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: '#fee2e2', color: '#991b1b', padding: '0.75rem 1rem', zIndex: 400 }}>
-          {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem' }}>Dismiss</button>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: colors.errorBg, color: colors.errorText, padding: '0.75rem 1rem', zIndex: 400, borderBottom: `2px solid ${colors.errorBorder}`, fontFamily: fonts.sans }}>
+          {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem', cursor: 'pointer', fontWeight: '600' }}>Dismiss</button>
         </div>
       )}
 
@@ -136,7 +137,7 @@ export default function App() {
                 selectedList
                   ? <ItemList list={selectedList} isMobile={isMobile} />
                   : (
-                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textSubtle }}>
                       <p>Create or select a list to get started.</p>
                     </div>
                   )

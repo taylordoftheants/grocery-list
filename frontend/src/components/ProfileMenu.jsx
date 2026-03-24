@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
+import { colors, fonts, fontSizes, fontWeights, radii, shadows, input, btnPrimary } from '../theme';
 
 export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }) {
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -41,37 +42,42 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
     }
   };
 
+  const menuBtnStyle = {
+    width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
+    background: 'transparent', border: 'none', borderRadius: radii.md,
+    fontSize: fontSizes.base, color: colors.textSecondary, cursor: 'pointer',
+    fontFamily: fonts.sans, minHeight: '40px',
+  };
+
   return (
     <div
       ref={ref}
       style={{
         position: 'absolute',
-        top: '3rem',
+        top: '3.5rem',
         right: '0.75rem',
         zIndex: 200,
-        background: '#fff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.5rem',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+        background: colors.bgCard,
+        border: `1px solid ${colors.border}`,
+        borderRadius: radii.lg,
+        boxShadow: shadows.lg,
         width: '280px',
+        maxWidth: 'calc(100vw - 1.5rem)',
         overflow: 'hidden',
+        fontFamily: fonts.sans,
       }}
     >
       {/* Email header */}
-      <div style={{ padding: '0.875rem 1rem', borderBottom: '1px solid #f3f4f6', background: '#f9fafb' }}>
-        <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.125rem' }}>Signed in as</p>
-        <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#111827', wordBreak: 'break-all' }}>{user.email}</p>
+      <div style={{ padding: '0.875rem 1rem', borderBottom: `1px solid ${colors.borderLight}`, background: colors.bgSurface }}>
+        <p style={{ fontSize: fontSizes.sm, color: colors.textSubtle, marginBottom: '0.125rem' }}>Signed in as</p>
+        <p style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, color: colors.textPrimary, wordBreak: 'break-all' }}>{user.email}</p>
       </div>
 
       <div style={{ padding: '0.5rem' }}>
         {/* Change Password toggle */}
         <button
           onClick={() => { setShowChangePassword(v => !v); setError(null); setSuccess(false); }}
-          style={{
-            width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
-            background: 'transparent', border: 'none', borderRadius: '0.375rem',
-            fontSize: '0.875rem', color: '#374151', cursor: 'pointer',
-          }}
+          style={menuBtnStyle}
         >
           {showChangePassword ? '▾' : '▸'} Change Password
         </button>
@@ -79,12 +85,12 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
         {showChangePassword && (
           <form onSubmit={handleChangePassword} style={{ padding: '0.5rem 0.75rem 0.75rem' }}>
             {error && (
-              <p style={{ fontSize: '0.8125rem', color: '#991b1b', background: '#fee2e2', padding: '0.375rem 0.5rem', borderRadius: '0.25rem', marginBottom: '0.5rem' }}>
+              <p style={{ fontSize: fontSizes.base, color: colors.errorText, background: colors.errorBg, padding: '0.375rem 0.5rem', borderRadius: radii.sm, marginBottom: '0.5rem' }}>
                 {error}
               </p>
             )}
             {success && (
-              <p style={{ fontSize: '0.8125rem', color: '#065f46', background: '#d1fae5', padding: '0.375rem 0.5rem', borderRadius: '0.25rem', marginBottom: '0.5rem' }}>
+              <p style={{ fontSize: fontSizes.base, color: colors.successText, background: colors.successBg, padding: '0.375rem 0.5rem', borderRadius: radii.sm, marginBottom: '0.5rem' }}>
                 Password updated!
               </p>
             )}
@@ -94,18 +100,14 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
               { label: 'Confirm New Password', value: confirmPassword, onChange: setConfirmPassword, autoComplete: 'new-password' },
             ].map(({ label, value, onChange, autoComplete }) => (
               <div key={label} style={{ marginBottom: '0.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.2rem' }}>{label}</label>
+                <label style={{ display: 'block', fontSize: fontSizes.sm, color: colors.textMuted, marginBottom: '0.2rem' }}>{label}</label>
                 <input
                   type="password"
                   value={value}
                   onChange={e => onChange(e.target.value)}
                   required
                   autoComplete={autoComplete}
-                  style={{
-                    width: '100%', padding: '0.375rem 0.5rem',
-                    border: '1px solid #d1d5db', borderRadius: '0.25rem',
-                    fontSize: '0.875rem',
-                  }}
+                  style={{ ...input, padding: '0.375rem 0.5rem', minHeight: '40px' }}
                 />
               </div>
             ))}
@@ -113,10 +115,12 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
               type="submit"
               disabled={loading}
               style={{
-                width: '100%', padding: '0.4rem',
-                background: loading ? '#d1d5db' : '#1a2744',
-                color: '#fff', border: 'none', borderRadius: '0.25rem',
-                fontSize: '0.8125rem', fontWeight: '600', cursor: loading ? 'default' : 'pointer',
+                ...btnPrimary,
+                width: '100%',
+                background: loading ? colors.borderMid : colors.navy,
+                cursor: loading ? 'default' : 'pointer',
+                minHeight: '40px',
+                padding: '0.4rem',
               }}
             >
               {loading ? 'Saving...' : 'Update Password'}
@@ -128,25 +132,18 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
         {user.is_admin === 1 && (
           <button
             onClick={() => { onNavigateAdmin(); onClose(); }}
-            style={{
-              width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
-              background: 'transparent', border: 'none', borderRadius: '0.375rem',
-              fontSize: '0.875rem', color: '#374151', cursor: 'pointer',
-            }}
+            style={menuBtnStyle}
+            title="For the colony 🐜"
           >
             ⚙ Admin Console
           </button>
         )}
 
         {/* Divider + Sign Out */}
-        <div style={{ borderTop: '1px solid #f3f4f6', marginTop: '0.25rem', paddingTop: '0.25rem' }}>
+        <div style={{ borderTop: `1px solid ${colors.borderLight}`, marginTop: '0.25rem', paddingTop: '0.25rem' }}>
           <button
             onClick={onLogout}
-            style={{
-              width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
-              background: 'transparent', border: 'none', borderRadius: '0.375rem',
-              fontSize: '0.875rem', color: '#dc2626', cursor: 'pointer', fontWeight: '500',
-            }}
+            style={{ ...menuBtnStyle, color: colors.error, fontWeight: fontWeights.medium }}
           >
             Sign Out
           </button>

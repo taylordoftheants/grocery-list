@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 import AddToListModal from './AddToListModal';
 import AddToDayModal from './AddToDayModal';
+import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, sectionLabel } from '../theme';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 const LEFTOVERS_DRAG_ID = '__leftovers__';
@@ -76,16 +77,17 @@ function SortableRecipe({ recipe }) {
         transform: CSS.Transform.toString(transform),
         transition,
         padding: '0.5rem 0.75rem',
-        background: isDragging ? '#dbeafe' : '#fff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.375rem',
+        background: isDragging ? colors.blueLight : colors.bgCard,
+        border: `1px solid ${isDragging ? colors.blueBorder : colors.border}`,
+        borderRadius: radii.md,
         marginBottom: '0.375rem',
-        fontSize: '0.875rem',
-        color: '#374151',
+        fontSize: fontSizes.base,
+        color: colors.textSecondary,
         cursor: 'grab',
         opacity: isDragging ? 0.4 : 1,
         userSelect: 'none',
         touchAction: 'none',
+        fontFamily: fonts.sans,
       }}
     >
       {recipe.title}
@@ -106,17 +108,18 @@ function LeftoversTile() {
       style={{
         transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined,
         padding: '0.5rem 0.75rem',
-        background: isDragging ? '#f9fafb' : '#f3f4f6',
-        border: '1px dashed #9ca3af',
-        borderRadius: '0.375rem',
+        background: isDragging ? colors.bgPage : colors.bgSurface,
+        border: `1px dashed ${colors.borderMid}`,
+        borderRadius: radii.md,
         marginTop: '0.75rem',
-        fontSize: '0.875rem',
-        color: '#6b7280',
+        fontSize: fontSizes.base,
+        color: colors.textMuted,
         cursor: 'grab',
         opacity: isDragging ? 0.4 : 1,
         userSelect: 'none',
         touchAction: 'none',
         textAlign: 'center',
+        fontFamily: fonts.sans,
       }}
     >
       🍱 Leftovers
@@ -145,17 +148,18 @@ function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker
     <div
       ref={setNodeRef}
       style={{
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.5rem',
-        background: isOver ? '#eff6ff' : '#fff',
-        transition: 'background 0.15s',
+        border: `1px solid ${isOver ? colors.blueBorder : colors.border}`,
+        borderRadius: radii.lg,
+        background: isOver ? colors.blueLight : colors.bgCard,
+        transition: 'background 0.15s, border-color 0.15s',
         padding: '0.5rem',
         display: 'flex',
         flexDirection: 'column',
         minHeight: '120px',
+        fontFamily: fonts.sans,
       }}
     >
-      <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.375rem', textAlign: 'center' }}>
+      <p style={{ ...sectionLabel, marginBottom: '0.375rem', textAlign: 'center' }}>
         {dayLabel}
       </p>
 
@@ -194,7 +198,7 @@ function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker
 
       <button
         onClick={() => onOpenPicker(dateKey)}
-        style={{ marginTop: '0.25rem', width: '100%', padding: '0.25rem', border: '1px dashed #d1d5db', borderRadius: '0.25rem', background: 'transparent', color: '#9ca3af', fontSize: '0.75rem', cursor: 'pointer' }}
+        style={{ marginTop: '0.25rem', width: '100%', padding: '0.25rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.sm, background: 'transparent', color: colors.textSubtle, fontSize: fontSizes.sm, cursor: 'pointer', minHeight: '36px', fontFamily: fonts.sans }}
       >
         + Add
       </button>
@@ -207,19 +211,13 @@ function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker
 function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDropRef, isOver }) {
   if (isMobile) {
     return (
-      <div style={{
-        background: '#fff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.5rem',
-        padding: '0.75rem',
-        marginBottom: '0.5rem',
-      }}>
-        <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+      <div style={{ ...card, padding: '0.75rem', marginBottom: '0.5rem', fontFamily: fonts.sans }}>
+        <p style={{ ...sectionLabel, marginBottom: '0.5rem' }}>
           For the Week
         </p>
 
         {entries.length === 0 && (
-          <p style={{ fontSize: '0.8125rem', color: '#d1d5db', marginBottom: '0.375rem' }}>Nothing added yet</p>
+          <p style={{ fontSize: fontSizes.base, color: colors.textDisabled, marginBottom: '0.375rem' }}>Nothing added yet</p>
         )}
 
         {entries.map(entry => {
@@ -255,7 +253,7 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDrop
 
         <button
           onClick={onOpenPicker}
-          style={{ marginTop: '0.375rem', width: '100%', padding: '0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#6b7280', fontSize: '0.875rem', cursor: 'pointer' }}
+          style={{ marginTop: '0.375rem', width: '100%', padding: '0.5rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', minHeight: '44px', fontFamily: fonts.sans }}
         >
           + Add
         </button>
@@ -264,9 +262,9 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDrop
   }
 
   return (
-    <div ref={setDropRef} style={{ background: isOver ? '#eff6ff' : '#fff', border: `1px solid ${isOver ? '#bfdbfe' : '#e5e7eb'}`, transition: 'background 0.15s, border-color 0.15s', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
+    <div ref={setDropRef} style={{ background: isOver ? colors.blueLight : colors.bgCard, border: `1px solid ${isOver ? colors.blueBorder : colors.border}`, transition: 'background 0.15s, border-color 0.15s', borderRadius: radii.lg, padding: '0.75rem 1rem', fontFamily: fonts.sans }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem', flexShrink: 0, paddingTop: '0.25rem' }}>
+        <span style={{ ...sectionLabel, marginRight: '0.25rem', flexShrink: 0, paddingTop: '0.25rem' }}>
           For the Week
         </span>
         {entries.map(entry => {
@@ -291,7 +289,7 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDrop
         })}
         <button
           onClick={onOpenPicker}
-          style={{ border: '1px dashed #d1d5db', borderRadius: '1rem', background: 'transparent', color: '#6b7280', fontSize: '0.8125rem', padding: '0.25rem 0.625rem', cursor: 'pointer', flexShrink: 0 }}
+          style={{ border: `1px dashed ${colors.borderMid}`, borderRadius: radii.full, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, padding: '0.25rem 0.625rem', cursor: 'pointer', flexShrink: 0, fontFamily: fonts.sans }}
         >
           + Add
         </button>
@@ -311,19 +309,13 @@ function WeeklyDropZone(props) {
 
 function MobileDayCard({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker, onOpenLeftoversPicker }) {
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid #e5e7eb',
-      borderRadius: '0.5rem',
-      padding: '0.75rem',
-      marginBottom: '0.5rem',
-    }}>
-      <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+    <div style={{ ...card, padding: '0.75rem', marginBottom: '0.5rem', fontFamily: fonts.sans }}>
+      <p style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, color: colors.textSecondary, marginBottom: '0.5rem' }}>
         {dayLabel}
       </p>
 
       {entries.length === 0 && (
-        <p style={{ fontSize: '0.8125rem', color: '#d1d5db', marginBottom: '0.375rem' }}>Nothing planned</p>
+        <p style={{ fontSize: fontSizes.base, color: colors.textDisabled, marginBottom: '0.375rem' }}>Nothing planned</p>
       )}
 
       {entries.map(entry => {
@@ -360,13 +352,13 @@ function MobileDayCard({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPi
       <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.375rem' }}>
         <button
           onClick={() => onOpenPicker(dateKey)}
-          style={{ flex: 1, padding: '0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#6b7280', fontSize: '0.875rem', cursor: 'pointer' }}
+          style={{ flex: 1, padding: '0.5rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', minHeight: '44px', fontFamily: fonts.sans }}
         >
           + Add
         </button>
         <button
           onClick={() => onOpenLeftoversPicker(dateKey)}
-          style={{ padding: '0.5rem 0.625rem', border: '1px dashed #9ca3af', borderRadius: '0.375rem', background: 'transparent', color: '#9ca3af', fontSize: '0.8125rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          style={{ padding: '0.5rem 0.625rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: '44px', fontFamily: fonts.sans }}
         >
           🍱
         </button>
@@ -581,25 +573,25 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button onClick={() => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; })}
-            style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: 'pointer', fontSize: '0.875rem' }}>
+            style={{ padding: '0.375rem 0.75rem', border: `1px solid ${colors.borderMid}`, borderRadius: radii.md, background: colors.bgCard, cursor: 'pointer', fontSize: fontSizes.base, fontFamily: fonts.sans, minHeight: '40px' }}>
             ← Prev
           </button>
-          <span style={{ fontSize: '0.9375rem', fontWeight: '600', color: '#374151' }}>{formatWeekRange(weekStart)}</span>
+          <span style={{ fontSize: fontSizes.md, fontWeight: fontWeights.semibold, color: colors.textSecondary, fontFamily: fonts.sans }}>{formatWeekRange(weekStart)}</span>
           <button onClick={() => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; })}
-            style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: 'pointer', fontSize: '0.875rem' }}>
+            style={{ padding: '0.375rem 0.75rem', border: `1px solid ${colors.borderMid}`, borderRadius: radii.md, background: colors.bgCard, cursor: 'pointer', fontSize: fontSizes.base, fontFamily: fonts.sans, minHeight: '40px' }}>
             Next →
           </button>
         </div>
         <button
           onClick={() => setIsAddToListOpen(true)}
-          style={{ padding: '0.5rem 1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer' }}
+          style={{ padding: '0.5rem 1rem', background: colors.success, color: colors.white, border: 'none', borderRadius: radii.md, fontSize: fontSizes.base, fontWeight: fontWeights.semibold, cursor: 'pointer', minHeight: '40px', fontFamily: fonts.sans }}
         >
           Add to List
         </button>
       </div>
 
       {addToListSuccess && (
-        <div style={{ background: '#dcfce7', color: '#166534', padding: '0.625rem 1rem', borderRadius: '0.375rem', fontSize: '0.875rem', marginBottom: '1rem' }}>
+        <div style={{ background: colors.successBg, color: colors.successText, padding: '0.625rem 1rem', borderRadius: radii.md, fontSize: fontSizes.base, marginBottom: '1rem', fontFamily: fonts.sans }}>
           ✓ {addToListSuccess}
         </div>
       )}
@@ -623,21 +615,21 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
             <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto' }}>
               {grouped.length === 0 && (
                 <div>
-                  <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>
-                  <button type="button" onClick={onNavigateToRecipes} style={{ marginTop: '0.5rem', display: 'block', width: '100%', padding: '0.3rem 0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#9ca3af', fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left' }}>
+                  <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, fontFamily: fonts.sans }}>No recipes yet.</p>
+                  <button type="button" onClick={onNavigateToRecipes} style={{ marginTop: '0.5rem', display: 'block', width: '100%', padding: '0.3rem 0.5rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textSubtle, fontSize: fontSizes.sm, cursor: 'pointer', textAlign: 'left', fontFamily: fonts.sans }}>
                     + New recipe
                   </button>
                 </div>
               )}
               {grouped.map(group => (
                 <div key={group.category} style={{ marginBottom: '0.75rem' }}>
-                  <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                  <p style={{ ...sectionLabel, marginBottom: '0.375rem' }}>
                     {group.category}
                   </p>
                   <SortableContext items={group.items.map(r => r.id)} strategy={verticalListSortingStrategy}>
                     {group.items.map(r => <SortableRecipe key={r.id} recipe={r} />)}
                   </SortableContext>
-                  <button type="button" onClick={onNavigateToRecipes} style={{ display: 'block', width: '100%', marginTop: '0.25rem', padding: '0.3rem 0.5rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#9ca3af', fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left' }}>
+                  <button type="button" onClick={onNavigateToRecipes} style={{ display: 'block', width: '100%', marginTop: '0.25rem', padding: '0.3rem 0.5rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textSubtle, fontSize: fontSizes.sm, cursor: 'pointer', textAlign: 'left', fontFamily: fonts.sans }}>
                     + New recipe
                   </button>
                 </div>
@@ -662,13 +654,14 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
             {activeIsLeftovers && (
               <div style={{
                 padding: '0.5rem 0.75rem',
-                background: '#f3f4f6',
-                border: '1px dashed #9ca3af',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                color: '#6b7280',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                background: colors.bgSurface,
+                border: `1px dashed ${colors.borderMid}`,
+                borderRadius: radii.md,
+                fontSize: fontSizes.base,
+                color: colors.textMuted,
+                boxShadow: shadows.md,
                 cursor: 'grabbing',
+                fontFamily: fonts.sans,
               }}>
                 🍱 Leftovers
               </div>
@@ -676,13 +669,14 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
             {activeRecipe && (
               <div style={{
                 padding: '0.5rem 0.75rem',
-                background: '#dbeafe',
-                border: '1px solid #93c5fd',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                color: '#1d4ed8',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                background: colors.blueLight,
+                border: `1px solid ${colors.blueBorder}`,
+                borderRadius: radii.md,
+                fontSize: fontSizes.base,
+                color: colors.blueDark,
+                boxShadow: shadows.md,
                 cursor: 'grabbing',
+                fontFamily: fonts.sans,
               }}>
                 {activeRecipe.title}
               </div>
@@ -698,6 +692,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
           onClose={() => setIsAddToListOpen(false)}
           loading={addToListLoading}
           onCreate={onCreateList}
+          isMobile={isMobile}
         />
       )}
 
@@ -713,6 +708,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
           onClose={() => { setPickingForDate(null); setPreCheckedRecipeId(null); setLeftoversMode(false); }}
           onNewRecipe={onNavigateToRecipes}
           onSwitchToLeftovers={() => setLeftoversMode(true)}
+          isMobile={isMobile}
         />
       )}
     </div>

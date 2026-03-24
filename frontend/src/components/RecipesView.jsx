@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
+import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, input, btnPrimary, btnSecondary, btnDanger, sectionLabel } from '../theme';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 
@@ -28,11 +29,11 @@ function SortableRecipeItem({ recipe, isSelected, onClick }) {
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1, listStyle: 'none' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', borderRadius: '0.375rem', background: isSelected ? '#eff6ff' : 'transparent' }}>
+      <div style={{ display: 'flex', alignItems: 'center', borderRadius: radii.md, background: isSelected ? colors.blueLight : 'transparent', transition: 'background 0.15s ease' }}>
         <span
           {...attributes}
           {...listeners}
-          style={{ cursor: 'grab', color: '#d1d5db', padding: '0.25rem 0.375rem', touchAction: 'none', userSelect: 'none', fontSize: '0.875rem', lineHeight: 1, flexShrink: 0 }}
+          style={{ cursor: 'grab', color: colors.borderMid, padding: '0.25rem 0.375rem', touchAction: 'none', userSelect: 'none', fontSize: fontSizes.base, lineHeight: 1, flexShrink: 0 }}
         >
           ⠿
         </span>
@@ -41,12 +42,13 @@ function SortableRecipeItem({ recipe, isSelected, onClick }) {
           style={{
             flex: 1, textAlign: 'left',
             padding: '0.5rem 0.5rem 0.5rem 0',
-            border: 'none', borderRadius: '0.375rem',
+            border: 'none', borderRadius: radii.md,
             background: 'transparent',
-            color: isSelected ? '#1d4ed8' : '#374151',
-            fontWeight: isSelected ? '600' : 'normal',
-            fontSize: '0.9375rem', cursor: 'pointer',
+            color: isSelected ? colors.blueDark : colors.textSecondary,
+            fontWeight: isSelected ? fontWeights.semibold : fontWeights.normal,
+            fontSize: fontSizes.md, cursor: 'pointer',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            fontFamily: fonts.sans,
           }}
         >
           {recipe.title}
@@ -133,51 +135,50 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
       const lname = ing.name.trim().toLowerCase();
       if (!lname) continue;
       if (ing.optional_category === 'sides' && !seenSides.has(lname)) {
-        suggestedSides.push(ing.name.trim());
-        seenSides.add(lname);
+        suggestedSides.push(ing.name.trim()); seenSides.add(lname);
       } else if (ing.optional_category === 'protein' && !seenProteins.has(lname)) {
-        suggestedProteins.push(ing.name.trim());
-        seenProteins.add(lname);
+        suggestedProteins.push(ing.name.trim()); seenProteins.add(lname);
       } else if (ing.optional_category === 'spices' && !seenSpices.has(lname)) {
-        suggestedSpices.push(ing.name.trim());
-        seenSpices.add(lname);
+        suggestedSpices.push(ing.name.trim()); seenSpices.add(lname);
       }
     }
   }
 
+  const ingInputStyle = { width: '90px', padding: '0.4rem 0.5rem', border: `1px solid ${colors.borderMid}`, borderRadius: radii.md, fontSize: fontSizes.base, flexShrink: 0, background: colors.white, fontFamily: fonts.sans };
+  const ingNameStyle = { flex: 1, padding: '0.4rem 0.5rem', border: `1px solid ${colors.borderMid}`, borderRadius: radii.md, fontSize: fontSizes.base, background: colors.white, fontFamily: fonts.sans };
+  const removeBtn = { border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem', minWidth: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+
+  const labelStyle = { display: 'block', fontSize: fontSizes.base, fontWeight: fontWeights.medium, color: colors.textSecondary, marginBottom: '0.25rem', fontFamily: fonts.sans };
+
   return (
-    <form onSubmit={handleSubmit} style={{ padding: '1.5rem', maxWidth: '480px' }}>
-      <h2 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
+    <form onSubmit={handleSubmit} style={{ padding: '1.5rem 1rem', maxWidth: '480px', fontFamily: fonts.sans }}>
+      <h2 style={{ fontSize: fontSizes.xl, fontWeight: fontWeights.bold, marginBottom: '1rem', color: colors.textPrimary }}>
         {recipe ? 'Edit Recipe' : 'New Recipe'}
       </h2>
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+        <div style={{ background: colors.errorBg, color: colors.errorText, padding: '0.75rem', borderRadius: radii.md, marginBottom: '1rem', fontSize: fontSizes.base }}>
           {error}
         </div>
       )}
 
       <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-          Recipe Title
-        </label>
+        <label style={labelStyle}>Recipe Title</label>
         <input
           value={title}
           onChange={e => setTitle(e.target.value)}
           placeholder="e.g. Spaghetti Bolognese"
           required
-          style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', boxSizing: 'border-box' }}
+          style={input}
         />
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
-        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-          Category
-        </label>
+        <label style={labelStyle}>Category</label>
         <select
           value={category}
           onChange={e => setCategory(e.target.value)}
-          style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', background: '#fff' }}
+          style={{ ...input, cursor: 'pointer' }}
         >
           {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
         </select>
@@ -185,61 +186,49 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
 
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>Ingredients</label>
-          <button type="button" onClick={addIng} style={{ fontSize: '0.8125rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+          <label style={labelStyle}>Ingredients</label>
+          <button type="button" onClick={addIng} style={{ fontSize: fontSizes.base, color: colors.blue, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.medium, fontFamily: fonts.sans }}>
             + Add ingredient
           </button>
         </div>
-
         {ingredients.map((ing, i) => (
           <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
-            <input
-              value={ing.amount}
-              onChange={e => setIng(i, 'amount', e.target.value)}
-              placeholder="Amount"
-              style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0 }}
-            />
-            <input
-              value={ing.name}
-              onChange={e => setIng(i, 'name', e.target.value)}
-              placeholder="Ingredient"
-              style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem' }}
-            />
+            <input value={ing.amount} onChange={e => setIng(i, 'amount', e.target.value)} placeholder="Amount" style={ingInputStyle} />
+            <input value={ing.name} onChange={e => setIng(i, 'name', e.target.value)} placeholder="Ingredient" style={{ ...ingNameStyle }} />
             {ingredients.length > 1 && (
-              <button type="button" onClick={() => removeIng(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>
-                ×
-              </button>
+              <button type="button" onClick={() => removeIng(i)} style={removeBtn}>×</button>
             )}
           </div>
         ))}
       </div>
 
+      {/* Side Options — amber color coding preserved */}
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#92400e' }}>Side Options</label>
-          <button type="button" onClick={addSide} style={{ fontSize: '0.8125rem', color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+          <label style={{ ...labelStyle, color: colors.sides.label }}>Side Options</label>
+          <button type="button" onClick={addSide} style={{ fontSize: fontSizes.base, color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.medium, fontFamily: fonts.sans }}>
             + Add side
           </button>
         </div>
         {sideOptions.length === 0 ? (
-          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>e.g. green beans, roasted potatoes, rice</p>
+          <p style={{ fontSize: fontSizes.base, color: colors.textSubtle, fontStyle: 'italic', fontFamily: fonts.sans }}>e.g. green beans, roasted potatoes, rice</p>
         ) : (
           sideOptions.map((ing, i) => (
             <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
               <input value={ing.amount} onChange={e => setSide(i, 'amount', e.target.value)} placeholder="Amount"
-                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#fffbeb' }} />
+                style={{ ...ingInputStyle, border: `1px solid ${colors.sides.border}`, background: colors.sides.bg }} />
               <input value={ing.name} onChange={e => setSide(i, 'name', e.target.value)} placeholder="Side option"
-                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #fde68a', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#fffbeb' }} />
-              <button type="button" onClick={() => removeSide(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+                style={{ ...ingNameStyle, border: `1px solid ${colors.sides.border}`, background: colors.sides.bg }} />
+              <button type="button" onClick={() => removeSide(i)} style={removeBtn}>×</button>
             </div>
           ))
         )}
         {suggestedSides.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', alignSelf: 'center', marginRight: '0.125rem' }}>Suggestions:</span>
+            <span style={{ fontSize: fontSizes.sm, color: colors.textSubtle, alignSelf: 'center' }}>Suggestions:</span>
             {suggestedSides.map(name => (
               <button key={name} type="button" onClick={() => setSideOptions(prev => [...prev, { name, amount: '' }])}
-                style={{ padding: '0.2rem 0.625rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '1rem', fontSize: '0.8125rem', color: '#92400e', cursor: 'pointer' }}>
+                style={{ padding: '0.2rem 0.625rem', background: colors.sides.bg, border: `1px solid ${colors.sides.border}`, borderRadius: radii.full, fontSize: fontSizes.base, color: colors.sides.label, cursor: 'pointer', fontFamily: fonts.sans }}>
                 + {name}
               </button>
             ))}
@@ -247,32 +236,33 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
         )}
       </div>
 
+      {/* Protein Options — blue color coding preserved */}
       <div style={{ marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1e40af' }}>Protein Options</label>
-          <button type="button" onClick={addProtein} style={{ fontSize: '0.8125rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+          <label style={{ ...labelStyle, color: colors.protein.label }}>Protein Options</label>
+          <button type="button" onClick={addProtein} style={{ fontSize: fontSizes.base, color: colors.blue, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.medium, fontFamily: fonts.sans }}>
             + Add protein
           </button>
         </div>
         {proteinOptions.length === 0 ? (
-          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>e.g. chicken breast, tofu, shrimp</p>
+          <p style={{ fontSize: fontSizes.base, color: colors.textSubtle, fontStyle: 'italic', fontFamily: fonts.sans }}>e.g. chicken breast, tofu, shrimp</p>
         ) : (
           proteinOptions.map((ing, i) => (
             <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
               <input value={ing.amount} onChange={e => setProtein(i, 'amount', e.target.value)} placeholder="Amount"
-                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#eff6ff' }} />
+                style={{ ...ingInputStyle, border: `1px solid ${colors.protein.border}`, background: colors.protein.bg }} />
               <input value={ing.name} onChange={e => setProtein(i, 'name', e.target.value)} placeholder="Protein option"
-                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#eff6ff' }} />
-              <button type="button" onClick={() => removeProtein(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+                style={{ ...ingNameStyle, border: `1px solid ${colors.protein.border}`, background: colors.protein.bg }} />
+              <button type="button" onClick={() => removeProtein(i)} style={removeBtn}>×</button>
             </div>
           ))
         )}
         {suggestedProteins.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', alignSelf: 'center', marginRight: '0.125rem' }}>Suggestions:</span>
+            <span style={{ fontSize: fontSizes.sm, color: colors.textSubtle, alignSelf: 'center' }}>Suggestions:</span>
             {suggestedProteins.map(name => (
               <button key={name} type="button" onClick={() => setProteinOptions(prev => [...prev, { name, amount: '' }])}
-                style={{ padding: '0.2rem 0.625rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '1rem', fontSize: '0.8125rem', color: '#1e40af', cursor: 'pointer' }}>
+                style={{ padding: '0.2rem 0.625rem', background: colors.protein.bg, border: `1px solid ${colors.protein.border}`, borderRadius: radii.full, fontSize: fontSizes.base, color: colors.protein.label, cursor: 'pointer', fontFamily: fonts.sans }}>
                 + {name}
               </button>
             ))}
@@ -280,32 +270,33 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
         )}
       </div>
 
+      {/* Spices — green color coding preserved */}
       <div style={{ marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: '500', color: '#065f46' }}>Spices and Such</label>
-          <button type="button" onClick={addSpice} style={{ fontSize: '0.8125rem', color: '#059669', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+          <label style={{ ...labelStyle, color: colors.spices.label }}>Spices and Such</label>
+          <button type="button" onClick={addSpice} style={{ fontSize: fontSizes.base, color: '#059669', background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.medium, fontFamily: fonts.sans }}>
             + Add spice
           </button>
         </div>
         {spiceItems.length === 0 ? (
-          <p style={{ fontSize: '0.8125rem', color: '#9ca3af', fontStyle: 'italic' }}>e.g. cumin, paprika, red pepper flakes</p>
+          <p style={{ fontSize: fontSizes.base, color: colors.textSubtle, fontStyle: 'italic', fontFamily: fonts.sans }}>e.g. cumin, paprika, red pepper flakes</p>
         ) : (
           spiceItems.map((ing, i) => (
             <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
               <input value={ing.amount} onChange={e => setSpice(i, 'amount', e.target.value)} placeholder="Amount"
-                style={{ width: '90px', padding: '0.4rem 0.5rem', border: '1px solid #6ee7b7', borderRadius: '0.375rem', fontSize: '0.875rem', flexShrink: 0, background: '#d1fae5' }} />
+                style={{ ...ingInputStyle, border: `1px solid ${colors.spices.border}`, background: colors.spices.bg }} />
               <input value={ing.name} onChange={e => setSpice(i, 'name', e.target.value)} placeholder="Spice or seasoning"
-                style={{ flex: 1, padding: '0.4rem 0.5rem', border: '1px solid #6ee7b7', borderRadius: '0.375rem', fontSize: '0.875rem', background: '#d1fae5' }} />
-              <button type="button" onClick={() => removeSpice(i)} style={{ border: 'none', background: 'transparent', color: '#9ca3af', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem' }}>×</button>
+                style={{ ...ingNameStyle, border: `1px solid ${colors.spices.border}`, background: colors.spices.bg }} />
+              <button type="button" onClick={() => removeSpice(i)} style={removeBtn}>×</button>
             </div>
           ))
         )}
         {suggestedSpices.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', alignSelf: 'center', marginRight: '0.125rem' }}>Suggestions:</span>
+            <span style={{ fontSize: fontSizes.sm, color: colors.textSubtle, alignSelf: 'center' }}>Suggestions:</span>
             {suggestedSpices.map(name => (
               <button key={name} type="button" onClick={() => setSpiceItems(prev => [...prev, { name, amount: '' }])}
-                style={{ padding: '0.2rem 0.625rem', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '1rem', fontSize: '0.8125rem', color: '#065f46', cursor: 'pointer' }}>
+                style={{ padding: '0.2rem 0.625rem', background: colors.spices.bg, border: `1px solid ${colors.spices.border}`, borderRadius: radii.full, fontSize: fontSizes.base, color: colors.spices.label, cursor: 'pointer', fontFamily: fonts.sans }}>
                 + {name}
               </button>
             ))}
@@ -318,16 +309,14 @@ function RecipeEditor({ recipe, onSave, onCancel, allRecipes }) {
           type="submit"
           disabled={loading || !title.trim()}
           style={{
-            padding: '0.5rem 1.25rem',
-            background: loading || !title.trim() ? '#d1d5db' : '#2563eb',
-            color: '#fff', border: 'none', borderRadius: '0.375rem',
-            fontSize: '0.9375rem', fontWeight: '600',
+            ...btnPrimary,
+            background: loading || !title.trim() ? colors.borderMid : colors.blue,
             cursor: loading || !title.trim() ? 'default' : 'pointer',
           }}
         >
           {loading ? 'Saving...' : 'Save Recipe'}
         </button>
-        <button type="button" onClick={onCancel} style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', cursor: 'pointer', color: '#374151' }}>
+        <button type="button" onClick={onCancel} style={{ ...btnSecondary }}>
           Cancel
         </button>
       </div>
@@ -344,28 +333,28 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
   const spiceItems = recipe.ingredients.filter(i => i.optional_category === 'spices');
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: '480px' }}>
+    <div style={{ padding: '1.5rem 1rem', maxWidth: '480px', fontFamily: fonts.sans }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827' }}>{recipe.title}</h2>
+        <h2 style={{ fontSize: fontSizes['2xl'], fontWeight: fontWeights.bold, color: colors.textPrimary }}>{recipe.title}</h2>
         <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, marginLeft: '0.5rem' }}>
-          <button onClick={onEdit} style={{ padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: 'transparent', fontSize: '0.875rem', cursor: 'pointer', color: '#374151' }}>
+          <button onClick={onEdit} style={{ ...btnSecondary, padding: '0.375rem 0.75rem', minHeight: '36px' }}>
             Edit
           </button>
-          <button onClick={onDelete} style={{ padding: '0.375rem 0.75rem', border: '1px solid #fca5a5', borderRadius: '0.375rem', background: 'transparent', fontSize: '0.875rem', cursor: 'pointer', color: '#dc2626' }}>
+          <button onClick={onDelete} style={{ ...btnDanger, padding: '0.375rem 0.75rem', minHeight: '36px' }}>
             Delete
           </button>
         </div>
       </div>
-      <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '1rem' }}>{recipe.category}</p>
+      <p style={{ fontSize: fontSizes.sm, color: colors.textSubtle, marginBottom: '1rem' }}>{recipe.category}</p>
 
       {required.length === 0 && sideOptions.length === 0 && proteinOptions.length === 0 && spiceItems.length === 0 ? (
-        <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No ingredients added.</p>
+        <p style={{ color: colors.textSubtle, fontSize: fontSizes.base }}>No ingredients added.</p>
       ) : (
         <>
           {required.length > 0 && (
             <ul style={{ listStyle: 'none', padding: 0, marginBottom: (sideOptions.length > 0 || proteinOptions.length > 0 || spiceItems.length > 0) ? '1rem' : 0 }}>
               {required.map(ing => (
-                <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#374151' }}>
+                <li key={ing.id} style={{ ...card, padding: '0.4rem 0.75rem', marginBottom: '0.375rem', fontSize: fontSizes.md, color: colors.textSecondary }}>
                   {[ing.amount, ing.name].filter(Boolean).join(' ')}
                 </li>
               ))}
@@ -374,12 +363,10 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
 
           {sideOptions.length > 0 && (
             <div style={{ marginBottom: (proteinOptions.length > 0 || spiceItems.length > 0) ? '1rem' : 0 }}>
-              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                Side Options
-              </p>
+              <p style={{ ...sectionLabel, color: colors.sides.label, marginBottom: '0.5rem' }}>Side Options</p>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 {sideOptions.map(ing => (
-                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#78350f' }}>
+                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: colors.sides.bg, border: `1px solid ${colors.sides.border}`, borderRadius: radii.md, marginBottom: '0.375rem', fontSize: fontSizes.md, color: colors.sides.chip }}>
                     {[ing.amount, ing.name].filter(Boolean).join(' ')}
                   </li>
                 ))}
@@ -389,12 +376,10 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
 
           {proteinOptions.length > 0 && (
             <div style={{ marginBottom: spiceItems.length > 0 ? '1rem' : 0 }}>
-              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                Protein Options
-              </p>
+              <p style={{ ...sectionLabel, color: colors.protein.label, marginBottom: '0.5rem' }}>Protein Options</p>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 {proteinOptions.map(ing => (
-                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#1e40af' }}>
+                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: colors.protein.bg, border: `1px solid ${colors.protein.border}`, borderRadius: radii.md, marginBottom: '0.375rem', fontSize: fontSizes.md, color: colors.protein.chip }}>
                     {[ing.amount, ing.name].filter(Boolean).join(' ')}
                   </li>
                 ))}
@@ -404,12 +389,10 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
 
           {spiceItems.length > 0 && (
             <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                Spices and Such
-              </p>
+              <p style={{ ...sectionLabel, color: colors.spices.label, marginBottom: '0.5rem' }}>Spices and Such</p>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 {spiceItems.map(ing => (
-                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '0.375rem', marginBottom: '0.375rem', fontSize: '0.9375rem', color: '#065f46' }}>
+                  <li key={ing.id} style={{ padding: '0.4rem 0.75rem', background: colors.spices.bg, border: `1px solid ${colors.spices.border}`, borderRadius: radii.md, marginBottom: '0.375rem', fontSize: fontSizes.md, color: colors.spices.chip }}>
                     {[ing.amount, ing.name].filter(Boolean).join(' ')}
                   </li>
                 ))}
@@ -506,20 +489,21 @@ export default function RecipesView({ isMobile }) {
   const listPanel = (
     <div style={{
       width: isMobile ? '100%' : '240px',
-      borderRight: isMobile ? 'none' : '1px solid #e5e7eb',
-      borderBottom: isMobile ? '1px solid #e5e7eb' : 'none',
-      background: '#fff',
+      borderRight: isMobile ? 'none' : `1px solid ${colors.border}`,
+      borderBottom: isMobile ? `1px solid ${colors.border}` : 'none',
+      background: colors.white,
       flexShrink: 0,
       display: 'flex',
       flexDirection: 'column',
       padding: '1rem',
       overflowY: 'auto',
+      fontFamily: fonts.sans,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Recipes</h2>
+        <h2 style={{ fontSize: fontSizes.lg, fontWeight: fontWeights.semibold, color: colors.textSecondary }}>Recipes</h2>
         <button
           onClick={() => { setShowNew(true); setSelectedId(null); setIsEditing(false); }}
-          style={{ fontSize: '0.8125rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}
+          style={{ fontSize: fontSizes.base, color: colors.blue, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.semibold, fontFamily: fonts.sans }}
         >
           + New
         </button>
@@ -532,11 +516,11 @@ export default function RecipesView({ isMobile }) {
         onDragCancel={handleDragCancel}
       >
         {grouped.length === 0 && (
-          <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes yet.</p>
+          <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, fontFamily: fonts.sans }}>No recipes yet.</p>
         )}
         {grouped.map(group => (
           <div key={group.category} style={{ marginBottom: '0.75rem' }}>
-            <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', margin: '0 0 0.25rem 0' }}>
+            <p style={{ ...sectionLabel, margin: '0 0 0.25rem 0' }}>
               {group.category}
             </p>
             <SortableContext items={group.items.map(r => r.id)} strategy={verticalListSortingStrategy}>
@@ -557,12 +541,13 @@ export default function RecipesView({ isMobile }) {
           {activeRecipe && (
             <div style={{
               padding: '0.4rem 0.75rem',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              borderRadius: '0.375rem',
-              fontSize: '0.9375rem',
-              color: '#1d4ed8',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              background: colors.blueLight,
+              border: `1px solid ${colors.blueBorder}`,
+              borderRadius: radii.md,
+              fontSize: fontSizes.md,
+              color: colors.blueDark,
+              boxShadow: shadows.md,
+              fontFamily: fonts.sans,
             }}>
               {activeRecipe.title}
             </div>
@@ -573,7 +558,7 @@ export default function RecipesView({ isMobile }) {
   );
 
   const mainPanel = (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#f9fafb' }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: colors.bgPage }}>
       {showNew && (
         <RecipeEditor recipe={null} onSave={handleSave} onCancel={() => setShowNew(false)} allRecipes={recipes} />
       )}
@@ -588,7 +573,7 @@ export default function RecipesView({ isMobile }) {
         <RecipeEditor recipe={selectedRecipe} onSave={handleSave} onCancel={() => setIsEditing(false)} allRecipes={recipes} />
       )}
       {!showNew && !selectedRecipe && (
-        <div style={{ padding: '2rem', color: '#9ca3af', fontSize: '0.875rem' }}>
+        <div style={{ padding: '2rem', color: colors.textSubtle, fontSize: fontSizes.base, fontFamily: fonts.sans }}>
           Select a recipe or create a new one.
         </div>
       )}
@@ -598,10 +583,10 @@ export default function RecipesView({ isMobile }) {
   if (isMobile && (selectedId !== null || showNew)) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ flexShrink: 0, borderBottom: '1px solid #e5e7eb', background: '#fff', padding: '0.625rem 1rem' }}>
+        <div style={{ flexShrink: 0, borderBottom: `1px solid ${colors.border}`, background: colors.white, padding: '0 1rem', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
           <button
             onClick={handleBackToList}
-            style={{ border: 'none', background: 'transparent', color: '#2563eb', fontSize: '0.9375rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+            style={{ border: 'none', background: 'transparent', color: colors.blue, fontSize: fontSizes.md, cursor: 'pointer', padding: '0.625rem 0', display: 'flex', alignItems: 'center', gap: '0.25rem', fontFamily: fonts.sans }}
           >
             ← Recipes
           </button>

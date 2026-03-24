@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, input, btnPrimary, btnSecondary, sectionLabel } from '../theme';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 
-export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, date, dayLabel, initialCheckedId, onConfirm, onClose, onNewRecipe, onSwitchToLeftovers }) {
+export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, date, dayLabel, initialCheckedId, onConfirm, onClose, onNewRecipe, onSwitchToLeftovers, isMobile }) {
   const [checkedIds, setCheckedIds] = useState(() => initialCheckedId ? new Set([initialCheckedId]) : new Set());
   const [selectedOptionals, setSelectedOptionals] = useState({});
   const [manualText, setManualText] = useState('');
@@ -65,51 +66,71 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
     .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
     .filter(g => g.items.length > 0);
 
+  const modalCard = isMobile ? {
+    ...card,
+    borderRadius: '1rem 1rem 0 0',
+    padding: '1.5rem',
+    width: '100%',
+    maxWidth: '100%',
+    maxHeight: '92vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: shadows.modal,
+    paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+  } : {
+    ...card,
+    borderRadius: radii.xl,
+    padding: '1.5rem',
+    width: '100%',
+    maxWidth: '380px',
+    maxHeight: '85vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: shadows.modal,
+  };
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 500,
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1rem',
+      background: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: isMobile ? 'flex-end' : 'center',
+      justifyContent: 'center',
+      padding: isMobile ? '0' : '1rem',
     }}>
-      <div style={{
-        background: '#fff', borderRadius: '0.75rem',
-        padding: '1.5rem', width: '100%', maxWidth: '380px',
-        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-      }}>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1rem', color: '#111827', flexShrink: 0 }}>
+      <div style={modalCard}>
+        <h2 style={{ fontSize: fontSizes.xl, fontWeight: fontWeights.bold, marginBottom: '1rem', color: colors.textPrimary, flexShrink: 0, fontFamily: fonts.sans }}>
           Add to {dayLabel}
         </h2>
 
         <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem' }}>
           {leftoversMode ? (
             <>
-              <p style={{ fontSize: '0.8125rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+              <p style={{ fontSize: fontSizes.sm, color: colors.textMuted, marginBottom: '0.75rem', fontFamily: fonts.sans }}>
                 Choose which recipe's leftovers:
               </p>
               {!weekRecipes?.length ? (
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No recipes planned this week yet.</p>
+                <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, fontFamily: fonts.sans }}>No recipes planned this week yet.</p>
               ) : (
                 weekRecipes.map(recipe => {
                   const isSelected = selectedLeftoversId === recipe.id;
                   return (
                     <label key={recipe.id} style={{
                       display: 'flex', alignItems: 'center', gap: '0.625rem',
-                      padding: '0.5rem 0.625rem', borderRadius: '0.375rem',
+                      padding: '0.5rem 0.625rem', borderRadius: radii.md,
                       cursor: 'pointer',
-                      background: isSelected ? '#f3f4f6' : 'transparent',
+                      background: isSelected ? colors.bgSurface : 'transparent',
                       marginBottom: '0.125rem',
-                      border: `1px solid ${isSelected ? '#d1d5db' : 'transparent'}`,
+                      border: `1px solid ${isSelected ? colors.borderMid : 'transparent'}`,
                     }}>
                       <input
                         type="radio"
                         name="leftovers-pick"
                         checked={isSelected}
                         onChange={() => setSelectedLeftoversId(recipe.id)}
-                        style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0 }}
+                        style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }}
                       />
-                      <span style={{ fontSize: '0.9375rem', color: '#374151' }}>{recipe.title}</span>
+                      <span style={{ fontSize: fontSizes.md, color: colors.textSecondary, fontFamily: fonts.sans }}>{recipe.title}</span>
                     </label>
                   );
                 })
@@ -118,13 +139,13 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
           ) : (
             <>
               {grouped.length === 0 ? (
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
+                <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, marginBottom: '0.75rem', fontFamily: fonts.sans }}>
                   No recipes yet — use the custom entry below.
                 </p>
               ) : (
                 grouped.map(group => (
                   <div key={group.category} style={{ marginBottom: '0.875rem' }}>
-                    <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.375rem' }}>
+                    <p style={{ ...sectionLabel, marginBottom: '0.375rem' }}>
                       {group.category}
                     </p>
                     {group.items.map(recipe => {
@@ -136,9 +157,9 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                           <label
                             style={{
                               display: 'flex', alignItems: 'center', gap: '0.625rem',
-                              padding: '0.5rem 0.625rem', borderRadius: '0.375rem',
+                              padding: '0.5rem 0.625rem', borderRadius: radii.md,
                               cursor: 'pointer',
-                              background: isChecked ? '#eff6ff' : 'transparent',
+                              background: isChecked ? colors.blueLight : 'transparent',
                               marginBottom: '0.125rem',
                             }}
                           >
@@ -146,22 +167,22 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                               type="checkbox"
                               checked={isChecked}
                               onChange={() => toggleId(recipe.id)}
-                              style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0 }}
+                              style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }}
                             />
-                            <span style={{ fontSize: '0.9375rem', color: '#374151' }}>{recipe.title}</span>
+                            <span style={{ fontSize: fontSizes.md, color: colors.textSecondary, fontFamily: fonts.sans }}>{recipe.title}</span>
                           </label>
 
                           {isChecked && (sideOpts.length > 0 || proteinOpts.length > 0) && (
                             <div style={{ paddingLeft: '2.125rem', paddingBottom: '0.375rem' }}>
                               {sideOpts.length > 0 && (
                                 <>
-                                  <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#92400e', marginBottom: '0.25rem' }}>Side Options</p>
+                                  <p style={{ fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.sides.label, marginBottom: '0.25rem', fontFamily: fonts.sans }}>Side Options</p>
                                   {sideOpts.map(ing => {
                                     const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
                                     return (
-                                      <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: '0.25rem', cursor: 'pointer', background: isSelected ? '#fffbeb' : 'transparent', marginBottom: '0.125rem' }}>
-                                        <input type="checkbox" checked={isSelected} onChange={() => toggleOptional(recipe.id, ing.id)} style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0 }} />
-                                        <span style={{ fontSize: '0.875rem', color: '#92400e' }}>{ing.name}</span>
+                                      <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: radii.sm, cursor: 'pointer', background: isSelected ? colors.sides.bg : 'transparent', marginBottom: '0.125rem' }}>
+                                        <input type="checkbox" checked={isSelected} onChange={() => toggleOptional(recipe.id, ing.id)} style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }} />
+                                        <span style={{ fontSize: fontSizes.base, color: colors.sides.label, fontFamily: fonts.sans }}>{ing.name}</span>
                                       </label>
                                     );
                                   })}
@@ -169,13 +190,13 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                               )}
                               {proteinOpts.length > 0 && (
                                 <>
-                                  <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#1e40af', marginBottom: '0.25rem', marginTop: sideOpts.length > 0 ? '0.375rem' : 0 }}>Protein Options</p>
+                                  <p style={{ fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.protein.label, marginBottom: '0.25rem', marginTop: sideOpts.length > 0 ? '0.375rem' : 0, fontFamily: fonts.sans }}>Protein Options</p>
                                   {proteinOpts.map(ing => {
                                     const isSelected = selectedOptionals[recipe.id]?.has(ing.id) ?? false;
                                     return (
-                                      <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: '0.25rem', cursor: 'pointer', background: isSelected ? '#eff6ff' : 'transparent', marginBottom: '0.125rem' }}>
-                                        <input type="checkbox" checked={isSelected} onChange={() => toggleOptional(recipe.id, ing.id)} style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0 }} />
-                                        <span style={{ fontSize: '0.875rem', color: '#1e40af' }}>{ing.name}</span>
+                                      <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: radii.sm, cursor: 'pointer', background: isSelected ? colors.protein.bg : 'transparent', marginBottom: '0.125rem' }}>
+                                        <input type="checkbox" checked={isSelected} onChange={() => toggleOptional(recipe.id, ing.id)} style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }} />
+                                        <span style={{ fontSize: fontSizes.base, color: colors.protein.label, fontFamily: fonts.sans }}>{ing.name}</span>
                                       </label>
                                     );
                                   })}
@@ -194,20 +215,20 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                 <button
                   type="button"
                   onClick={() => { onClose(); onNewRecipe(); }}
-                  style={{ display: 'block', width: '100%', padding: '0.375rem 0.75rem', border: '1px dashed #d1d5db', borderRadius: '0.375rem', background: 'transparent', color: '#6b7280', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left', marginBottom: '0.5rem' }}
+                  style={{ display: 'block', width: '100%', padding: '0.375rem 0.75rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', textAlign: 'left', marginBottom: '0.5rem', fontFamily: fonts.sans }}
                 >
                   + Create a new recipe
                 </button>
               )}
 
-              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.375rem' }}>Or add something custom</p>
+              <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: fontSizes.sm, color: colors.textSubtle, marginBottom: '0.375rem', fontFamily: fonts.sans }}>Or add something custom</p>
                 <input
                   value={manualText}
                   onChange={e => setManualText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && totalCount > 0 && handleSubmit()}
                   placeholder="e.g. Date night out..."
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', boxSizing: 'border-box' }}
+                  style={{ ...input }}
                 />
               </div>
 
@@ -215,7 +236,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                 <button
                   type="button"
                   onClick={onSwitchToLeftovers}
-                  style={{ marginTop: '0.625rem', display: 'block', width: '100%', padding: '0.375rem 0.75rem', border: '1px dashed #9ca3af', borderRadius: '0.375rem', background: 'transparent', color: '#6b7280', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left' }}
+                  style={{ marginTop: '0.625rem', display: 'block', width: '100%', padding: '0.375rem 0.75rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', textAlign: 'left', fontFamily: fonts.sans }}
                 >
                   🍱 Leftovers night →
                 </button>
@@ -229,19 +250,16 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
             onClick={handleSubmit}
             disabled={loading || totalCount === 0}
             style={{
-              flex: 1, padding: '0.625rem',
-              background: loading || totalCount === 0 ? '#d1d5db' : '#2563eb',
-              color: '#fff', border: 'none', borderRadius: '0.375rem',
-              fontSize: '0.9375rem', fontWeight: '600',
+              ...btnPrimary,
+              flex: 1,
+              background: loading || totalCount === 0 ? colors.borderMid : colors.blue,
               cursor: loading || totalCount === 0 ? 'default' : 'pointer',
+              justifyContent: 'center',
             }}
           >
             {loading ? 'Adding...' : totalCount > 0 ? `Add (${totalCount})` : 'Add'}
           </button>
-          <button
-            onClick={onClose}
-            style={{ padding: '0.625rem 1rem', background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.9375rem', cursor: 'pointer', color: '#6b7280' }}
-          >
+          <button onClick={onClose} style={{ ...btnSecondary }}>
             Cancel
           </button>
         </div>

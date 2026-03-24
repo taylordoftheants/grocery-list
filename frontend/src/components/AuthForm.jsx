@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
+import { colors, fonts, fontSizes, fontWeights, radii, input, btnPrimary } from '../theme';
 
 export default function AuthForm({ onAuth }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -43,7 +44,8 @@ export default function AuthForm({ onAuth }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: '#f9fafb',
+      background: colors.bgPage,
+      fontFamily: fonts.sans,
       padding: '1rem',
     }}>
       <div style={{

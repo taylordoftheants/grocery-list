@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import AddItemForm from './AddItemForm';
+import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel } from '../theme';
 
 export default function ItemList({ list, isMobile }) {
   const [items, setItems] = useState([]);
@@ -45,19 +46,19 @@ export default function ItemList({ list, isMobile }) {
   const otherItems = groupMap.get(null) ?? [];
 
   return (
-    <main style={{ padding: '1.5rem', background: '#f9fafb', minHeight: '100%' }}>
-      <h1 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
+    <main style={{ padding: isMobile ? '1rem' : '1.5rem', background: colors.bgPage, minHeight: '100%', fontFamily: fonts.sans }}>
+      <h1 style={{ fontSize: fontSizes['2xl'], fontWeight: fontWeights.bold, marginBottom: '1rem', color: colors.textPrimary }}>
         {list.name}
       </h1>
       <AddItemForm onAdd={handleAdd} />
 
       {unpurchased.length === 0 && spiceItems.length === 0 && purchased.length === 0 && (
-        <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No items yet. Add one above.</p>
+        <p style={{ color: colors.textSubtle, fontSize: fontSizes.base }}>No items yet. Add one above.</p>
       )}
 
       {recipeGroups.map(([recipeName, groupItems]) => (
         <div key={recipeName} style={{ marginBottom: '0.75rem' }}>
-          <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.375rem 0' }}>
+          <p style={{ ...sectionLabel, margin: '0 0 0.375rem 0' }}>
             {recipeName}
           </p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -71,7 +72,7 @@ export default function ItemList({ list, isMobile }) {
       {otherItems.length > 0 && (
         <div style={{ marginBottom: '0.75rem' }}>
           {recipeGroups.length > 0 && (
-            <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.375rem 0' }}>
+            <p style={{ ...sectionLabel, margin: '0 0 0.375rem 0' }}>
               Other
             </p>
           )}
@@ -85,7 +86,7 @@ export default function ItemList({ list, isMobile }) {
 
       {spiceItems.length > 0 && (
         <div style={{ marginBottom: '0.75rem' }}>
-          <p style={{ fontSize: '0.6875rem', fontWeight: '600', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.375rem 0' }}>
+          <p style={{ ...sectionLabel, color: colors.spices.label, margin: '0 0 0.375rem 0' }}>
             Spices and Such
           </p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -98,10 +99,10 @@ export default function ItemList({ list, isMobile }) {
 
       {purchased.length > 0 && (
         <>
-          <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '1rem 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <p style={{ ...sectionLabel, margin: '1rem 0 0.5rem' }}>
             Purchased ({purchased.length})
           </p>
-          <ul style={{ listStyle: 'none' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {purchased.map(item => (
               <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
             ))}
@@ -115,33 +116,32 @@ export default function ItemList({ list, isMobile }) {
 function Item({ item, onToggle, onDelete }) {
   return (
     <li style={{
+      ...card,
       display: 'flex',
       alignItems: 'center',
       gap: '0.75rem',
-      padding: '0.5rem 0.75rem',
-      background: '#fff',
-      borderRadius: '0.375rem',
+      padding: '0.625rem 0.75rem',
       marginBottom: '0.375rem',
-      border: '1px solid #e5e7eb',
     }}>
       <input
         type="checkbox"
         checked={!!item.purchased}
         onChange={() => onToggle(item)}
-        style={{ width: '1rem', height: '1rem', cursor: 'pointer' }}
+        style={{ width: '1rem', height: '1rem', cursor: 'pointer', accentColor: colors.blue, flexShrink: 0 }}
       />
       <span style={{
         flex: 1,
-        fontSize: '0.875rem',
-        color: item.purchased ? '#9ca3af' : '#111827',
+        fontSize: fontSizes.base,
+        color: item.purchased ? colors.textSubtle : colors.textPrimary,
         textDecoration: item.purchased ? 'line-through' : 'none',
+        fontFamily: fonts.sans,
       }}>
         {item.name}
       </span>
       {item.amount && (
         <span style={{
-          fontSize: '0.75rem',
-          color: '#9ca3af',
+          fontSize: fontSizes.sm,
+          color: colors.textSubtle,
           whiteSpace: 'nowrap',
         }}>
           {item.amount}
@@ -153,11 +153,17 @@ function Item({ item, onToggle, onDelete }) {
         style={{
           border: 'none',
           background: 'transparent',
-          color: '#9ca3af',
+          color: colors.textSubtle,
           fontSize: '1rem',
-          padding: '0.25rem',
+          padding: '0.375rem',
           lineHeight: 1,
           cursor: 'pointer',
+          minWidth: '44px',
+          minHeight: '44px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: radii.sm,
         }}
       >
         ×

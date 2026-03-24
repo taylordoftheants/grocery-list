@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { colors, fonts, fontSizes, fontWeights, radii, input, btnPrimary } from '../theme';
 
 export default function AddItemForm({ onAdd }) {
   const [name, setName] = useState('');
@@ -26,38 +27,22 @@ export default function AddItemForm({ onAdd }) {
         value={name}
         onChange={e => setName(e.target.value)}
         placeholder="Add item..."
-        style={{
-          flex: 1,
-          padding: '0.625rem 0.75rem',
-          border: '1px solid #d1d5db',
-          borderRadius: '0.375rem',
-          fontSize: '1rem',
-        }}
+        style={{ ...input, flex: 1, width: 'auto' }}
       />
       <input
         value={amount}
         onChange={e => setAmount(e.target.value)}
         placeholder="Qty"
-        style={{
-          width: '5rem',
-          padding: '0.625rem 0.75rem',
-          border: '1px solid #d1d5db',
-          borderRadius: '0.375rem',
-          fontSize: '1rem',
-        }}
+        style={{ ...input, width: '5rem' }}
       />
       <button
         type="submit"
         disabled={!canSubmit}
         style={{
-          padding: '0.625rem 1.25rem',
-          background: canSubmit ? '#2563eb' : '#d1d5db',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '0.375rem',
-          fontSize: '1rem',
+          ...btnPrimary,
+          background: canSubmit ? colors.blue : colors.borderMid,
           cursor: canSubmit ? 'pointer' : 'default',
-          transition: 'background 0.15s',
+          flexShrink: 0,
         }}
       >
         Add
