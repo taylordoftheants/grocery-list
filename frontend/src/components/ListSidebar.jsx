@@ -95,12 +95,18 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
       fontFamily: fonts.sans,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-        <h2 style={{ fontSize: fontSizes.lg, fontWeight: fontWeights.semibold, color: colors.textSecondary }}>Lists</h2>
+        <h2 style={{ fontSize: fontSizes.lg, fontWeight: fontWeights.bold, color: colors.textPrimary }}>Lists</h2>
+        <button
+          onClick={() => setShowAddForm(v => !v)}
+          style={{ fontSize: fontSizes.md, color: colors.blue, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.semibold, fontFamily: fonts.sans }}
+        >
+          + New
+        </button>
       </div>
 
       <ul style={{ listStyle: 'none', flex: 1, overflowY: 'auto', padding: 0, margin: 0 }}>
         {lists.map(list => (
-          <li key={list.id} style={{ marginBottom: '0.25rem' }}>
+          <li key={list.id} style={{ marginBottom: '0.375rem' }}>
             {confirmDeleteId === list.id ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.5rem', borderRadius: radii.md, background: colors.errorBg, border: `1px solid ${colors.errorBorder}` }}>
                 <span style={{ flex: 1, fontSize: fontSizes.sm, color: colors.errorText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -120,21 +126,20 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', border: `1px solid ${selectedListId === list.id ? colors.blueBorder : colors.border}`, borderRadius: radii.md, background: selectedListId === list.id ? colors.blueLight : colors.bgCard }}>
                 <button
                   onClick={() => onSelect(list.id)}
                   style={{
                     flex: 1, textAlign: 'left',
-                    padding: '0.5rem 0.5rem',
-                    borderRadius: radii.md, border: 'none',
-                    background: selectedListId === list.id ? colors.blueLight : 'transparent',
+                    padding: '0.5rem 0.75rem',
+                    border: 'none', borderRadius: radii.md,
+                    background: 'transparent',
                     fontWeight: selectedListId === list.id ? fontWeights.semibold : fontWeights.normal,
                     color: selectedListId === list.id ? colors.blueDark : colors.textSecondary,
-                    fontSize: fontSizes.md,
+                    fontSize: fontSizes.base,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     cursor: 'pointer',
                     fontFamily: fonts.sans,
-                    transition: 'background 0.15s ease',
                   }}
                 >
                   {list.name}
@@ -142,7 +147,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
                 <button
                   onClick={() => setConfirmDeleteId(list.id)}
                   aria-label={`Delete ${list.name}`}
-                  style={{ border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '1.125rem', padding: '0.375rem', borderRadius: radii.sm, lineHeight: 1, cursor: 'pointer', minWidth: '32px', minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '1rem', padding: '0.375rem 0.5rem', borderRadius: `0 ${radii.md} ${radii.md} 0`, lineHeight: 1, cursor: 'pointer', flexShrink: 0 }}
                 >
                   ×
                 </button>
@@ -152,27 +157,31 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
         ))}
       </ul>
 
-      <form onSubmit={handleSubmit} style={{ marginTop: '0.75rem', display: 'flex', gap: '0.25rem' }}>
-        <input
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
-          placeholder="New list..."
-          style={{ ...input, flex: 1, width: 'auto', minHeight: '44px' }}
-        />
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          style={{
-            ...btnPrimary,
-            padding: '0.5rem 0.75rem',
-            background: canSubmit ? colors.blue : colors.borderMid,
-            cursor: canSubmit ? 'pointer' : 'default',
-            flexShrink: 0,
-          }}
-        >
-          +
-        </button>
-      </form>
+      {showAddForm && (
+        <form onSubmit={handleSubmit} style={{ marginTop: '0.75rem', display: 'flex', gap: '0.25rem' }}>
+          <input
+            autoFocus
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            placeholder="List name..."
+            style={{ ...input, flex: 1, width: 'auto', minHeight: '40px' }}
+          />
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            style={{
+              ...btnPrimary,
+              padding: '0.5rem 0.75rem',
+              background: canSubmit ? colors.blue : colors.borderMid,
+              cursor: canSubmit ? 'pointer' : 'default',
+              flexShrink: 0,
+              minHeight: '40px',
+            }}
+          >
+            +
+          </button>
+        </form>
+      )}
     </aside>
   );
 }
