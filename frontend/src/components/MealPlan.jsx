@@ -568,7 +568,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
   );
 
   return (
-    <div style={{ padding: '1rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+    <div style={{ padding: '1rem', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)', height: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', background: colors.bgPage }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -612,7 +612,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
         <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
           <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0 }}>
             {/* Recipe source panel */}
-            <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto' }}>
+            <div style={{ width: '200px', flexShrink: 0, overflowY: 'auto', background: colors.white, border: `1px solid ${colors.border}`, borderRadius: radii.lg, padding: '1rem' }}>
               {grouped.length === 0 && (
                 <div>
                   <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, fontFamily: fonts.sans }}>No recipes yet.</p>

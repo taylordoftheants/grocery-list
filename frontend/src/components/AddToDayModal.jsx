@@ -72,9 +72,10 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
     padding: '1.5rem',
     width: '100%',
     maxWidth: '100%',
-    maxHeight: '92vh',
+    maxHeight: '88vh',
     display: 'flex',
     flexDirection: 'column',
+    overflow: 'hidden',
     boxShadow: shadows.modal,
     paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
   } : {
