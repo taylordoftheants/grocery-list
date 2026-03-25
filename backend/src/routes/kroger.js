@@ -67,14 +67,12 @@ router.get('/locations', authMiddleware, async (req, res) => {
     });
     if (!krogerRes.ok) throw new Error(`Kroger locations API error: ${krogerRes.status}`);
     const data = await krogerRes.json();
-    console.log('Kroger location chains found:', [...new Set((data.data || []).map(l => l.chain))]);
-    const locations = (data.data || [])
-      .filter(loc => loc.chain?.toLowerCase().includes('harris'))
-      .map(loc => ({
-        locationId: loc.locationId,
-        name: loc.name,
-        address: `${loc.address?.addressLine1}, ${loc.address?.city}, ${loc.address?.state}`,
-      }));
+    const locations = (data.data || []).map(loc => ({
+      locationId: loc.locationId,
+      name: loc.name,
+      chain: loc.chain,
+      address: `${loc.address?.addressLine1}, ${loc.address?.city}, ${loc.address?.state}`,
+    }));
     res.json(locations);
   } catch (e) {
     console.error('Kroger locations error:', e);

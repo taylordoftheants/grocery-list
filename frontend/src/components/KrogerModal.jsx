@@ -111,7 +111,7 @@ export default function KrogerModal({ isMobile, onClose }) {
                         {loc.name}
                       </div>
                       <div style={{ fontSize: fontSizes.sm, color: colors.textMuted, marginTop: '0.125rem' }}>
-                        {loc.address}
+                        {loc.chain} · {loc.address}
                       </div>
                     </button>
                   </li>

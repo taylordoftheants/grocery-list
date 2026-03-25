@@ -11,6 +11,7 @@ import adminRouter from './routes/admin.js';
 import krogerRouter from './routes/kroger.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 if (!process.env.JWT_SECRET) {
