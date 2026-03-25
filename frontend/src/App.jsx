@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from './api';
-import { colors, fonts } from './theme';
+import { colors, fonts, fontSizes } from './theme';
 import ListSidebar from './components/ListSidebar';
 import ItemList from './components/ItemList';
 import LandingPage from './components/LandingPage';
@@ -74,8 +74,8 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.bgPage, fontFamily: fonts.sans }}>
-        <p style={{ color: colors.textSubtle }}>Loading...</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.charcoal, fontFamily: fonts.sans }}>
+        <p style={{ color: colors.amber, fontFamily: fonts.display, letterSpacing: '0.08em', fontSize: fontSizes.base }}>Loading…</p>
       </div>
     );
   }
@@ -109,6 +109,7 @@ export default function App() {
             onChangeView={setCurrentView}
             user={user}
             onProfileClick={() => setShowProfile(v => !v)}
+            isMobile={isMobile}
           />
           {showProfile && (
             <ProfileMenu
@@ -132,7 +133,7 @@ export default function App() {
               <ListSidebar {...sidebarProps} isMobile={true} />
             )}
 
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 0 }}>
               {currentView === 'lists' && (
                 selectedList
                   ? <ItemList list={selectedList} isMobile={isMobile} />

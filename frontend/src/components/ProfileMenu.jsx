@@ -45,7 +45,7 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
   const menuBtnStyle = {
     width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem',
     background: 'transparent', border: 'none', borderRadius: radii.md,
-    fontSize: fontSizes.base, color: colors.textSecondary, cursor: 'pointer',
+    fontSize: fontSizes.base, color: 'rgba(255,255,255,0.8)', cursor: 'pointer',
     fontFamily: fonts.sans, minHeight: '40px',
   };
 
@@ -57,10 +57,10 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
         top: '3.5rem',
         right: '0.75rem',
         zIndex: 200,
-        background: colors.bgCard,
-        border: `1px solid ${colors.border}`,
+        background: colors.charcoal,
+        border: `1px solid ${colors.charcoalBorder}`,
         borderRadius: radii.lg,
-        boxShadow: shadows.lg,
+        boxShadow: shadows.xl,
         width: '280px',
         maxWidth: 'calc(100vw - 1.5rem)',
         overflow: 'hidden',
@@ -68,9 +68,9 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
       }}
     >
       {/* Email header */}
-      <div style={{ padding: '0.875rem 1rem', borderBottom: `1px solid ${colors.borderLight}`, background: colors.bgSurface }}>
-        <p style={{ fontSize: fontSizes.sm, color: colors.textSubtle, marginBottom: '0.125rem' }}>Signed in as</p>
-        <p style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, color: colors.textPrimary, wordBreak: 'break-all' }}>{user.email}</p>
+      <div style={{ padding: '0.875rem 1rem', borderBottom: `1px solid ${colors.charcoalBorder}`, background: colors.charcoalMid }}>
+        <p style={{ fontSize: fontSizes.sm, color: 'rgba(255,255,255,0.45)', marginBottom: '0.125rem', fontFamily: fonts.display, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Signed in as</p>
+        <p style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, color: colors.white, wordBreak: 'break-all' }}>{user.email}</p>
       </div>
 
       <div style={{ padding: '0.5rem' }}>
@@ -100,7 +100,7 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
               { label: 'Confirm New Password', value: confirmPassword, onChange: setConfirmPassword, autoComplete: 'new-password' },
             ].map(({ label, value, onChange, autoComplete }) => (
               <div key={label} style={{ marginBottom: '0.5rem' }}>
-                <label style={{ display: 'block', fontSize: fontSizes.sm, color: colors.textMuted, marginBottom: '0.2rem' }}>{label}</label>
+                <label style={{ display: 'block', fontSize: fontSizes.sm, color: 'rgba(255,255,255,0.55)', marginBottom: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</label>
                 <input
                   type="password"
                   value={value}
@@ -117,7 +117,8 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
               style={{
                 ...btnPrimary,
                 width: '100%',
-                background: loading ? colors.borderMid : colors.navy,
+                background: loading ? colors.amberDark : colors.amber,
+                color: colors.charcoal,
                 cursor: loading ? 'default' : 'pointer',
                 minHeight: '40px',
                 padding: '0.4rem',
@@ -140,7 +141,7 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
         )}
 
         {/* Divider + Sign Out */}
-        <div style={{ borderTop: `1px solid ${colors.borderLight}`, marginTop: '0.25rem', paddingTop: '0.25rem' }}>
+        <div style={{ borderTop: `1px solid ${colors.charcoalBorder}`, marginTop: '0.25rem', paddingTop: '0.25rem' }}>
           <button
             onClick={onLogout}
             style={{ ...menuBtnStyle, color: colors.error, fontWeight: fontWeights.medium }}

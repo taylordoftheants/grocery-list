@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { colors, fonts, fontSizes, fontWeights, radii, input, btnPrimary } from '../theme';
+import { colors, fonts, fontSizes, fontWeights, radii, input, btnPrimary, shadows } from '../theme';
 
 export default function ListSidebar({ lists, selectedListId, onSelect, onCreate, onDelete, isMobile }) {
   const [newName, setNewName] = useState('');
@@ -24,7 +24,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
   if (isMobile) {
     return (
       <div style={{
-        background: colors.white,
+        background: colors.bgSurface,
         borderBottom: `1px solid ${colors.border}`,
         padding: '0.5rem 1rem',
         flexShrink: 0,
@@ -38,10 +38,10 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
               style={{
                 flexShrink: 0,
                 padding: '0.375rem 0.75rem',
-                border: `1px solid ${selectedListId === list.id ? colors.blue : colors.border}`,
+                border: `1px solid ${selectedListId === list.id ? colors.amber : colors.border}`,
                 borderRadius: radii.full,
-                background: selectedListId === list.id ? colors.blue : colors.white,
-                color: selectedListId === list.id ? colors.white : colors.textSecondary,
+                background: selectedListId === list.id ? colors.amber : colors.bgCard,
+                color: selectedListId === list.id ? colors.charcoal : colors.textSecondary,
                 fontSize: fontSizes.base,
                 fontWeight: selectedListId === list.id ? fontWeights.semibold : fontWeights.normal,
                 cursor: 'pointer',
@@ -64,7 +64,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
                 placeholder="List name"
                 style={{ ...input, padding: '0.375rem 0.625rem', width: '110px', minHeight: '36px', borderRadius: radii.full }}
               />
-              <button type="submit" disabled={loading || !newName.trim()} style={{ padding: '0.375rem 0.625rem', background: colors.blue, color: colors.white, border: 'none', borderRadius: radii.full, fontSize: fontSizes.base, cursor: 'pointer', minHeight: '36px' }}>✓</button>
+              <button type="submit" disabled={loading || !newName.trim()} style={{ padding: '0.375rem 0.625rem', background: colors.amber, color: colors.charcoal, border: 'none', borderRadius: radii.full, fontSize: fontSizes.base, cursor: 'pointer', minHeight: '36px' }}>✓</button>
               <button type="button" onClick={() => { setShowAddForm(false); setNewName(''); }} style={{ padding: '0.375rem 0.625rem', background: 'transparent', border: `1px solid ${colors.borderMid}`, borderRadius: radii.full, fontSize: fontSizes.base, cursor: 'pointer', color: colors.textMuted, minHeight: '36px' }}>✕</button>
             </form>
           ) : (
@@ -87,7 +87,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
     <aside style={{
       width: '220px',
       borderRight: `1px solid ${colors.border}`,
-      background: colors.white,
+      background: colors.bgSurface,
       display: 'flex',
       flexDirection: 'column',
       padding: '1rem',
@@ -98,7 +98,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
         <h2 style={{ fontSize: fontSizes.lg, fontWeight: fontWeights.bold, color: colors.textPrimary }}>Lists</h2>
         <button
           onClick={() => setShowAddForm(v => !v)}
-          style={{ fontSize: fontSizes.md, color: colors.blue, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.semibold, fontFamily: fonts.sans }}
+          style={{ fontSize: fontSizes.md, color: colors.amber, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.semibold, fontFamily: fonts.display }}
         >
           + New
         </button>
@@ -126,7 +126,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', border: `1px solid ${selectedListId === list.id ? colors.blueBorder : colors.border}`, borderRadius: radii.md, background: selectedListId === list.id ? colors.blueLight : colors.bgCard }}>
+              <div style={{ display: 'flex', alignItems: 'center', border: `1px solid ${selectedListId === list.id ? colors.amberBorder : colors.border}`, borderRadius: radii.md, background: selectedListId === list.id ? colors.amberLight : colors.bgCard, transition: 'background 0.15s ease, border-color 0.15s ease' }}>
                 <button
                   onClick={() => onSelect(list.id)}
                   style={{
@@ -135,7 +135,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
                     border: 'none', borderRadius: radii.md,
                     background: 'transparent',
                     fontWeight: selectedListId === list.id ? fontWeights.semibold : fontWeights.normal,
-                    color: selectedListId === list.id ? colors.blueDark : colors.textSecondary,
+                    color: selectedListId === list.id ? colors.amberDark : colors.textSecondary,
                     fontSize: fontSizes.base,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     cursor: 'pointer',

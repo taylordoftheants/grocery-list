@@ -1,0 +1,23 @@
+{
+  "name": "Assist.ant",
+  "short_name": "Assist.ant",
+  "description": "Meal planning and grocery lists",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait-primary",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/crest.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/crest.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
