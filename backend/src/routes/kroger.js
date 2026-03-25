@@ -61,17 +61,20 @@ router.get('/locations', authMiddleware, async (req, res) => {
   if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
   try {
     const token = await getClientToken();
-    const url = `${KROGER_BASE}/locations?filter.chain=HARRIS-TEETER&filter.lat=${lat}&filter.lon=${lon}&filter.radiusInMiles=20&filter.limit=10`;
+    const url = `${KROGER_BASE}/locations?filter.lat=${lat}&filter.lon=${lon}&filter.radiusInMiles=20&filter.limit=20`;
     const krogerRes = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
     });
     if (!krogerRes.ok) throw new Error(`Kroger locations API error: ${krogerRes.status}`);
     const data = await krogerRes.json();
-    const locations = (data.data || []).map(loc => ({
-      locationId: loc.locationId,
-      name: loc.name,
-      address: `${loc.address?.addressLine1}, ${loc.address?.city}, ${loc.address?.state}`,
-    }));
+    console.log('Kroger location chains found:', [...new Set((data.data || []).map(l => l.chain))]);
+    const locations = (data.data || [])
+      .filter(loc => loc.chain?.toLowerCase().includes('harris'))
+      .map(loc => ({
+        locationId: loc.locationId,
+        name: loc.name,
+        address: `${loc.address?.addressLine1}, ${loc.address?.city}, ${loc.address?.state}`,
+      }));
     res.json(locations);
   } catch (e) {
     console.error('Kroger locations error:', e);
