@@ -60,6 +60,7 @@ export default function ItemList({ list, isMobile }) {
   const aggGroups = [...aggMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
+    <>
     <main style={{ padding: isMobile ? '1rem' : '1.5rem', background: colors.bgPage, minHeight: '100%', fontFamily: fonts.sans }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <h1 style={{ fontSize: fontSizes['2xl'], fontWeight: fontWeights.bold, margin: 0, color: colors.textPrimary }}>
@@ -163,6 +164,7 @@ export default function ItemList({ list, isMobile }) {
       )}
     </main>
     {showKrogerModal && <KrogerModal isMobile={isMobile} onClose={() => setShowKrogerModal(false)} />}
+    </>
   );
 }
 
