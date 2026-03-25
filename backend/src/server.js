@@ -30,6 +30,7 @@ export const authLimiter = rateLimit({
 app.use(express.json());
 app.use(cookieParser());
 
+app.get('/api/auth/me', authRouter);
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/lists', listsRouter);
 app.use('/api/lists/:listId/items', itemsRouter);
