@@ -44,6 +44,14 @@ export const api = {
   deleteRecipe:  (id)                                => request('DELETE', `/recipes/${id}`),
   reorderRecipes: (ids)                              => request('POST',   '/recipes/reorder',  { ids }),
 
+  // Kroger
+  krogerGetLocations: (lat, lon) => request('GET',    `/kroger/locations?lat=${lat}&lon=${lon}`),
+  krogerStatus:       ()         => request('GET',    '/kroger/status'),
+  krogerDisconnect:   ()         => request('DELETE', '/kroger/disconnect'),
+  krogerAddToCart:    (listId)   => request('POST',   '/kroger/cart/add', { listId }),
+  // Note: kroger auth start is a full browser navigation, not a fetch call:
+  // window.location.href = '/api/kroger/auth/start?locationId=' + id
+
   // Meal Plan
   getMealPlan:         (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),
   addMealPlanEntry:    (entry)              => request('POST',   '/mealplan',              entry),

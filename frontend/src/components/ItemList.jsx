@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import AddItemForm from './AddItemForm';
+import KrogerModal from './KrogerModal';
 import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary } from '../theme';
 
 export default function ItemList({ list, isMobile }) {
   const [items, setItems] = useState([]);
   const [viewMode, setViewMode] = useState('grouped'); // 'grouped' | 'aggregated'
+  const [showKrogerModal, setShowKrogerModal] = useState(false);
 
   useEffect(() => {
     api.getItems(list.id).then(setItems);
@@ -63,7 +65,7 @@ export default function ItemList({ list, isMobile }) {
         <h1 style={{ fontSize: fontSizes['2xl'], fontWeight: fontWeights.bold, margin: 0, color: colors.textPrimary }}>
           {list.name}
         </h1>
-        <div style={{ display: 'flex', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
           {['grouped', 'aggregated'].map(mode => (
             <button
               key={mode}
@@ -78,6 +80,12 @@ export default function ItemList({ list, isMobile }) {
               {mode === 'grouped' ? 'By Recipe' : 'Aggregated'}
             </button>
           ))}
+          <button
+            onClick={() => setShowKrogerModal(true)}
+            style={{ ...btnPrimary, padding: '0.25rem 0.75rem', minHeight: 'unset', fontSize: fontSizes.sm }}
+          >
+            Buy em, ant!
+          </button>
         </div>
       </div>
       <AddItemForm onAdd={handleAdd} />
@@ -154,6 +162,7 @@ export default function ItemList({ list, isMobile }) {
         </>
       )}
     </main>
+    {showKrogerModal && <KrogerModal isMobile={isMobile} onClose={() => setShowKrogerModal(false)} />}
   );
 }
 

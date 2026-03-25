@@ -9,6 +9,7 @@ import RecipesView from './components/RecipesView';
 import MealPlan from './components/MealPlan';
 import ProfileMenu from './components/ProfileMenu';
 import AdminView from './components/AdminView';
+import KrogerCartModal from './components/KrogerCartModal';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -19,6 +20,20 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentView, setCurrentView] = useState('mealplan');
   const [showProfile, setShowProfile] = useState(false);
+  const [showKrogerCartModal, setShowKrogerCartModal] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('kroger_success')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      setCurrentView('lists');
+      setShowKrogerCartModal(true);
+    }
+    if (params.get('kroger_error')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      setError('Kroger login failed. Please try again.');
+    }
+  }, []);
 
   useEffect(() => {
     api.getMe()
@@ -150,6 +165,9 @@ export default function App() {
           </div>
         </div>
       </div>
+      {showKrogerCartModal && selectedList && (
+        <KrogerCartModal list={selectedList} isMobile={isMobile} onClose={() => setShowKrogerCartModal(false)} />
+      )}
     </div>
   );
 }

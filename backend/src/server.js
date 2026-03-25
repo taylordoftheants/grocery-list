@@ -8,6 +8,7 @@ import authRouter from './routes/auth.js';
 import recipesRouter from './routes/recipes.js';
 import mealplanRouter from './routes/mealplan.js';
 import adminRouter from './routes/admin.js';
+import krogerRouter from './routes/kroger.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,11 +33,13 @@ app.use(cookieParser());
 
 app.get('/api/auth/me', authRouter);
 app.use('/api/auth', authLimiter, authRouter);
+
 app.use('/api/lists', listsRouter);
 app.use('/api/lists/:listId/items', itemsRouter);
 app.use('/api/recipes', recipesRouter);
 app.use('/api/mealplan', mealplanRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/kroger', krogerRouter);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

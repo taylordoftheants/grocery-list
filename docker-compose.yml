@@ -28,6 +28,9 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - ALLOWED_ORIGIN=${ALLOWED_ORIGIN}
       - NODE_ENV=production
+      - KROGER_CLIENT_ID=${KROGER_CLIENT_ID}
+      - KROGER_CLIENT_SECRET=${KROGER_CLIENT_SECRET}
+      - KROGER_REDIRECT_URI=${KROGER_REDIRECT_URI}
     volumes:
       - grocery-data:/data
     restart: unless-stopped
