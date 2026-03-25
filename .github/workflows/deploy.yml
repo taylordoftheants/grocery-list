@@ -66,6 +66,9 @@ jobs:
             echo "GITHUB_REPOSITORY=${{ github.repository }}" > .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
             echo "ALLOWED_ORIGIN=${{ secrets.ALLOWED_ORIGIN }}" >> .env
+            echo "KROGER_CLIENT_ID=${{ secrets.KROGER_CLIENT_ID }}" >> .env
+            echo "KROGER_CLIENT_SECRET=${{ secrets.KROGER_CLIENT_SECRET }}" >> .env
+            echo "KROGER_REDIRECT_URI=${{ secrets.KROGER_REDIRECT_URI }}" >> .env
             docker compose pull
             docker compose up -d
             docker image prune -f
