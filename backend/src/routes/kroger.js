@@ -55,13 +55,30 @@ async function refreshKrogerToken(userId) {
   return data.access_token;
 }
 
-// GET /api/kroger/locations?lat=&lon=
+// GET /api/kroger/chains  (discovery — used to find chain identifiers like Harris Teeter)
+router.get('/chains', authMiddleware, async (req, res) => {
+  try {
+    const token = await getClientToken();
+    const krogerRes = await fetch(`${KROGER_BASE}/locations/chain`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+    });
+    if (!krogerRes.ok) throw new Error(`Kroger chains API error: ${krogerRes.status}`);
+    const data = await krogerRes.json();
+    res.json(data.data || []);
+  } catch (e) {
+    console.error('Kroger chains error:', e);
+    res.status(502).json({ error: 'Failed to fetch chain list' });
+  }
+});
+
+// GET /api/kroger/locations?lat=&lon=&chain=
 router.get('/locations', authMiddleware, async (req, res) => {
-  const { lat, lon } = req.query;
+  const { lat, lon, chain } = req.query;
   if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
   try {
     const token = await getClientToken();
-    const url = `${KROGER_BASE}/locations?filter.lat=${lat}&filter.lon=${lon}&filter.radiusInMiles=20&filter.limit=20`;
+    const chainParam = chain ? `&filter.chain=${encodeURIComponent(chain)}` : '';
+    const url = `${KROGER_BASE}/locations?filter.lat=${lat}&filter.lon=${lon}&filter.radiusInMiles=20&filter.limit=20${chainParam}`;
     const krogerRes = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
     });

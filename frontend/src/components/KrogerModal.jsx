@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary, btnSecondary } from '../theme';
 
+const HARRIS_TEETER_CHAIN = 'HARRIS-TEETER';
+
 export default function KrogerModal({ isMobile, onClose }) {
   const [step, setStep] = useState('loading'); // 'loading' | 'store' | 'error'
   const [locations, setLocations] = useState([]);
@@ -18,9 +20,9 @@ export default function KrogerModal({ isMobile, onClose }) {
     );
   }, []);
 
-  async function loadLocations(lat, lon) {
+  async function loadLocations(lat, lon, chain = HARRIS_TEETER_CHAIN) {
     try {
-      const data = await api.krogerGetLocations(lat, lon);
+      const data = await api.krogerGetLocations(lat, lon, chain);
       setLocations(data);
       setStep('store');
     } catch (e) {

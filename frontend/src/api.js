@@ -45,7 +45,10 @@ export const api = {
   reorderRecipes: (ids)                              => request('POST',   '/recipes/reorder',  { ids }),
 
   // Kroger
-  krogerGetLocations: (lat, lon) => request('GET',    `/kroger/locations?lat=${lat}&lon=${lon}`),
+  krogerGetLocations: (lat, lon, chain) => {
+    const chainParam = chain ? `&chain=${encodeURIComponent(chain)}` : '';
+    return request('GET', `/kroger/locations?lat=${lat}&lon=${lon}${chainParam}`);
+  },
   krogerStatus:       ()         => request('GET',    '/kroger/status'),
   krogerDisconnect:   ()         => request('DELETE', '/kroger/disconnect'),
   krogerAddToCart:    (listId)   => request('POST',   '/kroger/cart/add', { listId }),
