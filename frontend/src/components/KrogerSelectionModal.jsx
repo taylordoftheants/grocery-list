@@ -357,14 +357,21 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
 
 // ── Product image with error fallback ────────────────────────────────────────
 
-function ProductImage({ src, size = 64 }) {
+// Route Kroger CDN URLs through our backend proxy to avoid browser CORS blocks
+function krogerImageSrc(url) {
+  if (!url) return null;
+  return `/api/kroger/image?url=${encodeURIComponent(url)}`;
+}
+
+function ProductImage({ src }) {
   const [errored, setErrored] = useState(false);
-  if (!src || errored) {
+  const proxied = krogerImageSrc(src);
+  if (!proxied || errored) {
     return <span style={{ fontSize: '1.5rem' }}>🛒</span>;
   }
   return (
     <img
-      src={src}
+      src={proxied}
       alt=""
       onError={() => setErrored(true)}
       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
@@ -550,7 +557,7 @@ function ProductInfoPanel({ upc }) {
           )}
           {nutritionImageUrl && (
             <div style={{ flex: 1, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-              <img src={nutritionImageUrl} alt="Nutrition facts" style={{ width: '100%', objectFit: 'contain' }} />
+              <img src={krogerImageSrc(nutritionImageUrl)} alt="Nutrition facts" style={{ width: '100%', objectFit: 'contain' }} />
             </div>
           )}
         </div>

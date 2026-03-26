@@ -222,6 +222,27 @@ router.delete('/disconnect', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/kroger/image?url=  — proxy Kroger CDN images to avoid browser CORS restrictions
+router.get('/image', authMiddleware, async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).end();
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname.endsWith('.kroger.com') && parsed.hostname !== 'kroger.com') {
+      return res.status(400).end();
+    }
+    const imgRes = await fetch(url);
+    if (!imgRes.ok) return res.status(404).end();
+    const ct = imgRes.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    const buf = await imgRes.arrayBuffer();
+    res.send(Buffer.from(buf));
+  } catch {
+    res.status(502).end();
+  }
+});
+
 // GET /api/kroger/product/:upc  — full product detail (images, ingredients, nutrition)
 router.get('/product/:upc', authMiddleware, async (req, res) => {
   const { upc } = req.params;
