@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { api } from '../api';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary, btnSecondary } from '../theme';
 
@@ -232,8 +232,13 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
 // ── Per-item section ──────────────────────────────────────────────────────────
 
 function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
+  const [infoOpenUpc, setInfoOpenUpc] = useState(null);
   const visibleProducts = state.expanded ? state.products : state.products.slice(0, 3);
   const canShowMore = !state.expanded && state.products.length > 3;
+
+  function handleInfo(upc) {
+    setInfoOpenUpc(prev => prev === upc ? null : upc);
+  }
 
   return (
     <div style={{
@@ -266,12 +271,18 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem' }}>
               {visibleProducts.map(product => (
-                <ProductTile
-                  key={product.upc}
-                  product={product}
-                  selected={state.selectedUpc === product.upc}
-                  onSelect={() => onUpdate({ selectedUpc: product.upc })}
-                />
+                <Fragment key={product.upc}>
+                  <ProductTile
+                    product={product}
+                    selected={state.selectedUpc === product.upc}
+                    infoOpen={infoOpenUpc === product.upc}
+                    onSelect={() => onUpdate({ selectedUpc: product.upc })}
+                    onInfo={() => handleInfo(product.upc)}
+                  />
+                  {infoOpenUpc === product.upc && (
+                    <ProductInfoPanel upc={product.upc} />
+                  )}
+                </Fragment>
               ))}
             </div>
           )}
@@ -344,12 +355,32 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
   );
 }
 
+// ── Product image with error fallback ────────────────────────────────────────
+
+function ProductImage({ src, size = 64 }) {
+  const [errored, setErrored] = useState(false);
+  if (!src || errored) {
+    return <span style={{ fontSize: '1.5rem' }}>🛒</span>;
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      onError={() => setErrored(true)}
+      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+    />
+  );
+}
+
 // ── Product tile (radio card) ─────────────────────────────────────────────────
 
-function ProductTile({ product, selected, onSelect }) {
+function ProductTile({ product, selected, infoOpen, onSelect, onInfo }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onSelect()}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -361,21 +392,20 @@ function ProductTile({ product, selected, onSelect }) {
         cursor: 'pointer',
         textAlign: 'left',
         width: '100%',
+        boxSizing: 'border-box',
         transition: 'border-color 0.12s, background 0.12s',
+        outline: 'none',
       }}
     >
       {/* Thumbnail */}
       <div style={{
-        width: 48, height: 48, flexShrink: 0,
+        width: 64, height: 64, flexShrink: 0,
         borderRadius: radii.sm,
         overflow: 'hidden',
         background: colors.bgSurface,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {product.imageUrl
-          ? <img src={product.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          : <span style={{ fontSize: '1.25rem' }}>🛒</span>
-        }
+        <ProductImage src={product.imageUrl} />
       </div>
 
       {/* Info */}
@@ -407,13 +437,36 @@ function ProductTile({ product, selected, onSelect }) {
         <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textPrimary, fontFamily: fonts.sans, fontWeight: selected ? fontWeights.semibold : fontWeights.normal, lineHeight: 1.3 }}>
           {product.description}
         </p>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-          {product.size && (
-            <span style={{ fontSize: fontSizes.xs, color: colors.textMuted, fontFamily: fonts.sans }}>{product.size}</span>
-          )}
-          {product.price != null && (
-            <span style={{ fontSize: fontSizes.xs, color: colors.textSecondary, fontFamily: fonts.sans, fontWeight: fontWeights.semibold }}>${product.price.toFixed(2)}</span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.375rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {product.size && (
+              <span style={{ fontSize: fontSizes.xs, color: colors.textMuted, fontFamily: fonts.sans }}>{product.size}</span>
+            )}
+            {product.price != null && (
+              <span style={{ fontSize: fontSizes.xs, color: colors.textSecondary, fontFamily: fonts.sans, fontWeight: fontWeights.semibold }}>${product.price.toFixed(2)}</span>
+            )}
+          </div>
+          {/* Info button */}
+          <button
+            onClick={e => { e.stopPropagation(); onInfo(); }}
+            title="Nutrition & ingredients"
+            style={{
+              width: 22, height: 22, flexShrink: 0,
+              borderRadius: '50%',
+              border: `1.5px solid ${infoOpen ? colors.amber : colors.borderMid}`,
+              background: infoOpen ? colors.amber : 'transparent',
+              color: infoOpen ? colors.white : colors.textMuted,
+              cursor: 'pointer',
+              fontSize: '0.7rem',
+              fontWeight: fontWeights.bold,
+              fontFamily: fonts.sans,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            i
+          </button>
         </div>
       </div>
 
@@ -427,6 +480,133 @@ function ProductTile({ product, selected, onSelect }) {
       }}>
         {selected && <div style={{ width: 7, height: 7, borderRadius: '50%', background: colors.white }} />}
       </div>
-    </button>
+    </div>
+  );
+}
+
+// ── Product info panel ────────────────────────────────────────────────────────
+
+function ProductInfoPanel({ upc }) {
+  const [state, setState] = useState({ loading: true, data: null, error: null });
+  const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
+
+  useEffect(() => {
+    api.krogerGetProductDetail(upc)
+      .then(data => setState({ loading: false, data, error: null }))
+      .catch(e => setState({ loading: false, data: null, error: e.message || 'Could not load details' }));
+  }, [upc]);
+
+  const panelStyle = {
+    background: colors.bgSurface,
+    border: `1px solid ${colors.border}`,
+    borderRadius: radii.md,
+    padding: '0.875rem',
+    marginBottom: '0.25rem',
+  };
+
+  if (state.loading) {
+    return (
+      <div style={panelStyle}>
+        <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textMuted, fontFamily: fonts.sans }}>
+          Loading details…
+        </p>
+      </div>
+    );
+  }
+
+  if (state.error || !state.data) {
+    return (
+      <div style={panelStyle}>
+        <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textSubtle, fontFamily: fonts.sans }}>
+          No additional details available.
+        </p>
+      </div>
+    );
+  }
+
+  const { imageUrl, nutritionImageUrl, backImageUrl, ingredients, nutritionFacts } = state.data;
+  const hasImages = imageUrl || nutritionImageUrl;
+  const hasText = ingredients || (nutritionFacts && nutritionFacts.length > 0);
+
+  if (!hasImages && !hasText) {
+    return (
+      <div style={panelStyle}>
+        <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textSubtle, fontFamily: fonts.sans }}>
+          No additional details available.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={panelStyle}>
+      {/* Images row */}
+      {hasImages && (
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: hasText ? '0.875rem' : 0 }}>
+          {imageUrl && (
+            <div style={{ flex: 1, maxWidth: 140, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+              <ProductImage src={imageUrl} />
+            </div>
+          )}
+          {nutritionImageUrl && (
+            <div style={{ flex: 1, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+              <img src={nutritionImageUrl} alt="Nutrition facts" style={{ width: '100%', objectFit: 'contain' }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Ingredients */}
+      {ingredients && (
+        <div style={{ marginBottom: nutritionFacts?.length > 0 ? '0.75rem' : 0 }}>
+          <p style={{ margin: '0 0 0.25rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Ingredients
+          </p>
+          <p style={{
+            margin: 0,
+            fontSize: fontSizes.xs,
+            color: colors.textSecondary,
+            fontFamily: fonts.sans,
+            lineHeight: 1.5,
+            overflow: ingredientsExpanded ? 'visible' : 'hidden',
+            display: ingredientsExpanded ? 'block' : '-webkit-box',
+            WebkitLineClamp: ingredientsExpanded ? 'unset' : 3,
+            WebkitBoxOrient: 'vertical',
+          }}>
+            {ingredients}
+          </p>
+          {ingredients.length > 180 && (
+            <button
+              onClick={() => setIngredientsExpanded(p => !p)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.amber, fontSize: fontSizes.xs, fontFamily: fonts.sans, fontWeight: fontWeights.semibold, padding: '0.25rem 0 0', display: 'block' }}
+            >
+              {ingredientsExpanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Nutrition facts table */}
+      {nutritionFacts && nutritionFacts.length > 0 && (
+        <div>
+          <p style={{ margin: '0 0 0.375rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Nutrition Facts
+          </p>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: fontSizes.xs, fontFamily: fonts.sans }}>
+            <tbody>
+              {nutritionFacts.map((fact, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
+                  <td style={{ padding: '0.2rem 0.25rem 0.2rem 0', color: colors.textSecondary }}>{fact.name}</td>
+                  <td style={{ padding: '0.2rem 0', color: colors.textPrimary, fontWeight: fontWeights.semibold, textAlign: 'right' }}>{fact.amount}</td>
+                  {fact.percent != null && (
+                    <td style={{ padding: '0.2rem 0 0.2rem 0.5rem', color: colors.textMuted, textAlign: 'right' }}>{fact.percent}%</td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

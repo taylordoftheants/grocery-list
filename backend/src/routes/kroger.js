@@ -56,6 +56,16 @@ async function refreshKrogerToken(userId) {
 }
 
 // Helper: search Kroger product API for a term; returns normalized product array
+// Pick the best URL from an images[] entry's sizes[], preferring listed sizes in order
+function pickImageUrl(imgEntry, ...sizePrefs) {
+  if (!imgEntry?.sizes?.length) return null;
+  for (const pref of sizePrefs) {
+    const found = imgEntry.sizes.find(s => s.size === pref);
+    if (found?.url) return found.url;
+  }
+  return imgEntry.sizes[0]?.url || null;
+}
+
 async function searchKrogerProducts(term, locationId, ccAccessToken, limit = 8) {
   const url = `${KROGER_BASE}/products?filter.term=${encodeURIComponent(term)}&filter.locationId=${encodeURIComponent(locationId)}&filter.fulfillment=ais&filter.limit=${limit}`;
   const res = await fetch(url, {
@@ -66,17 +76,16 @@ async function searchKrogerProducts(term, locationId, ccAccessToken, limit = 8) 
   return (data.data || []).map(p => {
     const item = p.items?.[0];
     const frontImg = p.images?.find(img => img.perspective === 'front');
-    const thumbUrl = frontImg?.sizes?.find(s => s.size === 'thumbnail')?.url
-      || frontImg?.sizes?.[0]?.url
-      || p.images?.[0]?.sizes?.find(s => s.size === 'thumbnail')?.url
-      || null;
+    const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
     return {
       upc: p.upc,
       description: p.description || '',
       brand: p.brand || '',
       size: item?.size || '',
       price: item?.price?.regular ?? null,
-      imageUrl: thumbUrl,
+      imageUrl: pickImageUrl(frontImg, 'small', 'thumbnail', 'medium')
+        || pickImageUrl(p.images?.[0], 'small', 'thumbnail', 'medium'),
+      nutritionImageUrl: pickImageUrl(nutritionImg, 'medium', 'small', 'large') || null,
       previouslySelected: false,
     };
   });
@@ -211,6 +220,41 @@ router.get('/status', authMiddleware, (req, res) => {
 router.delete('/disconnect', authMiddleware, (req, res) => {
   db.prepare('DELETE FROM kroger_tokens WHERE user_id = ?').run(req.user.id);
   res.json({ ok: true });
+});
+
+// GET /api/kroger/product/:upc  — full product detail (images, ingredients, nutrition)
+router.get('/product/:upc', authMiddleware, async (req, res) => {
+  const { upc } = req.params;
+  try {
+    const ccAccessToken = await getClientToken();
+    const krogerRes = await fetch(
+      `${KROGER_BASE}/products?filter.productId.in=${encodeURIComponent(upc)}`,
+      { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
+    );
+    if (!krogerRes.ok) return res.status(502).json({ error: 'Kroger product lookup failed' });
+    const data = await krogerRes.json();
+    const p = data.data?.[0];
+    if (!p) return res.status(404).json({ error: 'Product not found' });
+
+    const frontImg   = p.images?.find(img => img.perspective === 'front');
+    const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
+    const backImg    = p.images?.find(img => img.perspective === 'back');
+    const item = p.items?.[0];
+
+    res.json({
+      upc: p.upc,
+      description: p.description || '',
+      brand: p.brand || '',
+      imageUrl:          pickImageUrl(frontImg,     'large', 'xlarge', 'medium', 'small'),
+      nutritionImageUrl: pickImageUrl(nutritionImg, 'large', 'xlarge', 'medium', 'small'),
+      backImageUrl:      pickImageUrl(backImg,      'large', 'xlarge', 'medium', 'small'),
+      ingredients:   item?.ingredients   || null,
+      nutritionFacts: item?.nutritionFacts || null,
+    });
+  } catch (e) {
+    console.error('Kroger product detail error:', e);
+    res.status(502).json({ error: 'Failed to fetch product detail' });
+  }
 });
 
 // GET /api/kroger/products?listId=X  — bulk product search for all items in a list
