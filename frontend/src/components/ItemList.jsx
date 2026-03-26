@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { api } from '../api';
 import AddItemForm from './AddItemForm';
 import KrogerModal from './KrogerModal';
+import KrogerSelectionModal from './KrogerSelectionModal';
 import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary } from '../theme';
 
 export default function ItemList({ list, isMobile }) {
   const [items, setItems] = useState([]);
   const [viewMode, setViewMode] = useState('grouped'); // 'grouped' | 'aggregated'
   const [showKrogerModal, setShowKrogerModal] = useState(false);
+  const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
 
   useEffect(() => {
     api.getItems(list.id).then(setItems);
@@ -82,7 +84,18 @@ export default function ItemList({ list, isMobile }) {
             </button>
           ))}
           <button
-            onClick={() => setShowKrogerModal(true)}
+            onClick={async () => {
+              try {
+                const status = await api.krogerStatus();
+                if (status.connected) {
+                  setShowKrogerSelectionModal(true);
+                } else {
+                  setShowKrogerModal(true);
+                }
+              } catch {
+                setShowKrogerModal(true);
+              }
+            }}
             style={{ ...btnPrimary, padding: '0.25rem 0.75rem', minHeight: 'unset', fontSize: fontSizes.sm }}
           >
             Buy em, ant!
@@ -164,6 +177,7 @@ export default function ItemList({ list, isMobile }) {
       )}
     </main>
     {showKrogerModal && <KrogerModal isMobile={isMobile} onClose={() => setShowKrogerModal(false)} />}
+    {showKrogerSelectionModal && <KrogerSelectionModal list={list} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />}
     </>
   );
 }

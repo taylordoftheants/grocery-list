@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 12;
+const SCHEMA_VERSION = 13;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -66,6 +66,7 @@ if (user_version === 10) {
   db.exec('ALTER TABLE meal_plan_entries ADD COLUMN is_leftovers INTEGER NOT NULL DEFAULT 0');
 }
 // v11 → v12: add kroger_tokens table (new table only, no ALTER TABLE needed)
+// v12 → v13: add kroger_product_selections table (new table only, no ALTER TABLE needed)
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -133,6 +134,17 @@ db.exec(`
     expires_at    TEXT NOT NULL,
     location_id   TEXT NOT NULL,
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS kroger_product_selections (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item_name   TEXT NOT NULL,
+    upc         TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    brand       TEXT NOT NULL DEFAULT '',
+    size        TEXT NOT NULL DEFAULT '',
+    selected_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, item_name)
   );
 `);
 

@@ -49,9 +49,11 @@ export const api = {
     const chainParam = chain ? `&chain=${encodeURIComponent(chain)}` : '';
     return request('GET', `/kroger/locations?zipCode=${encodeURIComponent(zipCode)}${chainParam}`);
   },
-  krogerStatus:       ()         => request('GET',    '/kroger/status'),
-  krogerDisconnect:   ()         => request('DELETE', '/kroger/disconnect'),
-  krogerAddToCart:    (listId)   => request('POST',   '/kroger/cart/add', { listId }),
+  krogerStatus:         ()                  => request('GET',    '/kroger/status'),
+  krogerDisconnect:     ()                  => request('DELETE', '/kroger/disconnect'),
+  krogerGetProducts:    (listId)            => request('GET',    `/kroger/products?listId=${listId}`),
+  krogerSearchProduct:  (q, itemName)       => request('GET',    `/kroger/products?q=${encodeURIComponent(q)}&itemName=${encodeURIComponent(itemName)}`),
+  krogerAddToCart:      (selections)        => request('POST',   '/kroger/cart/add', { selections }),
   // Note: kroger auth start is a full browser navigation, not a fetch call:
   // window.location.href = '/api/kroger/auth/start?locationId=' + id
 

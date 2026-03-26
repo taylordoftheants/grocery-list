@@ -55,6 +55,56 @@ async function refreshKrogerToken(userId) {
   return data.access_token;
 }
 
+// Helper: search Kroger product API for a term; returns normalized product array
+async function searchKrogerProducts(term, locationId, ccAccessToken, limit = 8) {
+  const url = `${KROGER_BASE}/products?filter.term=${encodeURIComponent(term)}&filter.locationId=${encodeURIComponent(locationId)}&filter.fulfillment=ais&filter.limit=${limit}`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' },
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.data || []).map(p => {
+    const item = p.items?.[0];
+    const frontImg = p.images?.find(img => img.perspective === 'front');
+    const thumbUrl = frontImg?.sizes?.find(s => s.size === 'thumbnail')?.url
+      || frontImg?.sizes?.[0]?.url
+      || p.images?.[0]?.sizes?.find(s => s.size === 'thumbnail')?.url
+      || null;
+    return {
+      upc: p.upc,
+      description: p.description || '',
+      brand: p.brand || '',
+      size: item?.size || '',
+      price: item?.price?.regular ?? null,
+      imageUrl: thumbUrl,
+      previouslySelected: false,
+    };
+  });
+}
+
+// Helper: surface a user's previously-selected product to the top with a flag
+function applyPreviousSelection(products, savedRow) {
+  if (!savedRow) return products;
+  const idx = products.findIndex(p => p.upc === savedRow.upc);
+  if (idx >= 0) {
+    // Already in results — move to front and flag
+    const updated = products.map((p, i) => ({ ...p, previouslySelected: i === idx }));
+    const [prev] = updated.splice(idx, 1);
+    return [prev, ...updated];
+  }
+  // Not in results — prepend from saved data
+  const prev = {
+    upc: savedRow.upc,
+    description: savedRow.description,
+    brand: savedRow.brand,
+    size: savedRow.size,
+    price: null,
+    imageUrl: null,
+    previouslySelected: true,
+  };
+  return [prev, ...products];
+}
+
 // GET /api/kroger/chains  (discovery — used to find chain identifiers like Harris Teeter)
 router.get('/chains', authMiddleware, async (req, res) => {
   try {
@@ -163,18 +213,59 @@ router.delete('/disconnect', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/kroger/cart/add  body: { listId }
+// GET /api/kroger/products?listId=X  — bulk product search for all items in a list
+// GET /api/kroger/products?q=text&itemName=text  — re-search a single item with custom query
+router.get('/products', authMiddleware, async (req, res) => {
+  const { listId, q, itemName } = req.query;
+  if (!listId && !(q && itemName)) {
+    return res.status(400).json({ error: 'listId or (q + itemName) required' });
+  }
+  try {
+    const tokenRow = db.prepare('SELECT location_id FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
+    if (!tokenRow) return res.status(401).json({ error: 'Kroger not connected' });
+    const locationId = tokenRow.location_id;
+    const ccAccessToken = await getClientToken();
+
+    if (q && itemName) {
+      // Single re-search
+      const products = await searchKrogerProducts(q, locationId, ccAccessToken, 8);
+      const normalizedName = itemName.toLowerCase().trim();
+      const saved = db.prepare('SELECT * FROM kroger_product_selections WHERE user_id = ? AND item_name = ?').get(req.user.id, normalizedName);
+      return res.json({ products: applyPreviousSelection(products, saved) });
+    }
+
+    // Bulk search — verify list ownership
+    const list = db.prepare('SELECT id FROM lists WHERE id = ? AND user_id = ?').get(listId, req.user.id);
+    if (!list) return res.status(404).json({ error: 'List not found' });
+
+    const rows = db.prepare('SELECT name FROM items WHERE list_id = ? AND purchased = 0').all(listId);
+    // Deduplicate by normalized name, preserve original casing
+    const seen = new Set();
+    const uniqueItems = [];
+    for (const row of rows) {
+      const key = row.name.toLowerCase().trim();
+      if (!seen.has(key)) { seen.add(key); uniqueItems.push({ name: row.name, normalized: key }); }
+    }
+
+    const results = [];
+    for (const item of uniqueItems) {
+      const products = await searchKrogerProducts(item.name, locationId, ccAccessToken, 8);
+      const saved = db.prepare('SELECT * FROM kroger_product_selections WHERE user_id = ? AND item_name = ?').get(req.user.id, item.normalized);
+      results.push({ itemName: item.name, normalizedName: item.normalized, products: applyPreviousSelection(products, saved) });
+    }
+    res.json({ items: results });
+  } catch (e) {
+    console.error('Kroger products error:', e);
+    res.status(502).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// POST /api/kroger/cart/add  body: { selections: [{ upc, quantity, itemName, description, brand, size }] }
 router.post('/cart/add', authMiddleware, async (req, res) => {
-  const { listId } = req.body;
-  if (!listId) return res.status(400).json({ error: 'listId is required' });
-
-  // Verify list ownership
-  const list = db.prepare('SELECT id FROM lists WHERE id = ? AND user_id = ?').get(listId, req.user.id);
-  if (!list) return res.status(404).json({ error: 'List not found' });
-
-  // Load unpurchased items
-  const items = db.prepare('SELECT name FROM items WHERE list_id = ? AND purchased = 0').all(listId);
-  if (items.length === 0) return res.json({ added: 0, skipped: 0, skippedNames: [] });
+  const { selections } = req.body;
+  if (!selections || !Array.isArray(selections) || selections.length === 0) {
+    return res.status(400).json({ error: 'selections array is required' });
+  }
 
   // Load user's Kroger token
   let tokenRow = db.prepare('SELECT * FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
@@ -190,51 +281,33 @@ router.post('/cart/add', authMiddleware, async (req, res) => {
     }
   }
 
-  const locationId = tokenRow.location_id;
-  const ccToken = await getClientToken();
-  const cartItems = [];
-  const skippedNames = [];
-
-  for (const item of items) {
-    try {
-      const searchRes = await fetch(
-        `${KROGER_BASE}/products?filter.term=${encodeURIComponent(item.name)}&filter.locationId=${locationId}&filter.limit=1`,
-        { headers: { 'Authorization': `Bearer ${ccToken}`, 'Accept': 'application/json' } }
-      );
-      if (!searchRes.ok) {
-        skippedNames.push(item.name);
-        continue;
-      }
-      const searchData = await searchRes.json();
-      const product = searchData.data?.[0];
-      if (!product?.upc) {
-        skippedNames.push(item.name);
-        continue;
-      }
-      cartItems.push({ upc: product.upc, quantity: 1, modality: 'PICKUP' });
-    } catch {
-      skippedNames.push(item.name);
-    }
+  // Persist each selection for future sessions
+  const upsertSel = db.prepare(`
+    INSERT OR REPLACE INTO kroger_product_selections (user_id, item_name, upc, description, brand, size, selected_at)
+    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+  `);
+  for (const sel of selections) {
+    upsertSel.run(req.user.id, sel.itemName.toLowerCase().trim(), sel.upc, sel.description || '', sel.brand || '', sel.size || '');
   }
 
-  if (cartItems.length > 0) {
-    const cartRes = await fetch(`${KROGER_BASE}/cart/add`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${userAccessToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({ items: cartItems }),
-    });
-    if (!cartRes.ok) {
-      const errText = await cartRes.text();
-      console.error('Kroger cart add error:', cartRes.status, errText);
-      return res.status(502).json({ error: 'Failed to add items to Kroger cart' });
-    }
+  const cartItems = selections.map(sel => ({ upc: sel.upc, quantity: sel.quantity || 1, modality: 'PICKUP' }));
+
+  const cartRes = await fetch(`${KROGER_BASE}/cart/add`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${userAccessToken}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ items: cartItems }),
+  });
+  if (!cartRes.ok) {
+    const errText = await cartRes.text();
+    console.error('Kroger cart add error:', cartRes.status, errText);
+    return res.status(502).json({ error: 'Failed to add items to Kroger cart' });
   }
 
-  res.json({ added: cartItems.length, skipped: skippedNames.length, skippedNames });
+  res.json({ added: cartItems.length, skipped: 0, skippedNames: [] });
 });
 
 export default router;

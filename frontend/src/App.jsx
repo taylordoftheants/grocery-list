@@ -9,7 +9,7 @@ import RecipesView from './components/RecipesView';
 import MealPlan from './components/MealPlan';
 import ProfileMenu from './components/ProfileMenu';
 import AdminView from './components/AdminView';
-import KrogerCartModal from './components/KrogerCartModal';
+import KrogerSelectionModal from './components/KrogerSelectionModal';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -20,14 +20,14 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [currentView, setCurrentView] = useState('mealplan');
   const [showProfile, setShowProfile] = useState(false);
-  const [showKrogerCartModal, setShowKrogerCartModal] = useState(false);
+  const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('kroger_success')) {
       window.history.replaceState({}, '', window.location.pathname);
       setCurrentView('lists');
-      setShowKrogerCartModal(true);
+      setShowKrogerSelectionModal(true);
     }
     if (params.get('kroger_error')) {
       window.history.replaceState({}, '', window.location.pathname);
@@ -165,8 +165,8 @@ export default function App() {
           </div>
         </div>
       </div>
-      {showKrogerCartModal && selectedList && (
-        <KrogerCartModal list={selectedList} isMobile={isMobile} onClose={() => setShowKrogerCartModal(false)} />
+      {showKrogerSelectionModal && selectedList && (
+        <KrogerSelectionModal list={selectedList} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />
       )}
     </div>
   );
