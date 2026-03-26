@@ -10,6 +10,7 @@ import MealPlan from './components/MealPlan';
 import ProfileMenu from './components/ProfileMenu';
 import AdminView from './components/AdminView';
 import KrogerSelectionModal from './components/KrogerSelectionModal';
+import KrogerModal from './components/KrogerModal';
 import {
   DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core';
@@ -25,6 +26,8 @@ export default function App() {
   const [currentView, setCurrentView] = useState('mealplan');
   const [showProfile, setShowProfile] = useState(false);
   const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
+  const [showKrogerConnect, setShowKrogerConnect] = useState(false);
+  const [krogerConnectMode, setKrogerConnectMode] = useState('connect');
   const [draggingItem, setDraggingItem] = useState(null);
   const [draggingList, setDraggingList] = useState(null);
 
@@ -208,6 +211,7 @@ export default function App() {
                 onLogout={handleLogout}
                 onNavigateAdmin={() => setCurrentView('admin')}
                 onClose={() => setShowProfile(false)}
+                onOpenKroger={(mode) => { setKrogerConnectMode(mode); setShowKrogerConnect(true); setShowProfile(false); }}
               />
             )}
           </div>
@@ -243,6 +247,9 @@ export default function App() {
         </div>
         {showKrogerSelectionModal && selectedList && (
           <KrogerSelectionModal list={selectedList} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />
+        )}
+        {showKrogerConnect && (
+          <KrogerModal mode={krogerConnectMode} isMobile={isMobile} onClose={() => setShowKrogerConnect(false)} />
         )}
       </div>
 

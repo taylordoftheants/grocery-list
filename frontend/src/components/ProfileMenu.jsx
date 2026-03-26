@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, input, btnPrimary } from '../theme';
 
-export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }) {
+export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose, onOpenKroger }) {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -10,7 +10,19 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [krogerStatus, setKrogerStatus] = useState(null);
   const ref = useRef(null);
+
+  useEffect(() => {
+    api.krogerStatus()
+      .then(setKrogerStatus)
+      .catch(() => setKrogerStatus({ connected: false }));
+  }, []);
+
+  const handleKrogerDisconnect = async () => {
+    await api.krogerDisconnect();
+    setKrogerStatus({ connected: false });
+  };
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -139,6 +151,45 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose }
             ⚙ Admin Console
           </button>
         )}
+
+        {/* Kroger connection */}
+        <div style={{ borderTop: `1px solid ${colors.charcoalBorder}`, marginTop: '0.25rem', paddingTop: '0.25rem' }}>
+          <div style={{ padding: '0.375rem 0.75rem 0.25rem' }}>
+            <p style={{ fontSize: fontSizes.xs, color: 'rgba(255,255,255,0.35)', margin: '0 0 0.375rem', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: fonts.display }}>
+              Kroger
+            </p>
+            {krogerStatus === null ? (
+              <p style={{ fontSize: fontSizes.sm, color: 'rgba(255,255,255,0.4)', fontFamily: fonts.sans, margin: 0 }}>Loading…</p>
+            ) : krogerStatus.connected ? (
+              <>
+                <p style={{ fontSize: fontSizes.sm, color: 'rgba(255,255,255,0.7)', fontFamily: fonts.sans, margin: '0 0 0.375rem' }}>
+                  {krogerStatus.location_name || 'Connected'}
+                </p>
+                <div style={{ display: 'flex', gap: '0.375rem' }}>
+                  <button
+                    onClick={() => { onOpenKroger('change'); onClose(); }}
+                    style={{ flex: 1, padding: '0.3rem 0.5rem', background: 'rgba(255,255,255,0.08)', border: `1px solid rgba(255,255,255,0.15)`, borderRadius: radii.sm, fontSize: fontSizes.xs, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontFamily: fonts.sans }}
+                  >
+                    Change Store
+                  </button>
+                  <button
+                    onClick={handleKrogerDisconnect}
+                    style={{ flex: 1, padding: '0.3rem 0.5rem', background: 'rgba(255,255,255,0.08)', border: `1px solid rgba(255,255,255,0.15)`, borderRadius: radii.sm, fontSize: fontSizes.xs, color: colors.error, cursor: 'pointer', fontFamily: fonts.sans }}
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => { onOpenKroger('connect'); onClose(); }}
+                style={{ width: '100%', padding: '0.3rem 0.5rem', background: 'rgba(255,255,255,0.08)', border: `1px solid rgba(255,255,255,0.15)`, borderRadius: radii.sm, fontSize: fontSizes.xs, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontFamily: fonts.sans, textAlign: 'left' }}
+              >
+                Connect Kroger
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Divider + Sign Out */}
         <div style={{ borderTop: `1px solid ${colors.charcoalBorder}`, marginTop: '0.25rem', paddingTop: '0.25rem' }}>

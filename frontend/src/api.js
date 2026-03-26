@@ -9,7 +9,9 @@ async function request(method, path, body) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || res.statusText);
+    const error = new Error(err.error || res.statusText);
+    error.status = res.status;
+    throw error;
   }
   if (res.status === 204) return null;
   return res.json();
@@ -56,6 +58,7 @@ export const api = {
   },
   krogerStatus:         ()                  => request('GET',    '/kroger/status'),
   krogerDisconnect:     ()                  => request('DELETE', '/kroger/disconnect'),
+  krogerUpdateLocation: (locationId, locationName) => request('PATCH', '/kroger/location', { locationId, locationName }),
   krogerGetProducts:      (listId)      => request('GET', `/kroger/products?listId=${listId}`),
   krogerSearchProduct:    (q, itemName) => request('GET', `/kroger/products?q=${encodeURIComponent(q)}&itemName=${encodeURIComponent(itemName)}`),
   krogerGetProductDetail: (upc)         => request('GET', `/kroger/product/${encodeURIComponent(upc)}`),

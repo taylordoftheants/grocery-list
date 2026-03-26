@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 14;
+const SCHEMA_VERSION = 15;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -71,6 +71,10 @@ if (user_version === 10) {
 if (user_version === 13) {
   db.exec('ALTER TABLE lists ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
   db.exec('UPDATE lists SET sort_order = id');
+}
+// v14 → v15: add location_name to kroger_tokens
+if (user_version === 14) {
+  db.exec('ALTER TABLE kroger_tokens ADD COLUMN location_name TEXT');
 }
 
 if (user_version < SCHEMA_VERSION) {
@@ -139,6 +143,7 @@ db.exec(`
     refresh_token TEXT NOT NULL,
     expires_at    TEXT NOT NULL,
     location_id   TEXT NOT NULL,
+    location_name TEXT,
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
   );
 

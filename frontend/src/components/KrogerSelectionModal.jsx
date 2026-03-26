@@ -1,12 +1,27 @@
 import { useState, useEffect, Fragment } from 'react';
 import { api } from '../api';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary, btnSecondary } from '../theme';
+import KrogerModal from './KrogerModal';
 
 export default function KrogerSelectionModal({ list, isMobile, onClose }) {
-  const [step, setStep] = useState('loading'); // 'loading' | 'selecting' | 'adding' | 'result'
+  const [step, setStep] = useState('loading'); // 'loading' | 'selecting' | 'adding' | 'result' | 'reconnect'
   const [itemStates, setItemStates] = useState({});
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [locationName, setLocationName] = useState(null);
+  const [locationId, setLocationId] = useState(null);
+  const [showChangeStore, setShowChangeStore] = useState(false);
+
+  useEffect(() => {
+    api.krogerStatus()
+      .then(status => {
+        if (status.connected) {
+          setLocationName(status.location_name || null);
+          setLocationId(status.location_id || null);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.krogerGetProducts(list.id)
@@ -85,8 +100,12 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
       setResult(data);
       setStep('result');
     } catch (e) {
-      setErrorMsg(e.message || 'Something went wrong. Please try again.');
-      setStep('result');
+      if (e.status === 401 || e.message?.includes('expired') || e.message?.includes('reconnect')) {
+        setStep('reconnect');
+      } else {
+        setErrorMsg(e.message || 'Something went wrong. Please try again.');
+        setStep('result');
+      }
     }
   }
 
@@ -107,6 +126,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
   };
 
   return (
+    <>
     <div style={{
       position: 'fixed', inset: 0, zIndex: 500,
       background: 'rgba(0,0,0,0.55)',
@@ -134,6 +154,17 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
           {step === 'selecting' && (
             <p style={{ margin: '0.375rem 0 0', fontSize: fontSizes.sm, color: colors.textMuted, fontFamily: fonts.sans }}>
               Choose your preferred product for each item, then review quantities.
+            </p>
+          )}
+          {locationName && step === 'selecting' && (
+            <p style={{ margin: '0.25rem 0 0', fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
+              Shopping at: {locationName} ·{' '}
+              <button
+                onClick={() => setShowChangeStore(true)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.amber, fontSize: fontSizes.xs, fontFamily: fonts.sans, fontWeight: fontWeights.semibold, padding: 0 }}
+              >
+                Change store
+              </button>
             </p>
           )}
         </div>
@@ -198,6 +229,30 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
             </>
           )}
 
+          {step === 'reconnect' && (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+              <p style={{ fontSize: fontSizes.base, color: colors.textPrimary, fontFamily: fonts.sans, marginBottom: '0.5rem', fontWeight: fontWeights.semibold }}>
+                Your Kroger session expired.
+              </p>
+              <p style={{ fontSize: fontSizes.sm, color: colors.textMuted, fontFamily: fonts.sans, marginBottom: '1.5rem' }}>
+                Please reconnect to add items to your cart.
+              </p>
+              <button
+                onClick={() => {
+                  const url = locationId
+                    ? `/api/kroger/auth/start?locationId=${locationId}&locationName=${encodeURIComponent(locationName || '')}`
+                    : null;
+                  if (url) window.location.href = url;
+                }}
+                disabled={!locationId}
+                style={{ ...btnPrimary, width: '100%', marginBottom: '0.75rem', opacity: locationId ? 1 : 0.5 }}
+              >
+                Reconnect with Kroger
+              </button>
+              <button onClick={onClose} style={{ ...btnSecondary, width: '100%' }}>Cancel</button>
+            </div>
+          )}
+
           {step === 'selecting' && stateList.map(([key, s], idx) => (
             <ItemSection
               key={key}
@@ -240,6 +295,26 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
         )}
       </div>
     </div>
+
+    {showChangeStore && (
+      <KrogerModal
+        mode="change"
+        isMobile={isMobile}
+        onClose={() => {
+          setShowChangeStore(false);
+          // Re-fetch status so the store name updates
+          api.krogerStatus()
+            .then(status => {
+              if (status.connected) {
+                setLocationName(status.location_name || null);
+                setLocationId(status.location_id || null);
+              }
+            })
+            .catch(() => {});
+        }}
+      />
+    )}
+    </>
   );
 }
 

@@ -4,8 +4,9 @@ import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary
 
 const HARRIS_TEETER_CHAIN = 'HART';
 
-export default function KrogerModal({ isMobile, onClose }) {
-  const [step, setStep] = useState('zip'); // 'zip' | 'loading' | 'store' | 'error'
+// mode: 'connect' (full OAuth) | 'change' (just update stored location, no re-auth)
+export default function KrogerModal({ isMobile, onClose, mode = 'connect' }) {
+  const [step, setStep] = useState('zip'); // 'zip' | 'loading' | 'store' | 'error' | 'saving'
   const [zipCode, setZipCode] = useState('');
   const [locations, setLocations] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
@@ -28,8 +29,19 @@ export default function KrogerModal({ isMobile, onClose }) {
     }
   }
 
-  function selectStore(locationId) {
-    window.location.href = `/api/kroger/auth/start?locationId=${locationId}`;
+  async function selectStore(locationId, locationName) {
+    if (mode === 'change') {
+      setStep('saving');
+      try {
+        await api.krogerUpdateLocation(locationId, locationName);
+        onClose();
+      } catch (e) {
+        setErrorMsg(e.message || 'Could not update store.');
+        setStep('error');
+      }
+    } else {
+      window.location.href = `/api/kroger/auth/start?locationId=${locationId}&locationName=${encodeURIComponent(locationName || '')}`;
+    }
   }
 
   const modalCard = isMobile ? {
@@ -64,10 +76,10 @@ export default function KrogerModal({ isMobile, onClose }) {
     }}>
       <div style={modalCard}>
         <h2 style={{ fontSize: fontSizes.xl, fontWeight: fontWeights.bold, marginBottom: '0.25rem', color: colors.textPrimary, fontFamily: fonts.sans }}>
-          Buy em, ant!
+          {mode === 'change' ? 'Change Store' : 'Buy em, ant!'}
         </h2>
         <p style={{ fontSize: fontSizes.base, color: colors.textMuted, marginBottom: '1.25rem', fontFamily: fonts.sans }}>
-          Where do you want to shop?
+          {mode === 'change' ? 'Select a new Harris Teeter location.' : 'Where do you want to shop?'}
         </p>
 
         {step === 'zip' && (
@@ -103,6 +115,12 @@ export default function KrogerModal({ isMobile, onClose }) {
           </p>
         )}
 
+        {step === 'saving' && (
+          <p style={{ color: colors.textMuted, fontSize: fontSizes.base, fontFamily: fonts.sans, marginBottom: '1rem' }}>
+            Updating your store...
+          </p>
+        )}
+
         {step === 'error' && (
           <>
             <p style={{ color: colors.error, fontSize: fontSizes.base, fontFamily: fonts.sans, marginBottom: '0.75rem' }}>
@@ -130,7 +148,7 @@ export default function KrogerModal({ isMobile, onClose }) {
                 {locations.map(loc => (
                   <li key={loc.locationId}>
                     <button
-                      onClick={() => selectStore(loc.locationId)}
+                      onClick={() => selectStore(loc.locationId, loc.name)}
                       style={{
                         width: '100%',
                         textAlign: 'left',

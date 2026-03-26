@@ -158,12 +158,12 @@ router.get('/locations', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/kroger/auth/start?locationId=
+// GET /api/kroger/auth/start?locationId=&locationName=
 router.get('/auth/start', authMiddleware, (req, res) => {
-  const { locationId } = req.query;
+  const { locationId, locationName } = req.query;
   if (!locationId) return res.status(400).json({ error: 'locationId is required' });
   const state = jwt.sign(
-    { userId: req.user.id, locationId },
+    { userId: req.user.id, locationId, locationName: locationName || '' },
     process.env.JWT_SECRET,
     { expiresIn: '10m' }
   );
@@ -181,7 +181,7 @@ router.get('/auth/start', authMiddleware, (req, res) => {
 router.get('/auth/callback', async (req, res) => {
   const { code, state } = req.query;
   try {
-    const { userId, locationId } = jwt.verify(state, process.env.JWT_SECRET);
+    const { userId, locationId, locationName } = jwt.verify(state, process.env.JWT_SECRET);
     const creds = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
     const tokenRes = await fetch(`${KROGER_BASE}/connect/oauth2/token`, {
       method: 'POST',
@@ -199,9 +199,9 @@ router.get('/auth/callback', async (req, res) => {
     const data = await tokenRes.json();
     const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
     db.prepare(`
-      INSERT OR REPLACE INTO kroger_tokens (user_id, access_token, refresh_token, expires_at, location_id, updated_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `).run(userId, data.access_token, data.refresh_token, expiresAt, locationId);
+      INSERT OR REPLACE INTO kroger_tokens (user_id, access_token, refresh_token, expires_at, location_id, location_name, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+    `).run(userId, data.access_token, data.refresh_token, expiresAt, locationId, locationName || null);
     res.redirect(302, 'https://taykate.com/?kroger_success=1');
   } catch (e) {
     console.error('Kroger OAuth callback error:', e);
@@ -210,15 +210,31 @@ router.get('/auth/callback', async (req, res) => {
 });
 
 // GET /api/kroger/status
-router.get('/status', authMiddleware, (req, res) => {
-  const row = db.prepare('SELECT location_id, expires_at FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
+router.get('/status', authMiddleware, async (req, res) => {
+  const row = db.prepare('SELECT location_id, location_name, expires_at FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
   if (!row) return res.json({ connected: false });
-  res.json({ connected: true, location_id: row.location_id, expires_at: row.expires_at });
+  // Proactively refresh if token expires within 5 minutes
+  const expiresIn = Date.parse(row.expires_at) - Date.now();
+  if (expiresIn < 5 * 60 * 1000) {
+    try { await refreshKrogerToken(req.user.id); } catch { /* will fail at cart time if needed */ }
+  }
+  res.json({ connected: true, location_id: row.location_id, location_name: row.location_name || null, expires_at: row.expires_at });
 });
 
 // DELETE /api/kroger/disconnect
 router.delete('/disconnect', authMiddleware, (req, res) => {
   db.prepare('DELETE FROM kroger_tokens WHERE user_id = ?').run(req.user.id);
+  res.json({ ok: true });
+});
+
+// PATCH /api/kroger/location  body: { locationId, locationName }
+router.patch('/location', authMiddleware, (req, res) => {
+  const { locationId, locationName } = req.body;
+  if (!locationId) return res.status(400).json({ error: 'locationId is required' });
+  const existing = db.prepare('SELECT user_id FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
+  if (!existing) return res.status(404).json({ error: 'Not connected to Kroger' });
+  db.prepare(`UPDATE kroger_tokens SET location_id = ?, location_name = ?, updated_at = datetime('now') WHERE user_id = ?`)
+    .run(locationId, locationName || null, req.user.id);
   res.json({ ok: true });
 });
 
