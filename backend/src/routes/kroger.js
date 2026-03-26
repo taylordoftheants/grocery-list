@@ -59,7 +59,7 @@ async function refreshKrogerToken(userId) {
 router.get('/chains', authMiddleware, async (req, res) => {
   try {
     const token = await getClientToken();
-    const krogerRes = await fetch(`${KROGER_BASE}/locations/chain`, {
+    const krogerRes = await fetch(`${KROGER_BASE}/chains`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
     });
     if (!krogerRes.ok) throw new Error(`Kroger chains API error: ${krogerRes.status}`);
