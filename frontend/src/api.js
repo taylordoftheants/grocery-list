@@ -27,15 +27,20 @@ export const api = {
   getAdminUsers:   ()                                => request('GET',    '/admin/users'),
 
   // Lists
-  getLists:   ()                          => request('GET',    '/lists'),
-  createList: (name)                      => request('POST',   '/lists',                      { name }),
-  deleteList: (listId)                    => request('DELETE', `/lists/${listId}`),
+  getLists:            ()                          => request('GET',    '/lists'),
+  createList:          (name)                      => request('POST',   '/lists',                      { name }),
+  renameList:          (listId, name)              => request('PATCH',  `/lists/${listId}`,            { name }),
+  reorderLists:        (ids)                       => request('POST',   '/lists/reorder',              { ids }),
+  deleteList:          (listId)                    => request('DELETE', `/lists/${listId}`),
 
   // Items
-  getItems:   (listId)                    => request('GET',    `/lists/${listId}/items`),
-  addItem:    (listId, name, amount = '') => request('POST',   `/lists/${listId}/items`,       { name, amount }),
-  toggleItem: (listId, itemId, purchased) => request('PATCH',  `/lists/${listId}/items/${itemId}`, { purchased }),
-  deleteItem: (listId, itemId)            => request('DELETE', `/lists/${listId}/items/${itemId}`),
+  getItems:            (listId)                       => request('GET',    `/lists/${listId}/items`),
+  addItem:             (listId, name, amount = '')    => request('POST',   `/lists/${listId}/items`,                    { name, amount }),
+  toggleItem:          (listId, itemId, purchased)   => request('PATCH',  `/lists/${listId}/items/${itemId}`,          { purchased }),
+  deleteItem:          (listId, itemId)              => request('DELETE', `/lists/${listId}/items/${itemId}`),
+  clearPurchasedItems: (listId)                      => request('DELETE', `/lists/${listId}/items/purchased`),
+  clearAllItems:       (listId)                      => request('DELETE', `/lists/${listId}/items`),
+  moveItem:            (fromListId, itemId, toListId) => request('PATCH',  `/lists/${fromListId}/items/${itemId}/move`, { toListId }),
 
   // Recipes
   getRecipes:    ()                                  => request('GET',    '/recipes'),

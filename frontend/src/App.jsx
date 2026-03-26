@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from './api';
-import { colors, fonts, fontSizes } from './theme';
+import { colors, fonts, fontSizes, radii, card } from './theme';
 import ListSidebar from './components/ListSidebar';
 import ItemList from './components/ItemList';
 import LandingPage from './components/LandingPage';
@@ -10,6 +10,10 @@ import MealPlan from './components/MealPlan';
 import ProfileMenu from './components/ProfileMenu';
 import AdminView from './components/AdminView';
 import KrogerSelectionModal from './components/KrogerSelectionModal';
+import {
+  DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter,
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -21,6 +25,13 @@ export default function App() {
   const [currentView, setCurrentView] = useState('mealplan');
   const [showProfile, setShowProfile] = useState(false);
   const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
+  const [draggingItem, setDraggingItem] = useState(null);
+  const [draggingList, setDraggingList] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -87,6 +98,62 @@ export default function App() {
     });
   };
 
+  const handleRenameList = async (listId, name) => {
+    const updated = await api.renameList(listId, name);
+    setLists(prev => prev.map(l => l.id === listId ? updated : l));
+  };
+
+  const handleReorderLists = async (ids) => {
+    // Optimistic update
+    setLists(prev => {
+      const map = new Map(prev.map(l => [l.id, l]));
+      return ids.map(id => map.get(id)).filter(Boolean);
+    });
+    await api.reorderLists(ids);
+  };
+
+  const handleMoveItem = async (fromListId, itemId, toListId) => {
+    await api.moveItem(fromListId, itemId, toListId);
+    // ItemList polls every 5s and will reflect the change
+  };
+
+  const handleDragStart = ({ active }) => {
+    const activeId = active.id;
+    if (typeof activeId === 'string' && activeId.startsWith('item-')) {
+      setDraggingItem(active.data.current?.item ?? null);
+      setDraggingList(null);
+    } else {
+      setDraggingList(lists.find(l => l.id === activeId) ?? null);
+      setDraggingItem(null);
+    }
+  };
+
+  const handleDragEnd = ({ active, over }) => {
+    setDraggingItem(null);
+    setDraggingList(null);
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    if (typeof activeId === 'string' && activeId.startsWith('item-')) {
+      // Item drag → drop on a list
+      const item = active.data.current?.item;
+      const toListId = typeof overId === 'number' ? overId : null;
+      if (item && toListId && toListId !== item.list_id) {
+        handleMoveItem(item.list_id, item.id, toListId);
+      }
+    } else if (typeof activeId === 'number' && typeof overId === 'number' && activeId !== overId) {
+      // List drag → reorder
+      const oldIndex = lists.findIndex(l => l.id === activeId);
+      const newIndex = lists.findIndex(l => l.id === overId);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reordered = arrayMove(lists, oldIndex, newIndex);
+        handleReorderLists(reordered.map(l => l.id));
+      }
+    }
+  };
+
   if (authLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.charcoal, fontFamily: fonts.sans }}>
@@ -106,68 +173,110 @@ export default function App() {
     onSelect: setSelected,
     onCreate: handleCreateList,
     onDelete: handleDeleteList,
+    onRename: handleRenameList,
+    onReorderLists: handleReorderLists,
     user,
   };
 
   return (
-    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', fontFamily: fonts.sans }}>
-      {error && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: colors.errorBg, color: colors.errorText, padding: '0.75rem 1rem', zIndex: 400, borderBottom: `2px solid ${colors.errorBorder}`, fontFamily: fonts.sans }}>
-          {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem', cursor: 'pointer', fontWeight: '600' }}>Dismiss</button>
-        </div>
-      )}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => { setDraggingItem(null); setDraggingList(null); }}
+    >
+      <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', fontFamily: fonts.sans }}>
+        {error && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: colors.errorBg, color: colors.errorText, padding: '0.75rem 1rem', zIndex: 400, borderBottom: `2px solid ${colors.errorBorder}`, fontFamily: fonts.sans }}>
+            {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem', cursor: 'pointer', fontWeight: '600' }}>Dismiss</button>
+          </div>
+        )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <NavTabs
-            currentView={currentView}
-            onChangeView={setCurrentView}
-            user={user}
-            onProfileClick={() => setShowProfile(v => !v)}
-            isMobile={isMobile}
-          />
-          {showProfile && (
-            <ProfileMenu
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <NavTabs
+              currentView={currentView}
+              onChangeView={setCurrentView}
               user={user}
-              onLogout={handleLogout}
-              onNavigateAdmin={() => setCurrentView('admin')}
-              onClose={() => setShowProfile(false)}
+              onProfileClick={() => setShowProfile(v => !v)}
+              isMobile={isMobile}
             />
-          )}
-        </div>
+            {showProfile && (
+              <ProfileMenu
+                user={user}
+                onLogout={handleLogout}
+                onNavigateAdmin={() => setCurrentView('admin')}
+                onClose={() => setShowProfile(false)}
+              />
+            )}
+          </div>
 
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          {/* Desktop sidebar — nested below nav bar */}
-          {showSidebar && !isMobile && (
-            <ListSidebar {...sidebarProps} isMobile={false} />
-          )}
-
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-            {/* Mobile inline list bar — sits below tabs, above content */}
-            {showSidebar && isMobile && (
-              <ListSidebar {...sidebarProps} isMobile={true} />
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            {/* Desktop sidebar — nested below nav bar */}
+            {showSidebar && !isMobile && (
+              <ListSidebar {...sidebarProps} isMobile={false} />
             )}
 
-            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 0 }}>
-              {currentView === 'lists' && (
-                selectedList
-                  ? <ItemList list={selectedList} isMobile={isMobile} />
-                  : (
-                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textSubtle }}>
-                      <p>Create or select a list to get started.</p>
-                    </div>
-                  )
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+              {/* Mobile inline list bar — sits below tabs, above content */}
+              {showSidebar && isMobile && (
+                <ListSidebar {...sidebarProps} isMobile={true} />
               )}
-              {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
-              {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} onNavigateToRecipes={() => setCurrentView('recipes')} />}
-              {currentView === 'admin' && <AdminView />}
+
+              <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 0 }}>
+                {currentView === 'lists' && (
+                  selectedList
+                    ? <ItemList list={selectedList} isMobile={isMobile} />
+                    : (
+                      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textSubtle }}>
+                        <p>Create or select a list to get started.</p>
+                      </div>
+                    )
+                )}
+                {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
+                {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} onNavigateToRecipes={() => setCurrentView('recipes')} />}
+                {currentView === 'admin' && <AdminView />}
+              </div>
             </div>
           </div>
         </div>
+        {showKrogerSelectionModal && selectedList && (
+          <KrogerSelectionModal list={selectedList} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />
+        )}
       </div>
-      {showKrogerSelectionModal && selectedList && (
-        <KrogerSelectionModal list={selectedList} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />
-      )}
-    </div>
+
+      <DragOverlay>
+        {draggingItem && (
+          <div style={{
+            ...card,
+            padding: '0.5rem 0.75rem',
+            fontSize: fontSizes.base,
+            fontFamily: fonts.sans,
+            color: colors.textPrimary,
+            borderColor: colors.amberBorder,
+            background: colors.amberLight,
+            borderRadius: radii.md,
+            whiteSpace: 'nowrap',
+          }}>
+            {draggingItem.name}
+          </div>
+        )}
+        {draggingList && (
+          <div style={{
+            padding: '0.5rem 0.75rem',
+            border: `1px solid ${colors.amberBorder}`,
+            borderRadius: radii.md,
+            background: colors.amberLight,
+            fontSize: fontSizes.base,
+            fontFamily: fonts.sans,
+            color: colors.amberDark,
+            fontWeight: '600',
+          }}>
+            {draggingList.name}
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }

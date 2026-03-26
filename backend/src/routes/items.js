@@ -35,6 +35,37 @@ router.post('/', (req, res) => {
   res.status(201).json(item);
 });
 
+// Must be registered before /:itemId to avoid Express treating "purchased" as itemId
+router.delete('/purchased', (req, res) => {
+  if (!verifyListOwnership(req.params.listId, req.user.id, res)) return;
+  const info = db
+    .prepare('DELETE FROM items WHERE list_id = ? AND purchased = 1')
+    .run(req.params.listId);
+  res.json({ deleted: info.changes });
+});
+
+router.delete('/', (req, res) => {
+  if (!verifyListOwnership(req.params.listId, req.user.id, res)) return;
+  const info = db
+    .prepare('DELETE FROM items WHERE list_id = ?')
+    .run(req.params.listId);
+  res.json({ deleted: info.changes });
+});
+
+router.patch('/:itemId/move', (req, res) => {
+  if (!verifyListOwnership(req.params.listId, req.user.id, res)) return;
+  const { toListId } = req.body;
+  if (!toListId) return res.status(400).json({ error: 'toListId is required' });
+  const targetList = db.prepare('SELECT id FROM lists WHERE id = ? AND user_id = ?').get(toListId, req.user.id);
+  if (!targetList) return res.status(404).json({ error: 'Target list not found' });
+  const info = db
+    .prepare('UPDATE items SET list_id = ? WHERE id = ? AND list_id = ?')
+    .run(toListId, req.params.itemId, req.params.listId);
+  if (info.changes === 0) return res.status(404).json({ error: 'Item not found' });
+  const item = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.itemId);
+  res.json(item);
+});
+
 router.patch('/:itemId', (req, res) => {
   if (!verifyListOwnership(req.params.listId, req.user.id, res)) return;
   const { purchased } = req.body;

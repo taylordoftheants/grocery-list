@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { api } from '../api';
 import AddItemForm from './AddItemForm';
 import KrogerModal from './KrogerModal';
 import KrogerSelectionModal from './KrogerSelectionModal';
-import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary } from '../theme';
+import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary, btnDanger } from '../theme';
 
-export default function ItemList({ list, isMobile }) {
+export default function ItemList({ list, lists, isMobile, onMoveItem }) {
   const [items, setItems] = useState([]);
   const [viewMode, setViewMode] = useState('grouped'); // 'grouped' | 'aggregated'
   const [showKrogerModal, setShowKrogerModal] = useState(false);
   const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
+  const [purchasedOpen, setPurchasedOpen] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState(false);
 
   useEffect(() => {
     api.getItems(list.id).then(setItems);
@@ -33,6 +36,12 @@ export default function ItemList({ list, isMobile }) {
   const handleDelete = async (itemId) => {
     await api.deleteItem(list.id, itemId);
     setItems(prev => prev.filter(i => i.id !== itemId));
+  };
+
+  const handleClearAll = async () => {
+    await api.clearAllItems(list.id);
+    setItems([]);
+    setClearConfirm(false);
   };
 
   const unpurchased = items.filter(i => !i.purchased && !i.is_spice);
@@ -64,11 +73,11 @@ export default function ItemList({ list, isMobile }) {
   return (
     <>
     <main style={{ padding: isMobile ? '1rem' : '1.5rem', background: colors.bgPage, minHeight: '100%', fontFamily: fonts.sans }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <h1 style={{ fontSize: fontSizes['2xl'], fontWeight: fontWeights.bold, margin: 0, color: colors.textPrimary }}>
           {list.name}
         </h1>
-        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {['grouped', 'aggregated'].map(mode => (
             <button
               key={mode}
@@ -100,6 +109,29 @@ export default function ItemList({ list, isMobile }) {
           >
             Buy em, ant!
           </button>
+          {clearConfirm ? (
+            <>
+              <button
+                onClick={handleClearAll}
+                style={{ ...btnDanger, padding: '0.25rem 0.625rem', minHeight: 'unset', fontSize: fontSizes.sm }}
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setClearConfirm(false)}
+                style={{ ...btnSecondary, padding: '0.25rem 0.625rem', minHeight: 'unset', fontSize: fontSizes.sm }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setClearConfirm(true)}
+              style={{ ...btnSecondary, padding: '0.25rem 0.625rem', minHeight: 'unset', fontSize: fontSizes.sm }}
+            >
+              Clear list
+            </button>
+          )}
         </div>
       </div>
       <AddItemForm onAdd={handleAdd} />
@@ -165,14 +197,31 @@ export default function ItemList({ list, isMobile }) {
 
       {purchased.length > 0 && (
         <>
-          <p style={{ ...sectionLabel, margin: '1rem 0 0.5rem' }}>
+          <button
+            onClick={() => setPurchasedOpen(v => !v)}
+            style={{
+              ...sectionLabel,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              margin: '1rem 0 0.5rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              fontFamily: fonts.display,
+            }}
+          >
+            <span style={{ fontSize: fontSizes.xs }}>{purchasedOpen ? '▾' : '▸'}</span>
             Purchased ({purchased.length})
-          </p>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {purchased.map(item => (
-              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
-            ))}
-          </ul>
+          </button>
+          {purchasedOpen && (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {purchased.map(item => (
+                <PurchasedItem key={item.id} item={item} onUndo={handleToggle} onDelete={handleDelete} />
+              ))}
+            </ul>
+          )}
         </>
       )}
     </main>
@@ -257,26 +306,77 @@ function AggregatedItem({ group, onToggle, onDelete }) {
 }
 
 function Item({ item, onToggle, onDelete }) {
+  const [popping, setPopping] = useState(false);
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `item-${item.id}`,
+    data: { item: { ...item, list_id: item.list_id } },
+  });
+
+  const handleGotIt = () => {
+    if (popping) return;
+    setPopping(true);
+    setTimeout(() => { setPopping(false); onToggle(item); }, 360);
+  };
+
   return (
-    <li style={{
-      ...card,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
-      padding: '0.625rem 0.75rem',
-      marginBottom: '0.375rem',
-    }}>
-      <input
-        type="checkbox"
-        checked={!!item.purchased}
-        onChange={() => onToggle(item)}
-        style={{ width: '1rem', height: '1rem', cursor: 'pointer', accentColor: colors.blue, flexShrink: 0 }}
-      />
+    <li
+      ref={setNodeRef}
+      style={{
+        ...card,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.5rem 0.75rem',
+        marginBottom: '0.375rem',
+        opacity: isDragging ? 0.4 : 1,
+      }}
+    >
+      {/* Drag handle */}
+      <span
+        {...listeners}
+        {...attributes}
+        style={{
+          cursor: 'grab',
+          color: colors.textSubtle,
+          fontSize: '0.875rem',
+          padding: '0.25rem',
+          lineHeight: 1,
+          touchAction: 'none',
+          flexShrink: 0,
+          userSelect: 'none',
+        }}
+      >
+        ⠿
+      </span>
+
+      {/* Got it! button */}
+      <button
+        onClick={handleGotIt}
+        style={{
+          background: popping ? colors.amber : colors.bgSurface,
+          color: popping ? colors.charcoal : colors.textMuted,
+          border: `1.5px solid ${popping ? colors.amber : colors.borderMid}`,
+          borderRadius: radii.full,
+          padding: '0.25rem 0.625rem',
+          fontSize: fontSizes.xs,
+          fontWeight: fontWeights.semibold,
+          cursor: 'pointer',
+          animation: popping ? 'gotItPop 0.36s ease' : 'none',
+          minHeight: '32px',
+          minWidth: '56px',
+          fontFamily: fonts.sans,
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Got it!
+      </button>
+
       <span style={{
         flex: 1,
         fontSize: fontSizes.base,
-        color: item.purchased ? colors.textSubtle : colors.textPrimary,
-        textDecoration: item.purchased ? 'line-through' : 'none',
+        color: colors.textPrimary,
         fontFamily: fonts.sans,
       }}>
         {item.name}
@@ -290,6 +390,68 @@ function Item({ item, onToggle, onDelete }) {
           {item.amount}
         </span>
       )}
+      <button
+        onClick={() => onDelete(item.id)}
+        aria-label={`Remove ${item.name}`}
+        style={{
+          border: 'none',
+          background: 'transparent',
+          color: colors.textSubtle,
+          fontSize: '1rem',
+          padding: '0.375rem',
+          lineHeight: 1,
+          cursor: 'pointer',
+          minWidth: '44px',
+          minHeight: '44px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: radii.sm,
+        }}
+      >
+        ×
+      </button>
+    </li>
+  );
+}
+
+function PurchasedItem({ item, onUndo, onDelete }) {
+  return (
+    <li style={{
+      ...card,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      padding: '0.5rem 0.75rem',
+      marginBottom: '0.375rem',
+      opacity: 0.65,
+    }}>
+      <span style={{
+        flex: 1,
+        fontSize: fontSizes.base,
+        color: colors.textSubtle,
+        textDecoration: 'line-through',
+        fontFamily: fonts.sans,
+      }}>
+        {item.name}
+      </span>
+      {item.amount && (
+        <span style={{ fontSize: fontSizes.sm, color: colors.textSubtle, whiteSpace: 'nowrap' }}>
+          {item.amount}
+        </span>
+      )}
+      <button
+        onClick={() => onUndo(item)}
+        style={{
+          ...btnSecondary,
+          padding: '0.2rem 0.5rem',
+          minHeight: 'unset',
+          fontSize: fontSizes.xs,
+          flexShrink: 0,
+        }}
+      >
+        Add back
+      </button>
       <button
         onClick={() => onDelete(item.id)}
         aria-label={`Remove ${item.name}`}

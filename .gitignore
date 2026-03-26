@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build output
+frontend/dist/
+
+# Database (runtime data)
+data/
+
+# macOS
+.DS_Store
+**/.DS_Store

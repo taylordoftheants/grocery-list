@@ -56,6 +56,15 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
     }
   }
 
+  async function handleClearPurchased() {
+    try {
+      await api.clearPurchasedItems(list.id);
+    } catch {
+      // ignore — best effort
+    }
+    onClose();
+  }
+
   async function handleAddToCart() {
     setStep('adding');
     const selections = Object.values(itemStates)
@@ -179,6 +188,11 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
                     ))}
                   </ul>
                 </div>
+              )}
+              {result.added > 0 && (
+                <button onClick={handleClearPurchased} style={{ ...btnSecondary, width: '100%', marginBottom: '0.5rem' }}>
+                  Remove purchased items from list
+                </button>
               )}
               <button onClick={onClose} style={{ ...btnPrimary, width: '100%' }}>Done</button>
             </>

@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 13;
+const SCHEMA_VERSION = 14;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -67,6 +67,11 @@ if (user_version === 10) {
 }
 // v11 → v12: add kroger_tokens table (new table only, no ALTER TABLE needed)
 // v12 → v13: add kroger_product_selections table (new table only, no ALTER TABLE needed)
+// v13 → v14: add sort_order to lists
+if (user_version === 13) {
+  db.exec('ALTER TABLE lists ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+  db.exec('UPDATE lists SET sort_order = id');
+}
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -84,6 +89,7 @@ db.exec(`
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(user_id, name)
   );
