@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary, btnSecondary } from '../theme';
 
-const HARRIS_TEETER_CHAIN = 'HARRIS-TEETER';
+const HARRIS_TEETER_CHAIN = 'HART';
 
 export default function KrogerModal({ isMobile, onClose }) {
   const [step, setStep] = useState('loading'); // 'loading' | 'store' | 'error'
