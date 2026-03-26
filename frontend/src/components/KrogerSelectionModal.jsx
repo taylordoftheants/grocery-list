@@ -497,11 +497,20 @@ function ProductInfoPanel({ upc, product }) {
   const [detail, setDetail] = useState({ loading: true, data: null });
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
 
+  const [lightbox, setLightbox] = useState(null);
+
   useEffect(() => {
     api.krogerGetProductDetail(upc)
       .then(data => setDetail({ loading: false, data }))
       .catch(() => setDetail({ loading: false, data: null }));
   }, [upc]);
+
+  // Use detail data when available; fall back to already-fetched product data for images
+  const imageUrl          = detail.data?.imageUrl          || product.imageUrl;
+  const nutritionImageUrl = detail.data?.nutritionImageUrl || product.nutritionImageUrl;
+  const backImageUrl      = detail.data?.backImageUrl      || null;
+  const ingredients       = detail.data?.ingredients       || null;
+  const nutritionFacts    = detail.data?.nutritionFacts    || null;
 
   const panelStyle = {
     background: colors.bgSurface,
@@ -511,91 +520,113 @@ function ProductInfoPanel({ upc, product }) {
     marginBottom: '0.25rem',
   };
 
-  // Use detail data when available, fall back to already-fetched product data
-  const imageUrl         = detail.data?.imageUrl         || product.imageUrl;
-  const nutritionImageUrl = detail.data?.nutritionImageUrl || product.nutritionImageUrl;
-  const ingredients      = detail.data?.ingredients      || null;
-  const nutritionFacts   = detail.data?.nutritionFacts   || null;
-  const hasImages = imageUrl || nutritionImageUrl;
-  const hasText   = ingredients || (nutritionFacts && nutritionFacts.length > 0);
+  function ClickableImage({ src, alt = '' }) {
+    const proxied = krogerImageSrc(src);
+    return (
+      <img
+        src={proxied}
+        alt={alt}
+        onClick={() => setLightbox(proxied)}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+      />
+    );
+  }
 
   return (
-    <div style={panelStyle}>
-      {/* Images row — shown immediately from already-fetched product data */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.875rem' }}>
-        {imageUrl && (
-          <div style={{ flex: 1, maxWidth: 140, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-            <ProductImage src={imageUrl} />
-          </div>
-        )}
-        {nutritionImageUrl && (
-          <div style={{ flex: 1, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-            <img src={krogerImageSrc(nutritionImageUrl)} alt="Nutrition facts" style={{ width: '100%', objectFit: 'contain' }} />
-          </div>
-        )}
-        {!imageUrl && !nutritionImageUrl && (
-          <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textSubtle, fontFamily: fonts.sans }}>No product image available.</p>
-        )}
-      </div>
-
-      {/* Text detail — loading indicator while fetching, shown when ready */}
-      {detail.loading && (
-        <p style={{ margin: '0 0 0.5rem', fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
-          Loading ingredients & nutrition…
-        </p>
+    <>
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 600,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img src={lightbox} alt="" style={{ maxWidth: '92vw', maxHeight: '92vh', objectFit: 'contain', borderRadius: radii.lg }} />
+        </div>
       )}
 
-      {/* Ingredients */}
-      {ingredients && (
-        <div style={{ marginBottom: nutritionFacts?.length > 0 ? '0.75rem' : 0 }}>
-          <p style={{ margin: '0 0 0.25rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Ingredients
-          </p>
-          <p style={{
-            margin: 0,
-            fontSize: fontSizes.xs,
-            color: colors.textSecondary,
-            fontFamily: fonts.sans,
-            lineHeight: 1.5,
-            overflow: ingredientsExpanded ? 'visible' : 'hidden',
-            display: ingredientsExpanded ? 'block' : '-webkit-box',
-            WebkitLineClamp: ingredientsExpanded ? 'unset' : 3,
-            WebkitBoxOrient: 'vertical',
-          }}>
-            {ingredients}
-          </p>
-          {ingredients.length > 180 && (
-            <button
-              onClick={() => setIngredientsExpanded(p => !p)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.amber, fontSize: fontSizes.xs, fontFamily: fonts.sans, fontWeight: fontWeights.semibold, padding: '0.25rem 0 0', display: 'block' }}
-            >
-              {ingredientsExpanded ? 'Show less' : 'Show more'}
-            </button>
+      <div style={panelStyle}>
+        {/* Images — shown immediately, click to enlarge */}
+        <div style={{ display: 'flex', gap: '0.625rem', marginBottom: '0.875rem' }}>
+          {imageUrl && (
+            <div style={{ flex: '0 0 auto', width: 110, height: 110, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ClickableImage src={imageUrl} alt="Product" />
+            </div>
+          )}
+          {(nutritionImageUrl || backImageUrl) && (
+            <div style={{ flex: 1, minHeight: 110, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ClickableImage src={nutritionImageUrl || backImageUrl} alt="Nutrition label" />
+            </div>
+          )}
+          {!imageUrl && !nutritionImageUrl && !backImageUrl && !detail.loading && (
+            <p style={{ margin: 0, fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>No images available.</p>
           )}
         </div>
-      )}
 
-      {/* Nutrition facts table */}
-      {nutritionFacts && nutritionFacts.length > 0 && (
-        <div>
-          <p style={{ margin: '0 0 0.375rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Nutrition Facts
+        {/* Loading indicator for text data */}
+        {detail.loading && (
+          <p style={{ margin: '0 0 0.5rem', fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
+            Loading ingredients & nutrition…
           </p>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: fontSizes.xs, fontFamily: fonts.sans }}>
-            <tbody>
-              {nutritionFacts.map((fact, i) => (
-                <tr key={i} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                  <td style={{ padding: '0.2rem 0.25rem 0.2rem 0', color: colors.textSecondary }}>{fact.name}</td>
-                  <td style={{ padding: '0.2rem 0', color: colors.textPrimary, fontWeight: fontWeights.semibold, textAlign: 'right' }}>{fact.amount}</td>
-                  {fact.percent != null && (
-                    <td style={{ padding: '0.2rem 0 0.2rem 0.5rem', color: colors.textMuted, textAlign: 'right' }}>{fact.percent}%</td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+        )}
+
+        {/* Ingredients */}
+        {ingredients && (
+          <div style={{ marginBottom: nutritionFacts?.length > 0 ? '0.75rem' : 0 }}>
+            <p style={{ margin: '0 0 0.25rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Ingredients
+            </p>
+            <p style={{
+              margin: 0, fontSize: fontSizes.xs, color: colors.textSecondary,
+              fontFamily: fonts.sans, lineHeight: 1.5,
+              overflow: ingredientsExpanded ? 'visible' : 'hidden',
+              display: ingredientsExpanded ? 'block' : '-webkit-box',
+              WebkitLineClamp: ingredientsExpanded ? 'unset' : 3,
+              WebkitBoxOrient: 'vertical',
+            }}>
+              {ingredients}
+            </p>
+            {ingredients.length > 180 && (
+              <button
+                onClick={() => setIngredientsExpanded(p => !p)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.amber, fontSize: fontSizes.xs, fontFamily: fonts.sans, fontWeight: fontWeights.semibold, padding: '0.25rem 0 0', display: 'block' }}
+              >
+                {ingredientsExpanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Nutrition facts table */}
+        {nutritionFacts && nutritionFacts.length > 0 && (
+          <div>
+            <p style={{ margin: '0 0 0.375rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Nutrition Facts
+            </p>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: fontSizes.xs, fontFamily: fonts.sans }}>
+              <tbody>
+                {nutritionFacts.map((fact, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
+                    <td style={{ padding: '0.2rem 0.25rem 0.2rem 0', color: colors.textSecondary }}>{fact.name}</td>
+                    <td style={{ padding: '0.2rem 0', color: colors.textPrimary, fontWeight: fontWeights.semibold, textAlign: 'right' }}>{fact.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* No text data after load */}
+        {!detail.loading && !ingredients && !nutritionFacts && (
+          <p style={{ margin: 0, fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
+            No nutrition info found for this product.
+          </p>
+        )}
+      </div>
+    </>
   );
 }

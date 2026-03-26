@@ -228,9 +228,11 @@ router.get('/image', authMiddleware, async (req, res) => {
   if (!url) return res.status(400).end();
   try {
     const parsed = new URL(url);
-    if (!parsed.hostname.endsWith('.kroger.com') && parsed.hostname !== 'kroger.com') {
-      return res.status(400).end();
-    }
+    const allowed = parsed.hostname.endsWith('.kroger.com')
+      || parsed.hostname === 'kroger.com'
+      || parsed.hostname.endsWith('.openfoodfacts.org')
+      || parsed.hostname === 'openfoodfacts.org';
+    if (!allowed) return res.status(400).end();
     const imgRes = await fetch(url);
     if (!imgRes.ok) return res.status(404).end();
     const ct = imgRes.headers.get('content-type') || 'image/jpeg';
@@ -243,37 +245,85 @@ router.get('/image', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/kroger/product/:upc  — full product detail (larger images, ingredients, nutrition)
+// GET /api/kroger/product/:upc  — full product detail (images + Open Food Facts nutrition)
 router.get('/product/:upc', authMiddleware, async (req, res) => {
   const { upc } = req.params;
   try {
+    // Fetch Kroger images and Open Food Facts nutrition data in parallel
     const ccAccessToken = await getClientToken();
-    // Use user's stored locationId for best results; fall back to UPC-only search
     const tokenRow = db.prepare('SELECT location_id FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
     const locationParam = tokenRow ? `&filter.locationId=${encodeURIComponent(tokenRow.location_id)}` : '';
-    const krogerRes = await fetch(
-      `${KROGER_BASE}/products?filter.term=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
-      { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
-    );
-    if (!krogerRes.ok) return res.status(502).json({ error: 'Kroger product lookup failed' });
-    const data = await krogerRes.json();
-    const p = data.data?.[0];
-    if (!p) return res.status(404).json({ error: 'Product not found' });
 
-    const frontImg     = p.images?.find(img => img.perspective === 'front');
-    const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
-    const backImg      = p.images?.find(img => img.perspective === 'back');
-    const item = p.items?.[0];
+    const [krogerRes, offRes] = await Promise.all([
+      fetch(
+        `${KROGER_BASE}/products?filter.term=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
+        { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
+      ),
+      fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(upc)}.json`, {
+        headers: { 'User-Agent': 'AssistAnt/1.0 (taykate.com)' },
+      }),
+    ]);
+
+    // ── Kroger: images ────────────────────────────────────────────────────────
+    let imageUrl = null, nutritionImageUrl = null, backImageUrl = null;
+    if (krogerRes.ok) {
+      const kData = await krogerRes.json();
+      const p = kData.data?.[0];
+      if (p) {
+        const frontImg     = p.images?.find(img => img.perspective === 'front');
+        const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
+        const backImg      = p.images?.find(img => img.perspective === 'back');
+        imageUrl          = pickImageUrl(frontImg,     'large', 'xlarge', 'medium', 'small');
+        nutritionImageUrl = pickImageUrl(nutritionImg, 'large', 'xlarge', 'medium', 'small');
+        backImageUrl      = pickImageUrl(backImg,      'large', 'xlarge', 'medium', 'small');
+      }
+    }
+
+    // ── Open Food Facts: ingredients + nutrition facts ────────────────────────
+    let ingredients = null, nutritionFacts = null, offNutritionImageUrl = null;
+    if (offRes.ok) {
+      const offData = await offRes.json();
+      const op = offData.status === 1 ? offData.product : null;
+      if (op) {
+        ingredients = op.ingredients_text_en || op.ingredients_text || null;
+        if (ingredients) ingredients = ingredients.replace(/_/g, '').trim() || null;
+
+        offNutritionImageUrl = op.image_nutrition_url || null;
+
+        const n = op.nutriments || {};
+        const nutrMap = [
+          { key: 'energy-kcal', label: 'Calories',          unit: '',   round: true  },
+          { key: 'fat',          label: 'Total Fat',          unit: 'g'               },
+          { key: 'saturated-fat',label: 'Saturated Fat',      unit: 'g'               },
+          { key: 'carbohydrates',label: 'Total Carbohydrate', unit: 'g'               },
+          { key: 'sugars',       label: 'Total Sugars',       unit: 'g'               },
+          { key: 'fiber',        label: 'Dietary Fiber',      unit: 'g'               },
+          { key: 'proteins',     label: 'Protein',            unit: 'g'               },
+          { key: 'sodium',       label: 'Sodium',             unit: 'mg', scale: 1000 },
+        ];
+        nutritionFacts = nutrMap
+          .map(({ key, label, unit, round, scale = 1 }) => {
+            const raw = n[`${key}_serving`] ?? n[`${key}_100g`];
+            if (raw == null) return null;
+            const val = raw * scale;
+            const display = round ? Math.round(val) : (val % 1 === 0 ? val : parseFloat(val.toFixed(1)));
+            return { name: label, amount: `${display}${unit}` };
+          })
+          .filter(Boolean);
+        if (nutritionFacts.length === 0) nutritionFacts = null;
+      }
+    }
+
+    // Prefer Kroger nutrition image; fall back to Open Food Facts
+    const finalNutritionImageUrl = nutritionImageUrl || offNutritionImageUrl || null;
 
     res.json({
-      upc: p.upc,
-      description: p.description || '',
-      brand: p.brand || '',
-      imageUrl:          pickImageUrl(frontImg,     'large', 'xlarge', 'medium', 'small'),
-      nutritionImageUrl: pickImageUrl(nutritionImg, 'large', 'xlarge', 'medium', 'small'),
-      backImageUrl:      pickImageUrl(backImg,      'large', 'xlarge', 'medium', 'small'),
-      ingredients:   item?.ingredients   || null,
-      nutritionFacts: item?.nutritionFacts || null,
+      upc,
+      imageUrl,
+      nutritionImageUrl: finalNutritionImageUrl,
+      backImageUrl,
+      ingredients,
+      nutritionFacts,
     });
   } catch (e) {
     console.error('Kroger product detail error:', e);
