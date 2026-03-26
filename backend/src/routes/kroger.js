@@ -71,14 +71,14 @@ router.get('/chains', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/kroger/locations?lat=&lon=&chain=
+// GET /api/kroger/locations?zipCode=&chain=
 router.get('/locations', authMiddleware, async (req, res) => {
-  const { lat, lon, chain } = req.query;
-  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
+  const { zipCode, chain } = req.query;
+  if (!zipCode) return res.status(400).json({ error: 'zipCode is required' });
   try {
     const token = await getClientToken();
     const chainParam = chain ? `&filter.chain=${encodeURIComponent(chain)}` : '';
-    const url = `${KROGER_BASE}/locations?filter.lat=${lat}&filter.lon=${lon}&filter.radiusInMiles=20&filter.limit=20${chainParam}`;
+    const url = `${KROGER_BASE}/locations?filter.zipCode.near=${encodeURIComponent(zipCode)}&filter.radiusInMiles=20&filter.limit=20${chainParam}`;
     const krogerRes = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
     });

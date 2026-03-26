@@ -45,9 +45,9 @@ export const api = {
   reorderRecipes: (ids)                              => request('POST',   '/recipes/reorder',  { ids }),
 
   // Kroger
-  krogerGetLocations: (lat, lon, chain) => {
+  krogerGetLocations: (zipCode, chain) => {
     const chainParam = chain ? `&chain=${encodeURIComponent(chain)}` : '';
-    return request('GET', `/kroger/locations?lat=${lat}&lon=${lon}${chainParam}`);
+    return request('GET', `/kroger/locations?zipCode=${encodeURIComponent(zipCode)}${chainParam}`);
   },
   krogerStatus:       ()         => request('GET',    '/kroger/status'),
   krogerDisconnect:   ()         => request('DELETE', '/kroger/disconnect'),
