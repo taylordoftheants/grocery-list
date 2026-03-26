@@ -281,7 +281,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
     ]);
 
     // ── Kroger: images ────────────────────────────────────────────────────────
-    let imageUrl = null, nutritionImageUrl = null, backImageUrl = null;
+    let imageUrl = null, nutritionImageUrl = null, backImageUrl = null, productPageUrl = null;
     if (krogerRes.ok) {
       const kData = await krogerRes.json();
       const p = kData.data?.[0];
@@ -289,9 +289,12 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
         const frontImg     = p.images?.find(img => img.perspective === 'front');
         const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
         const backImg      = p.images?.find(img => img.perspective === 'back');
-        imageUrl          = pickImageUrl(frontImg,     'large', 'xlarge', 'medium', 'small');
-        nutritionImageUrl = pickImageUrl(nutritionImg, 'large', 'xlarge', 'medium', 'small');
-        backImageUrl      = pickImageUrl(backImg,      'large', 'xlarge', 'medium', 'small');
+        imageUrl          = pickImageUrl(frontImg,     'xlarge', 'large', 'medium', 'small');
+        nutritionImageUrl = pickImageUrl(nutritionImg, 'xlarge', 'large', 'medium', 'small');
+        backImageUrl      = pickImageUrl(backImg,      'xlarge', 'large', 'medium', 'small');
+        productPageUrl    = p.productPageUri
+          ? `https://www.harristeeter.com${p.productPageUri}`
+          : null;
       }
     }
 
@@ -340,6 +343,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
       backImageUrl,
       ingredients,
       nutritionFacts,
+      productPageUrl,
     });
   } catch (e) {
     console.error('Kroger product detail error:', e);

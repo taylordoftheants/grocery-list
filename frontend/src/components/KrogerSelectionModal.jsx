@@ -582,6 +582,16 @@ function ProductTile({ product, selected, infoOpen, onSelect, onInfo }) {
 
 // ── Product info panel ────────────────────────────────────────────────────────
 
+const INFO_PANEL_STYLE = `
+@keyframes infoPanelSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.info-panel-animate {
+  animation: infoPanelSlideDown 220ms ease forwards;
+}
+`;
+
 function ProductInfoPanel({ upc, product }) {
   const [detail, setDetail] = useState({ loading: true, data: null });
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
@@ -600,6 +610,7 @@ function ProductInfoPanel({ upc, product }) {
   const backImageUrl      = detail.data?.backImageUrl      || null;
   const ingredients       = detail.data?.ingredients       || null;
   const nutritionFacts    = detail.data?.nutritionFacts    || null;
+  const productPageUrl    = detail.data?.productPageUrl    || null;
 
   const panelStyle = {
     background: colors.bgSurface,
@@ -623,6 +634,7 @@ function ProductInfoPanel({ upc, product }) {
 
   return (
     <>
+      <style>{INFO_PANEL_STYLE}</style>
       {/* Lightbox */}
       {lightbox && (
         <div
@@ -638,16 +650,16 @@ function ProductInfoPanel({ upc, product }) {
         </div>
       )}
 
-      <div style={panelStyle}>
+      <div className="info-panel-animate" style={panelStyle}>
         {/* Images — shown immediately, click to enlarge */}
         <div style={{ display: 'flex', gap: '0.625rem', marginBottom: '0.875rem' }}>
           {imageUrl && (
-            <div style={{ flex: '0 0 auto', width: 110, height: 110, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ flex: '0 0 auto', width: 160, height: 160, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ClickableImage src={imageUrl} alt="Product" />
             </div>
           )}
           {(nutritionImageUrl || backImageUrl) && (
-            <div style={{ flex: 1, minHeight: 110, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ flex: 1, minHeight: 160, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ClickableImage src={nutritionImageUrl || backImageUrl} alt="Nutrition label" />
             </div>
           )}
@@ -714,6 +726,26 @@ function ProductInfoPanel({ upc, product }) {
           <p style={{ margin: 0, fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
             No nutrition info found for this product.
           </p>
+        )}
+
+        {/* Product page link */}
+        {productPageUrl && (
+          <div style={{ marginTop: '0.75rem', paddingTop: '0.625rem', borderTop: `1px solid ${colors.borderLight}` }}>
+            <a
+              href={productPageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: fontSizes.xs,
+                color: colors.amber,
+                fontFamily: fonts.sans,
+                fontWeight: fontWeights.semibold,
+                textDecoration: 'none',
+              }}
+            >
+              View on Harris Teeter →
+            </a>
+          </div>
         )}
       </div>
     </>
