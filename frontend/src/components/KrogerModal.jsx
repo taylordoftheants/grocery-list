@@ -4,6 +4,16 @@ import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary
 
 const HARRIS_TEETER_CHAIN = 'HART';
 
+function distanceMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
 export default function KrogerModal({ isMobile, onClose }) {
   const [step, setStep] = useState('loading'); // 'loading' | 'store' | 'error'
   const [locations, setLocations] = useState([]);
@@ -23,7 +33,15 @@ export default function KrogerModal({ isMobile, onClose }) {
   async function loadLocations(lat, lon, chain = HARRIS_TEETER_CHAIN) {
     try {
       const data = await api.krogerGetLocations(lat, lon, chain);
-      setLocations(data);
+      const sorted = data
+        .map(loc => ({
+          ...loc,
+          distance: (loc.lat != null && loc.lon != null)
+            ? distanceMiles(lat, lon, loc.lat, loc.lon)
+            : Infinity,
+        }))
+        .sort((a, b) => a.distance - b.distance);
+      setLocations(sorted);
       setStep('store');
     } catch (e) {
       setErrorMsg(e.message || 'Could not load store locations.');
@@ -113,7 +131,7 @@ export default function KrogerModal({ isMobile, onClose }) {
                         {loc.name}
                       </div>
                       <div style={{ fontSize: fontSizes.sm, color: colors.textMuted, marginTop: '0.125rem' }}>
-                        {loc.chain} · {loc.address}
+                        {loc.distance < Infinity ? `${loc.distance.toFixed(1)} mi · ` : ''}{loc.address}
                       </div>
                     </button>
                   </li>

@@ -89,6 +89,8 @@ router.get('/locations', authMiddleware, async (req, res) => {
       name: loc.name,
       chain: loc.chain,
       address: `${loc.address?.addressLine1}, ${loc.address?.city}, ${loc.address?.state}`,
+      lat: loc.geolocation?.latitude,
+      lon: loc.geolocation?.longitude,
     }));
     res.json(locations);
   } catch (e) {
