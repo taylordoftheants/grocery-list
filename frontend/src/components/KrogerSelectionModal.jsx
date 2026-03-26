@@ -280,7 +280,7 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
                     onInfo={() => handleInfo(product.upc)}
                   />
                   {infoOpenUpc === product.upc && (
-                    <ProductInfoPanel upc={product.upc} />
+                    <ProductInfoPanel upc={product.upc} product={product} />
                   )}
                 </Fragment>
               ))}
@@ -493,14 +493,14 @@ function ProductTile({ product, selected, infoOpen, onSelect, onInfo }) {
 
 // ── Product info panel ────────────────────────────────────────────────────────
 
-function ProductInfoPanel({ upc }) {
-  const [state, setState] = useState({ loading: true, data: null, error: null });
+function ProductInfoPanel({ upc, product }) {
+  const [detail, setDetail] = useState({ loading: true, data: null });
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
 
   useEffect(() => {
     api.krogerGetProductDetail(upc)
-      .then(data => setState({ loading: false, data, error: null }))
-      .catch(e => setState({ loading: false, data: null, error: e.message || 'Could not load details' }));
+      .then(data => setDetail({ loading: false, data }))
+      .catch(() => setDetail({ loading: false, data: null }));
   }, [upc]);
 
   const panelStyle = {
@@ -511,56 +511,38 @@ function ProductInfoPanel({ upc }) {
     marginBottom: '0.25rem',
   };
 
-  if (state.loading) {
-    return (
-      <div style={panelStyle}>
-        <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textMuted, fontFamily: fonts.sans }}>
-          Loading details…
-        </p>
-      </div>
-    );
-  }
-
-  if (state.error || !state.data) {
-    return (
-      <div style={panelStyle}>
-        <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textSubtle, fontFamily: fonts.sans }}>
-          No additional details available.
-        </p>
-      </div>
-    );
-  }
-
-  const { imageUrl, nutritionImageUrl, backImageUrl, ingredients, nutritionFacts } = state.data;
+  // Use detail data when available, fall back to already-fetched product data
+  const imageUrl         = detail.data?.imageUrl         || product.imageUrl;
+  const nutritionImageUrl = detail.data?.nutritionImageUrl || product.nutritionImageUrl;
+  const ingredients      = detail.data?.ingredients      || null;
+  const nutritionFacts   = detail.data?.nutritionFacts   || null;
   const hasImages = imageUrl || nutritionImageUrl;
-  const hasText = ingredients || (nutritionFacts && nutritionFacts.length > 0);
-
-  if (!hasImages && !hasText) {
-    return (
-      <div style={panelStyle}>
-        <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textSubtle, fontFamily: fonts.sans }}>
-          No additional details available.
-        </p>
-      </div>
-    );
-  }
+  const hasText   = ingredients || (nutritionFacts && nutritionFacts.length > 0);
 
   return (
     <div style={panelStyle}>
-      {/* Images row */}
-      {hasImages && (
-        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: hasText ? '0.875rem' : 0 }}>
-          {imageUrl && (
-            <div style={{ flex: 1, maxWidth: 140, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-              <ProductImage src={imageUrl} />
-            </div>
-          )}
-          {nutritionImageUrl && (
-            <div style={{ flex: 1, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-              <img src={krogerImageSrc(nutritionImageUrl)} alt="Nutrition facts" style={{ width: '100%', objectFit: 'contain' }} />
-            </div>
-          )}
-        </div>
+      {/* Images row — shown immediately from already-fetched product data */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.875rem' }}>
+        {imageUrl && (
+          <div style={{ flex: 1, maxWidth: 140, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+            <ProductImage src={imageUrl} />
+          </div>
+        )}
+        {nutritionImageUrl && (
+          <div style={{ flex: 1, borderRadius: radii.sm, overflow: 'hidden', background: colors.bgCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+            <img src={krogerImageSrc(nutritionImageUrl)} alt="Nutrition facts" style={{ width: '100%', objectFit: 'contain' }} />
+          </div>
+        )}
+        {!imageUrl && !nutritionImageUrl && (
+          <p style={{ margin: 0, fontSize: fontSizes.sm, color: colors.textSubtle, fontFamily: fonts.sans }}>No product image available.</p>
+        )}
+      </div>
+
+      {/* Text detail — loading indicator while fetching, shown when ready */}
+      {detail.loading && (
+        <p style={{ margin: '0 0 0.5rem', fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
+          Loading ingredients & nutrition…
+        </p>
       )}
 
       {/* Ingredients */}

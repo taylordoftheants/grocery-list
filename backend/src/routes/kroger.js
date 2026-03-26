@@ -243,13 +243,16 @@ router.get('/image', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/kroger/product/:upc  — full product detail (images, ingredients, nutrition)
+// GET /api/kroger/product/:upc  — full product detail (larger images, ingredients, nutrition)
 router.get('/product/:upc', authMiddleware, async (req, res) => {
   const { upc } = req.params;
   try {
     const ccAccessToken = await getClientToken();
+    // Use user's stored locationId for best results; fall back to UPC-only search
+    const tokenRow = db.prepare('SELECT location_id FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
+    const locationParam = tokenRow ? `&filter.locationId=${encodeURIComponent(tokenRow.location_id)}` : '';
     const krogerRes = await fetch(
-      `${KROGER_BASE}/products?filter.productId.in=${encodeURIComponent(upc)}`,
+      `${KROGER_BASE}/products?filter.term=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
       { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
     );
     if (!krogerRes.ok) return res.status(502).json({ error: 'Kroger product lookup failed' });
@@ -257,9 +260,9 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
     const p = data.data?.[0];
     if (!p) return res.status(404).json({ error: 'Product not found' });
 
-    const frontImg   = p.images?.find(img => img.perspective === 'front');
+    const frontImg     = p.images?.find(img => img.perspective === 'front');
     const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
-    const backImg    = p.images?.find(img => img.perspective === 'back');
+    const backImg      = p.images?.find(img => img.perspective === 'back');
     const item = p.items?.[0];
 
     res.json({
