@@ -398,13 +398,12 @@ function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDelet
 
 // ── MealPlan ──────────────────────────────────────────────────────────────────
 
-export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRecipes }) {
+export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRecipes, onNavigateToList }) {
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date()));
   const [entries, setEntries] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [isAddToListOpen, setIsAddToListOpen] = useState(false);
   const [addToListLoading, setAddToListLoading] = useState(false);
-  const [addToListSuccess, setAddToListSuccess] = useState(null);
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [activeIsLeftovers, setActiveIsLeftovers] = useState(false);
   const [pickingForDate, setPickingForDate] = useState(null);
@@ -534,11 +533,9 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
   const handleAddToList = async (listId) => {
     setAddToListLoading(true);
     try {
-      const { added } = await api.addMealPlanToList(listId, formatDateKey(weekStart));
-      const listName = lists.find(l => l.id === listId)?.name ?? 'list';
-      setAddToListSuccess(`${added} item${added !== 1 ? 's' : ''} added to "${listName}"`);
+      await api.addMealPlanToList(listId, formatDateKey(weekStart));
       setIsAddToListOpen(false);
-      setTimeout(() => setAddToListSuccess(null), 4000);
+      onNavigateToList(listId);
     } finally {
       setAddToListLoading(false);
     }
@@ -584,17 +581,11 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
         </div>
         <button
           onClick={() => setIsAddToListOpen(true)}
-          style={{ padding: '0.5rem 1rem', background: colors.success, color: colors.white, border: 'none', borderRadius: radii.md, fontSize: fontSizes.base, fontWeight: fontWeights.semibold, cursor: 'pointer', minHeight: '40px', fontFamily: fonts.sans }}
+          style={{ padding: '0.5rem 1rem', background: colors.navy, color: colors.white, border: 'none', borderRadius: radii.md, fontSize: fontSizes.base, fontWeight: fontWeights.semibold, cursor: 'pointer', minHeight: '40px', fontFamily: fonts.sans }}
         >
-          Add to List
+          Add Meals to Shopping List →
         </button>
       </div>
-
-      {addToListSuccess && (
-        <div style={{ background: colors.successBg, color: colors.successText, padding: '0.625rem 1rem', borderRadius: radii.md, fontSize: fontSizes.base, marginBottom: '1rem', fontFamily: fonts.sans }}>
-          ✓ {addToListSuccess}
-        </div>
-      )}
 
       {/* Main content */}
       {isMobile ? (

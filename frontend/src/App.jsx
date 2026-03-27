@@ -251,7 +251,7 @@ export default function App() {
                     )
                 )}
                 {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
-                {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} onNavigateToRecipes={() => setCurrentView('recipes')} />}
+                {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} onNavigateToRecipes={() => setCurrentView('recipes')} onNavigateToList={(listId) => { setSelected(listId); setCurrentView('lists'); }} />}
                 {currentView === 'admin' && <AdminView />}
               </div>
             </div>
