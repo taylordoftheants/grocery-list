@@ -73,10 +73,29 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
   return (
     <>
     <main style={{ padding: isMobile ? '1rem' : '1.5rem', background: colors.bgPage, minHeight: '100%', fontFamily: fonts.sans }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <h1 style={{ fontSize: fontSizes['2xl'], fontWeight: fontWeights.bold, margin: 0, color: colors.textPrimary }}>
-          {list.name}
-        </h1>
+      <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '1rem', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h1 style={{ fontSize: fontSizes['2xl'], fontWeight: fontWeights.bold, margin: 0, color: colors.textPrimary }}>
+            {list.name}
+          </h1>
+          <button
+            onClick={async () => {
+              try {
+                const status = await api.krogerStatus();
+                if (status.connected) {
+                  setShowKrogerSelectionModal(true);
+                } else {
+                  setShowKrogerModal(true);
+                }
+              } catch {
+                setShowKrogerModal(true);
+              }
+            }}
+            style={{ padding: '0.5rem 1rem', background: colors.navy, color: colors.white, border: 'none', borderRadius: radii.md, fontSize: fontSizes.base, fontWeight: fontWeights.semibold, cursor: 'pointer', minHeight: '40px', fontFamily: fonts.sans }}
+          >
+            Buy 'em, ant! →
+          </button>
+        </div>
         <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <div
             style={{
@@ -113,34 +132,6 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
               </button>
             ))}
           </div>
-          <button
-            onClick={async () => {
-              try {
-                const status = await api.krogerStatus();
-                if (status.connected) {
-                  setShowKrogerSelectionModal(true);
-                } else {
-                  setShowKrogerModal(true);
-                }
-              } catch {
-                setShowKrogerModal(true);
-              }
-            }}
-            style={{
-              background: colors.navy,
-              color: colors.white,
-              border: 'none',
-              borderRadius: radii.md,
-              padding: '0.25rem 0.75rem',
-              minHeight: 'unset',
-              fontSize: fontSizes.sm,
-              fontWeight: fontWeights.semibold,
-              cursor: 'pointer',
-              fontFamily: fonts.sans,
-            }}
-          >
-            Buy em, ant!
-          </button>
           {clearConfirm ? (
             <>
               <button
