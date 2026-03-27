@@ -692,57 +692,64 @@ function ProductInfoPanel({ upc, product }) {
           </p>
         )}
 
-        {/* Ingredients */}
-        {ingredients && (
-          <div style={{ marginBottom: nutritionFacts?.length > 0 ? '0.75rem' : 0 }}>
+        {/* Ingredients — always shown after load */}
+        {!detail.loading && (
+          <div style={{ marginBottom: '0.75rem' }}>
             <p style={{ margin: '0 0 0.25rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Ingredients
             </p>
-            <p style={{
-              margin: 0, fontSize: fontSizes.xs, color: colors.textSecondary,
-              fontFamily: fonts.sans, lineHeight: 1.5,
-              overflow: ingredientsExpanded ? 'visible' : 'hidden',
-              display: ingredientsExpanded ? 'block' : '-webkit-box',
-              WebkitLineClamp: ingredientsExpanded ? 'unset' : 3,
-              WebkitBoxOrient: 'vertical',
-            }}>
-              {ingredients}
-            </p>
-            {ingredients.length > 180 && (
-              <button
-                onClick={() => setIngredientsExpanded(p => !p)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.amber, fontSize: fontSizes.xs, fontFamily: fonts.sans, fontWeight: fontWeights.semibold, padding: '0.25rem 0 0', display: 'block' }}
-              >
-                {ingredientsExpanded ? 'Show less' : 'Show more'}
-              </button>
+            {ingredients ? (
+              <>
+                <p style={{
+                  margin: 0, fontSize: fontSizes.xs, color: colors.textSecondary,
+                  fontFamily: fonts.sans, lineHeight: 1.5,
+                  overflow: ingredientsExpanded ? 'visible' : 'hidden',
+                  display: ingredientsExpanded ? 'block' : '-webkit-box',
+                  WebkitLineClamp: ingredientsExpanded ? 'unset' : 3,
+                  WebkitBoxOrient: 'vertical',
+                }}>
+                  {ingredients}
+                </p>
+                {ingredients.length > 180 && (
+                  <button
+                    onClick={() => setIngredientsExpanded(p => !p)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.amber, fontSize: fontSizes.xs, fontFamily: fonts.sans, fontWeight: fontWeights.semibold, padding: '0.25rem 0 0', display: 'block' }}
+                  >
+                    {ingredientsExpanded ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </>
+            ) : (
+              <p style={{ margin: 0, fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans, fontStyle: 'italic' }}>
+                Not available
+              </p>
             )}
           </div>
         )}
 
-        {/* Nutrition facts table */}
-        {nutritionFacts && nutritionFacts.length > 0 && (
+        {/* Nutrition facts table — always shown after load */}
+        {!detail.loading && (
           <div>
             <p style={{ margin: '0 0 0.375rem', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, fontFamily: fonts.sans, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Nutrition Facts
             </p>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: fontSizes.xs, fontFamily: fonts.sans }}>
-              <tbody>
-                {nutritionFacts.map((fact, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                    <td style={{ padding: '0.2rem 0.25rem 0.2rem 0', color: colors.textSecondary }}>{fact.name}</td>
-                    <td style={{ padding: '0.2rem 0', color: colors.textPrimary, fontWeight: fontWeights.semibold, textAlign: 'right' }}>{fact.amount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {nutritionFacts && nutritionFacts.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: fontSizes.xs, fontFamily: fonts.sans }}>
+                <tbody>
+                  {nutritionFacts.map((fact, i) => (
+                    <tr key={i} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
+                      <td style={{ padding: '0.2rem 0.25rem 0.2rem 0', color: colors.textSecondary }}>{fact.name}</td>
+                      <td style={{ padding: '0.2rem 0', color: colors.textPrimary, fontWeight: fontWeights.semibold, textAlign: 'right' }}>{fact.amount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ margin: 0, fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans, fontStyle: 'italic' }}>
+                Not available
+              </p>
+            )}
           </div>
-        )}
-
-        {/* No data at all after load */}
-        {!detail.loading && !ingredients && !nutritionFacts && !nutritionImageUrl && !imageUrl && (
-          <p style={{ margin: 0, fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
-            No product info found.
-          </p>
         )}
 
         {/* Product page link */}
