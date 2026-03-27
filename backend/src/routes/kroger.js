@@ -111,7 +111,7 @@ async function searchKrogerProducts(term, locationId, ccAccessToken, limit = 8) 
         || pickImageUrl(p.images?.[0], 'small', 'thumbnail', 'medium'),
       nutritionImageUrl: pickImageUrl(nutritionImg, 'medium', 'small', 'large') || null,
       stockLevel: item?.inventory?.stockLevel || null,
-      productPageUrl: p.productPageUri ? `https://www.harristeeter.com${p.productPageUri}` : null,
+      productPageUrl: p.upc ? `https://www.harristeeter.com/p/${(p.description || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}/${p.upc}` : null,
       previouslySelected: false,
     };
   });
@@ -328,9 +328,8 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
         imageUrl          = pickImageUrl(frontImg,     'xlarge', 'large', 'medium', 'small');
         nutritionImageUrl = pickImageUrl(nutritionImg, 'xlarge', 'large', 'medium', 'small');
         backImageUrl      = pickImageUrl(backImg,      'xlarge', 'large', 'medium', 'small');
-        productPageUrl    = p.productPageUri
-          ? `https://${chainDomain}${p.productPageUri}`
-          : `https://${chainDomain}/search?query=${encodeURIComponent(p.description || upc)}`;
+        const slug = (p.description || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        productPageUrl = `https://${chainDomain}/p/${slug}/${p.upc || upc}`;
         const rawIngredients = p.nutritionInformation?.ingredientStatement;
         if (rawIngredients) krogerIngredients = rawIngredients.trim() || null;
       }
