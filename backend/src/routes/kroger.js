@@ -273,12 +273,17 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
     const tokenRow = db.prepare('SELECT location_id FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
     const locationParam = tokenRow ? `&filter.locationId=${encodeURIComponent(tokenRow.location_id)}` : '';
 
-    const [krogerRes, offRes] = await Promise.all([
+    const FDC_API_KEY = process.env.USDA_FDC_API_KEY || 'DEMO_KEY';
+
+    const [krogerRes, offRes, fdcRes] = await Promise.all([
       fetch(
         `${KROGER_BASE}/products?filter.term=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
         { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
       ),
       fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(upc)}.json`, {
+        headers: { 'User-Agent': 'AssistAnt/1.0 (taykate.com)' },
+      }),
+      fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(upc)}&requireAllWords=true&api_key=${FDC_API_KEY}`, {
         headers: { 'User-Agent': 'AssistAnt/1.0 (taykate.com)' },
       }),
     ]);
@@ -297,7 +302,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
         backImageUrl      = pickImageUrl(backImg,      'xlarge', 'large', 'medium', 'small');
         productPageUrl    = p.productPageUri
           ? `https://www.harristeeter.com${p.productPageUri}`
-          : null;
+          : `https://www.harristeeter.com/search?query=${encodeURIComponent(p.description || upc)}`;
       }
     }
 
@@ -333,6 +338,43 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
           })
           .filter(Boolean);
         if (nutritionFacts.length === 0) nutritionFacts = null;
+      }
+    }
+
+    // ── USDA FoodData Central: fallback ingredients + nutrition facts ─────────
+    if (fdcRes.ok && (!ingredients || !nutritionFacts)) {
+      try {
+        const fdcData = await fdcRes.json();
+        const fp = fdcData.foods?.[0];
+        if (fp) {
+          if (!ingredients && fp.ingredients) {
+            ingredients = fp.ingredients.trim() || null;
+          }
+          if (!nutritionFacts && fp.labelNutrients) {
+            const ln = fp.labelNutrients;
+            const fdcMap = [
+              { key: 'calories',      label: 'Calories',          unit: '',   round: true },
+              { key: 'fat',           label: 'Total Fat',          unit: 'g'              },
+              { key: 'saturatedFat',  label: 'Saturated Fat',      unit: 'g'              },
+              { key: 'carbohydrates', label: 'Total Carbohydrate', unit: 'g'              },
+              { key: 'sugars',        label: 'Total Sugars',       unit: 'g'              },
+              { key: 'fiber',         label: 'Dietary Fiber',      unit: 'g'              },
+              { key: 'protein',       label: 'Protein',            unit: 'g'              },
+              { key: 'sodium',        label: 'Sodium',             unit: 'mg'             },
+            ];
+            const fdcFacts = fdcMap
+              .map(({ key, label, unit, round }) => {
+                const raw = ln[key]?.value;
+                if (raw == null) return null;
+                const display = round ? Math.round(raw) : (raw % 1 === 0 ? raw : parseFloat(raw.toFixed(1)));
+                return { name: label, amount: `${display}${unit}` };
+              })
+              .filter(Boolean);
+            if (fdcFacts.length > 0) nutritionFacts = fdcFacts;
+          }
+        }
+      } catch {
+        // FDC parse error — skip silently
       }
     }
 

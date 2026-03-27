@@ -329,7 +329,8 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
 function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
   const [infoOpenUpc, setInfoOpenUpc] = useState(null);
   const visibleProducts = state.expanded ? state.products : state.products.slice(0, 3);
-  const canShowMore = !state.expanded && state.products.length > 3;
+  const canShowMore = !state.expanded;
+  const showMoreLabel = state.products.length > 3 ? 'Show more results ↓' : 'Refine search ↓';
 
   function handleInfo(upc) {
     setInfoOpenUpc(prev => prev === upc ? null : upc);
@@ -388,7 +389,7 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
               onClick={() => onUpdate({ expanded: true })}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.amber, fontSize: fontSizes.sm, fontFamily: fonts.sans, fontWeight: fontWeights.semibold, padding: '0.25rem 0', marginBottom: '0.5rem' }}
             >
-              Show more results ↓
+              {showMoreLabel}
             </button>
           )}
 
@@ -727,10 +728,10 @@ function ProductInfoPanel({ upc, product }) {
           </div>
         )}
 
-        {/* No text data after load */}
-        {!detail.loading && !ingredients && !nutritionFacts && (
+        {/* No data at all after load */}
+        {!detail.loading && !ingredients && !nutritionFacts && !nutritionImageUrl && !imageUrl && (
           <p style={{ margin: 0, fontSize: fontSizes.xs, color: colors.textSubtle, fontFamily: fonts.sans }}>
-            No nutrition info found for this product.
+            No product info found.
           </p>
         )}
 
