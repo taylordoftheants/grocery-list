@@ -14,6 +14,30 @@ const REDIRECT_URI = process.env.KROGER_REDIRECT_URI;
 let ccToken = null;
 let ccExpiry = 0;
 
+// Module-level chain domain cache (fetched once from /v1/chains)
+let cachedChainDomain = null;
+
+async function getChainDomain(chainId = 'HART') {
+  if (cachedChainDomain) return cachedChainDomain;
+  try {
+    const token = await getClientToken();
+    const res = await fetch(`${KROGER_BASE}/chains`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const chain = (data.data || []).find(c => c.chainId === chainId);
+      if (chain?.domain) {
+        cachedChainDomain = chain.domain;
+        return cachedChainDomain;
+      }
+    }
+  } catch {
+    // fall through to default
+  }
+  return 'harristeeter.com';
+}
+
 async function getClientToken() {
   if (Date.now() < ccExpiry) return ccToken;
   const creds = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
@@ -86,6 +110,7 @@ async function searchKrogerProducts(term, locationId, ccAccessToken, limit = 8) 
       imageUrl: pickImageUrl(frontImg, 'small', 'thumbnail', 'medium')
         || pickImageUrl(p.images?.[0], 'small', 'thumbnail', 'medium'),
       nutritionImageUrl: pickImageUrl(nutritionImg, 'medium', 'small', 'large') || null,
+      stockLevel: item?.inventory?.stockLevel || null,
       previouslySelected: false,
     };
   });
@@ -275,7 +300,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
 
     const FDC_API_KEY = process.env.USDA_FDC_API_KEY || 'DEMO_KEY';
 
-    const [krogerRes, offRes, fdcRes] = await Promise.all([
+    const [krogerRes, offRes, fdcRes, chainDomain] = await Promise.all([
       fetch(
         `${KROGER_BASE}/products?filter.term=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
         { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
@@ -286,6 +311,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
       fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(upc)}&requireAllWords=true&api_key=${FDC_API_KEY}`, {
         headers: { 'User-Agent': 'AssistAnt/1.0 (taykate.com)' },
       }),
+      getChainDomain(),
     ]);
 
     // ── Kroger: images ────────────────────────────────────────────────────────
@@ -301,8 +327,8 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
         nutritionImageUrl = pickImageUrl(nutritionImg, 'xlarge', 'large', 'medium', 'small');
         backImageUrl      = pickImageUrl(backImg,      'xlarge', 'large', 'medium', 'small');
         productPageUrl    = p.productPageUri
-          ? `https://www.harristeeter.com${p.productPageUri}`
-          : `https://www.harristeeter.com/search?query=${encodeURIComponent(p.description || upc)}`;
+          ? `https://${chainDomain}${p.productPageUri}`
+          : `https://${chainDomain}/search?query=${encodeURIComponent(p.description || upc)}`;
       }
     }
 

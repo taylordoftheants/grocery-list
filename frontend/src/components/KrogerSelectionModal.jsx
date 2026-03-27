@@ -541,12 +541,22 @@ function ProductTile({ product, selected, infoOpen, onSelect, onInfo }) {
           {product.description}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.375rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             {product.size && (
               <span style={{ fontSize: fontSizes.xs, color: colors.textMuted, fontFamily: fonts.sans }}>{product.size}</span>
             )}
             {product.price != null && (
               <span style={{ fontSize: fontSizes.xs, color: colors.textSecondary, fontFamily: fonts.sans, fontWeight: fontWeights.semibold }}>${product.price.toFixed(2)}</span>
+            )}
+            {product.stockLevel === 'LOW' && (
+              <span style={{ fontSize: '0.6rem', fontWeight: fontWeights.bold, fontFamily: fonts.sans, color: colors.amberDark, background: colors.amberLight, border: `1px solid ${colors.amberBorder}`, borderRadius: radii.sm, padding: '0.1rem 0.3rem', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Low stock
+              </span>
+            )}
+            {product.stockLevel === 'TEMPORARILY_OUT_OF_STOCK' && (
+              <span style={{ fontSize: '0.6rem', fontWeight: fontWeights.bold, fontFamily: fonts.sans, color: colors.errorText, background: colors.errorBg, border: `1px solid ${colors.errorBorder}`, borderRadius: radii.sm, padding: '0.1rem 0.3rem', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Out of stock
+              </span>
             )}
           </div>
           {/* Info button */}
