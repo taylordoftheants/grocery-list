@@ -3,9 +3,9 @@ import { api } from '../api';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary, btnSecondary } from '../theme';
 import KrogerModal from './KrogerModal';
 
-export default function KrogerSelectionModal({ list, isMobile, onClose }) {
-  const [step, setStep] = useState('loading'); // 'loading' | 'selecting' | 'adding' | 'result' | 'reconnect'
-  const [itemStates, setItemStates] = useState({});
+export default function KrogerSelectionModal({ list, isMobile, onClose, initialSelections = null }) {
+  const [step, setStep] = useState(initialSelections ? 'selecting' : 'loading'); // 'loading' | 'selecting' | 'adding' | 'result' | 'reconnect'
+  const [itemStates, setItemStates] = useState(initialSelections ?? {});
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [locationName, setLocationName] = useState(null);
@@ -24,6 +24,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
   }, []);
 
   useEffect(() => {
+    if (initialSelections) return; // already restored from sessionStorage
     api.krogerGetProducts(list.id)
       .then(data => {
         const initial = {};
@@ -239,10 +240,15 @@ export default function KrogerSelectionModal({ list, isMobile, onClose }) {
               </p>
               <button
                 onClick={() => {
-                  const url = locationId
-                    ? `/api/kroger/auth/start?locationId=${locationId}&locationName=${encodeURIComponent(locationName || '')}`
-                    : null;
-                  if (url) window.location.href = url;
+                  if (!locationId) return;
+                  try {
+                    sessionStorage.setItem('kroger_pending_selections', JSON.stringify({
+                      savedAt: Date.now(),
+                      listId: list.id,
+                      itemStates,
+                    }));
+                  } catch { /* storage unavailable — proceed anyway */ }
+                  window.location.href = `/api/kroger/auth/start?locationId=${locationId}&locationName=${encodeURIComponent(locationName || '')}`;
                 }}
                 disabled={!locationId}
                 style={{ ...btnPrimary, width: '100%', marginBottom: '0.75rem', opacity: locationId ? 1 : 0.5 }}

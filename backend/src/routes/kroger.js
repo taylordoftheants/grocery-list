@@ -213,12 +213,15 @@ router.get('/auth/callback', async (req, res) => {
 router.get('/status', authMiddleware, async (req, res) => {
   const row = db.prepare('SELECT location_id, location_name, expires_at FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
   if (!row) return res.json({ connected: false });
-  // Proactively refresh if token expires within 5 minutes
   const expiresIn = Date.parse(row.expires_at) - Date.now();
-  if (expiresIn < 5 * 60 * 1000) {
-    try { await refreshKrogerToken(req.user.id); } catch { /* will fail at cart time if needed */ }
+  if (expiresIn <= 0) {
+    // Token already expired — must refresh or report disconnected
+    try { await refreshKrogerToken(req.user.id); } catch { return res.json({ connected: false }); }
+  } else if (expiresIn < 5 * 60 * 1000) {
+    // Expiring soon — proactive refresh, soft-fail (token still technically valid)
+    try { await refreshKrogerToken(req.user.id); } catch { /* still valid for now */ }
   }
-  res.json({ connected: true, location_id: row.location_id, location_name: row.location_name || null, expires_at: row.expires_at });
+  res.json({ connected: true, location_id: row.location_id, location_name: row.location_name || null });
 });
 
 // DELETE /api/kroger/disconnect

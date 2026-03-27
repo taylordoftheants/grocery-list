@@ -26,6 +26,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState('mealplan');
   const [showProfile, setShowProfile] = useState(false);
   const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
+  const [restoredKrogerSelections, setRestoredKrogerSelections] = useState(null);
   const [showKrogerConnect, setShowKrogerConnect] = useState(false);
   const [krogerConnectMode, setKrogerConnectMode] = useState('connect');
   const [draggingItem, setDraggingItem] = useState(null);
@@ -41,10 +42,21 @@ export default function App() {
     if (params.get('kroger_success')) {
       window.history.replaceState({}, '', window.location.pathname);
       setCurrentView('lists');
+      let pending = null;
+      try {
+        const raw = sessionStorage.getItem('kroger_pending_selections');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Date.now() - parsed.savedAt < 30 * 60 * 1000) pending = parsed;
+          sessionStorage.removeItem('kroger_pending_selections');
+        }
+      } catch { /* ignore */ }
+      setRestoredKrogerSelections(pending);
       setShowKrogerSelectionModal(true);
     }
     if (params.get('kroger_error')) {
       window.history.replaceState({}, '', window.location.pathname);
+      try { sessionStorage.removeItem('kroger_pending_selections'); } catch {}
       setError('Kroger login failed. Please try again.');
     }
   }, []);
@@ -246,7 +258,12 @@ export default function App() {
           </div>
         </div>
         {showKrogerSelectionModal && selectedList && (
-          <KrogerSelectionModal list={selectedList} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />
+          <KrogerSelectionModal
+            list={selectedList}
+            isMobile={isMobile}
+            onClose={() => { setShowKrogerSelectionModal(false); setRestoredKrogerSelections(null); }}
+            initialSelections={restoredKrogerSelections?.listId === selectedList.id ? restoredKrogerSelections.itemStates : null}
+          />
         )}
         {showKrogerConnect && (
           <KrogerModal mode={krogerConnectMode} isMobile={isMobile} onClose={() => setShowKrogerConnect(false)} />
