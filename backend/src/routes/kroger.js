@@ -307,9 +307,13 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
     let imageUrl = null, nutritionImageUrl = null, backImageUrl = null, productPageUrl = null;
     let ingredients = null, nutritionFacts = null;
 
+    if (!krogerRes.ok) {
+      console.error('[product detail] Kroger API error:', krogerRes.status, await krogerRes.text());
+    }
     if (krogerRes.ok) {
       const kData = await krogerRes.json();
       const p = kData.data;
+      console.log('[product detail] status:', krogerRes.status, 'upc:', upc, 'has nutritionInformation:', !!p?.nutritionInformation, 'ni keys:', Object.keys(p?.nutritionInformation ?? {}));
       if (p) {
         const frontImg     = p.images?.find(img => img.perspective === 'front');
         const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
