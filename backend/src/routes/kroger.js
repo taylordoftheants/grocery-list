@@ -300,7 +300,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
     const chainDomain = await getChainDomain();
 
     const krogerRes = await fetch(
-      `${KROGER_BASE}/products?filter.productId=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
+      `${KROGER_BASE}/products/${encodeURIComponent(upc)}${locationParam ? `?${locationParam.slice(1)}` : ''}`,
       { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
     );
 
@@ -309,7 +309,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
 
     if (krogerRes.ok) {
       const kData = await krogerRes.json();
-      const p = kData.data?.[0];
+      const p = kData.data;
       if (p) {
         const frontImg     = p.images?.find(img => img.perspective === 'front');
         const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
