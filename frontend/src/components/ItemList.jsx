@@ -78,20 +78,41 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
           {list.name}
         </h1>
         <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {['grouped', 'aggregated'].map(mode => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              style={{
-                ...(viewMode === mode ? btnPrimary : btnSecondary),
-                padding: '0.25rem 0.625rem',
-                minHeight: 'unset',
-                fontSize: fontSizes.sm,
-              }}
-            >
-              {mode === 'grouped' ? 'By Recipe' : 'Aggregated'}
-            </button>
-          ))}
+          <div
+            style={{
+              display: 'inline-flex',
+              background: colors.bgSurface,
+              border: `1px solid ${colors.borderMid}`,
+              borderRadius: '999px',
+              padding: '2px',
+              gap: 0,
+            }}
+          >
+            {[
+              { value: 'grouped', label: 'By Recipe' },
+              { value: 'aggregated', label: 'Aggregated' },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setViewMode(value)}
+                style={{
+                  background: viewMode === value ? colors.navy : 'transparent',
+                  color: viewMode === value ? colors.white : colors.textSecondary,
+                  border: 'none',
+                  borderRadius: '999px',
+                  padding: '0.2rem 0.625rem',
+                  fontSize: fontSizes.sm,
+                  fontWeight: viewMode === value ? fontWeights.semibold : fontWeights.normal,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, color 0.15s',
+                  fontFamily: fonts.sans,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <button
             onClick={async () => {
               try {
@@ -105,7 +126,18 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
                 setShowKrogerModal(true);
               }
             }}
-            style={{ ...btnPrimary, padding: '0.25rem 0.75rem', minHeight: 'unset', fontSize: fontSizes.sm }}
+            style={{
+              background: colors.navy,
+              color: colors.white,
+              border: 'none',
+              borderRadius: radii.md,
+              padding: '0.25rem 0.75rem',
+              minHeight: 'unset',
+              fontSize: fontSizes.sm,
+              fontWeight: fontWeights.semibold,
+              cursor: 'pointer',
+              fontFamily: fonts.sans,
+            }}
           >
             Buy em, ant!
           </button>
