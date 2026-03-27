@@ -290,34 +290,23 @@ router.get('/image', authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/kroger/product/:upc  — full product detail (images + Open Food Facts nutrition)
+// GET /api/kroger/product/:upc  — full product detail (images + nutrition from Kroger API)
 router.get('/product/:upc', authMiddleware, async (req, res) => {
   const { upc } = req.params;
   try {
-    // Fetch Kroger images and Open Food Facts nutrition data in parallel
     const ccAccessToken = await getClientToken();
     const tokenRow = db.prepare('SELECT location_id FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
     const locationParam = tokenRow ? `&filter.locationId=${encodeURIComponent(tokenRow.location_id)}` : '';
+    const chainDomain = await getChainDomain();
 
-    const FDC_API_KEY = process.env.USDA_FDC_API_KEY || 'DEMO_KEY';
+    const krogerRes = await fetch(
+      `${KROGER_BASE}/products?filter.productId=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
+      { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
+    );
 
-    const [krogerRes, offRes, fdcRes, chainDomain] = await Promise.all([
-      fetch(
-        `${KROGER_BASE}/products?filter.term=${encodeURIComponent(upc)}&filter.limit=1${locationParam}`,
-        { headers: { 'Authorization': `Bearer ${ccAccessToken}`, 'Accept': 'application/json' } }
-      ),
-      fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(upc)}.json`, {
-        headers: { 'User-Agent': 'AssistAnt/1.0 (taykate.com)' },
-      }),
-      fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(upc)}&requireAllWords=true&api_key=${FDC_API_KEY}`, {
-        headers: { 'User-Agent': 'AssistAnt/1.0 (taykate.com)' },
-      }),
-      getChainDomain(),
-    ]);
-
-    // ── Kroger: images + ingredientStatement ─────────────────────────────────
     let imageUrl = null, nutritionImageUrl = null, backImageUrl = null, productPageUrl = null;
-    let krogerIngredients = null;
+    let ingredients = null, nutritionFacts = null;
+
     if (krogerRes.ok) {
       const kData = await krogerRes.json();
       const p = kData.data?.[0];
@@ -330,92 +319,28 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
         backImageUrl      = pickImageUrl(backImg,      'xlarge', 'large', 'medium', 'small');
         const slug = (p.description || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         productPageUrl = `https://${chainDomain}/p/${slug}/${p.upc || upc}`;
-        const rawIngredients = p.nutritionInformation?.ingredientStatement;
-        if (rawIngredients) krogerIngredients = rawIngredients.trim() || null;
-      }
-    }
 
-    // ── Open Food Facts: ingredients + nutrition facts ────────────────────────
-    let ingredients = krogerIngredients, nutritionFacts = null, offNutritionImageUrl = null;
-    if (offRes.ok) {
-      const offData = await offRes.json();
-      const op = offData.status === 1 ? offData.product : null;
-      if (op) {
-        if (!ingredients) {
-          const offIngredients = op.ingredients_text_en || op.ingredients_text || null;
-          if (offIngredients) ingredients = offIngredients.replace(/_/g, '').trim() || null;
+        const ni = p.nutritionInformation;
+        if (ni) {
+          const rawIngredients = ni.ingredientStatement;
+          if (rawIngredients) ingredients = rawIngredients.trim() || null;
+
+          const facts = (ni.nutrients ?? [])
+            .map(n => {
+              if (n.quantity == null) return null;
+              const abbr = n.unitOfMeasure?.abbreviation ?? '';
+              return { name: n.displayName, amount: `${n.quantity}${abbr}` };
+            })
+            .filter(Boolean);
+          if (facts.length > 0) nutritionFacts = facts;
         }
-
-        offNutritionImageUrl = op.image_nutrition_url || null;
-
-        const n = op.nutriments || {};
-        const nutrMap = [
-          { key: 'energy-kcal', label: 'Calories',          unit: '',   round: true  },
-          { key: 'fat',          label: 'Total Fat',          unit: 'g'               },
-          { key: 'saturated-fat',label: 'Saturated Fat',      unit: 'g'               },
-          { key: 'carbohydrates',label: 'Total Carbohydrate', unit: 'g'               },
-          { key: 'sugars',       label: 'Total Sugars',       unit: 'g'               },
-          { key: 'fiber',        label: 'Dietary Fiber',      unit: 'g'               },
-          { key: 'proteins',     label: 'Protein',            unit: 'g'               },
-          { key: 'sodium',       label: 'Sodium',             unit: 'mg', scale: 1000 },
-        ];
-        nutritionFacts = nutrMap
-          .map(({ key, label, unit, round, scale = 1 }) => {
-            const raw = n[`${key}_serving`] ?? n[`${key}_100g`];
-            if (raw == null) return null;
-            const val = raw * scale;
-            const display = round ? Math.round(val) : (val % 1 === 0 ? val : parseFloat(val.toFixed(1)));
-            return { name: label, amount: `${display}${unit}` };
-          })
-          .filter(Boolean);
-        if (nutritionFacts.length === 0) nutritionFacts = null;
       }
     }
-
-    // ── USDA FoodData Central: fallback ingredients + nutrition facts ─────────
-    if (fdcRes.ok && (!ingredients || !nutritionFacts)) {
-      try {
-        const fdcData = await fdcRes.json();
-        const fp = fdcData.foods?.[0];
-        if (fp) {
-          if (!ingredients && fp.ingredients) {
-            ingredients = fp.ingredients.trim() || null;
-          }
-          if (!nutritionFacts && fp.labelNutrients) {
-            const ln = fp.labelNutrients;
-            const fdcMap = [
-              { key: 'calories',      label: 'Calories',          unit: '',   round: true },
-              { key: 'fat',           label: 'Total Fat',          unit: 'g'              },
-              { key: 'saturatedFat',  label: 'Saturated Fat',      unit: 'g'              },
-              { key: 'carbohydrates', label: 'Total Carbohydrate', unit: 'g'              },
-              { key: 'sugars',        label: 'Total Sugars',       unit: 'g'              },
-              { key: 'fiber',         label: 'Dietary Fiber',      unit: 'g'              },
-              { key: 'protein',       label: 'Protein',            unit: 'g'              },
-              { key: 'sodium',        label: 'Sodium',             unit: 'mg'             },
-            ];
-            const fdcFacts = fdcMap
-              .map(({ key, label, unit, round }) => {
-                const raw = ln[key]?.value;
-                if (raw == null) return null;
-                const display = round ? Math.round(raw) : (raw % 1 === 0 ? raw : parseFloat(raw.toFixed(1)));
-                return { name: label, amount: `${display}${unit}` };
-              })
-              .filter(Boolean);
-            if (fdcFacts.length > 0) nutritionFacts = fdcFacts;
-          }
-        }
-      } catch {
-        // FDC parse error — skip silently
-      }
-    }
-
-    // Prefer Kroger nutrition image; fall back to Open Food Facts
-    const finalNutritionImageUrl = nutritionImageUrl || offNutritionImageUrl || null;
 
     res.json({
       upc,
       imageUrl,
-      nutritionImageUrl: finalNutritionImageUrl,
+      nutritionImageUrl,
       backImageUrl,
       ingredients,
       nutritionFacts,
