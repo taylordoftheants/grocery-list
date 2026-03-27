@@ -627,7 +627,7 @@ function ProductInfoPanel({ upc, product }) {
   const backImageUrl      = detail.data?.backImageUrl      || null;
   const ingredients       = detail.data?.ingredients       || null;
   const nutritionFacts    = detail.data?.nutritionFacts    || null;
-  const productPageUrl    = detail.data?.productPageUrl    || null;
+  const productPageUrl    = detail.data?.productPageUrl    || product.productPageUrl || null;
 
   const panelStyle = {
     background: colors.bgSurface,

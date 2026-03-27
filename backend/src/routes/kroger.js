@@ -111,6 +111,7 @@ async function searchKrogerProducts(term, locationId, ccAccessToken, limit = 8) 
         || pickImageUrl(p.images?.[0], 'small', 'thumbnail', 'medium'),
       nutritionImageUrl: pickImageUrl(nutritionImg, 'medium', 'small', 'large') || null,
       stockLevel: item?.inventory?.stockLevel || null,
+      productPageUrl: p.productPageUri ? `https://www.harristeeter.com${p.productPageUri}` : null,
       previouslySelected: false,
     };
   });
