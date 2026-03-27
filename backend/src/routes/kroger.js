@@ -314,8 +314,9 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
       getChainDomain(),
     ]);
 
-    // ── Kroger: images ────────────────────────────────────────────────────────
+    // ── Kroger: images + ingredientStatement ─────────────────────────────────
     let imageUrl = null, nutritionImageUrl = null, backImageUrl = null, productPageUrl = null;
+    let krogerIngredients = null;
     if (krogerRes.ok) {
       const kData = await krogerRes.json();
       const p = kData.data?.[0];
@@ -329,17 +330,21 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
         productPageUrl    = p.productPageUri
           ? `https://${chainDomain}${p.productPageUri}`
           : `https://${chainDomain}/search?query=${encodeURIComponent(p.description || upc)}`;
+        const rawIngredients = p.nutritionInformation?.ingredientStatement;
+        if (rawIngredients) krogerIngredients = rawIngredients.trim() || null;
       }
     }
 
     // ── Open Food Facts: ingredients + nutrition facts ────────────────────────
-    let ingredients = null, nutritionFacts = null, offNutritionImageUrl = null;
+    let ingredients = krogerIngredients, nutritionFacts = null, offNutritionImageUrl = null;
     if (offRes.ok) {
       const offData = await offRes.json();
       const op = offData.status === 1 ? offData.product : null;
       if (op) {
-        ingredients = op.ingredients_text_en || op.ingredients_text || null;
-        if (ingredients) ingredients = ingredients.replace(/_/g, '').trim() || null;
+        if (!ingredients) {
+          const offIngredients = op.ingredients_text_en || op.ingredients_text || null;
+          if (offIngredients) ingredients = offIngredients.replace(/_/g, '').trim() || null;
+        }
 
         offNutritionImageUrl = op.image_nutrition_url || null;
 
