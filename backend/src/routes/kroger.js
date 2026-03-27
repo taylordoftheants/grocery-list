@@ -307,13 +307,9 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
     let imageUrl = null, nutritionImageUrl = null, backImageUrl = null, productPageUrl = null;
     let ingredients = null, nutritionFacts = null;
 
-    if (!krogerRes.ok) {
-      console.error('[product detail] Kroger API error:', krogerRes.status, await krogerRes.text());
-    }
     if (krogerRes.ok) {
       const kData = await krogerRes.json();
       const p = kData.data;
-      console.log('[product detail] status:', krogerRes.status, 'upc:', upc, 'has nutritionInformation:', !!p?.nutritionInformation, 'ni keys:', Object.keys(p?.nutritionInformation ?? {}));
       if (p) {
         const frontImg     = p.images?.find(img => img.perspective === 'front');
         const nutritionImg = p.images?.find(img => img.perspective === 'nutrition');
@@ -324,7 +320,7 @@ router.get('/product/:upc', authMiddleware, async (req, res) => {
         const slug = (p.description || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         productPageUrl = `https://${chainDomain}/p/${slug}/${p.upc || upc}`;
 
-        const ni = p.nutritionInformation;
+        const ni = Array.isArray(p.nutritionInformation) ? p.nutritionInformation[0] : p.nutritionInformation;
         if (ni) {
           const rawIngredients = ni.ingredientStatement;
           if (rawIngredients) ingredients = rawIngredients.trim() || null;
