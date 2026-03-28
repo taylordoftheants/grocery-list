@@ -80,8 +80,11 @@ if (user_version === 14) {
 // v16 → v17: add user_pantry table (new table only, no ALTER TABLE needed)
 // v17 → v18: add nutrition_cache table (new table only, no ALTER TABLE needed)
 // v18 → v19: add image_url to kroger_product_selections
-if (user_version === 18) {
-  db.exec("ALTER TABLE kroger_product_selections ADD COLUMN image_url TEXT NOT NULL DEFAULT ''");
+// Use < 19 (not === 18) to catch DBs that jumped multiple versions and skipped this migration
+if (user_version < 19) {
+  try {
+    db.exec("ALTER TABLE kroger_product_selections ADD COLUMN image_url TEXT NOT NULL DEFAULT ''");
+  } catch { /* column already exists on fresh installs */ }
 }
 // v19 → v20: add is_favorites to recipes
 if (user_version === 19) {
