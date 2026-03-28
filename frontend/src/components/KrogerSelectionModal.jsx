@@ -127,7 +127,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
     }
   }
 
-  const [pantryExpanded, setPantryExpanded] = useState(false);
+  const [pantryExpanded, setPantryExpanded] = useState(true);
 
   const stateList = Object.entries(itemStates);
   const includedCount = stateList.filter(([, s]) => s.included && s.selectedUpc).length;
