@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, input, btnPrimary, btnSecondary, sectionLabel } from '../theme';
+import { buildSubCategories } from './RecipesView';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 
@@ -29,7 +30,15 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
     });
   };
 
-  const totalCount = leftoversMode ? (selectedLeftoversId != null ? 1 : 0) : checkedIds.size + (manualText.trim() ? 1 : 0);
+  const favoritesRecipe = recipes.find(r => r.is_favorites);
+  const favOptCount = favoritesRecipe && checkedIds.has(favoritesRecipe.id)
+    ? (selectedOptionals[favoritesRecipe.id]?.size ?? 0)
+    : 0;
+  const totalCount = leftoversMode
+    ? (selectedLeftoversId != null ? 1 : 0)
+    : (checkedIds.size - (favoritesRecipe && checkedIds.has(favoritesRecipe.id) ? 1 : 0))
+      + favOptCount
+      + (manualText.trim() ? 1 : 0);
 
   const handleSubmit = async () => {
     if (totalCount === 0) { onClose(); return; }
@@ -63,7 +72,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
   };
 
   const grouped = CATEGORIES
-    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
+    .map(cat => ({ category: cat, items: recipes.filter(r => !r.is_favorites && r.category === cat) }))
     .filter(g => g.items.length > 0);
 
   const modalCard = isMobile ? {
@@ -210,6 +219,66 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                     })}
                   </div>
                 ))
+              )}
+
+              {favoritesRecipe && (
+                <div style={{ marginTop: '0.25rem', marginBottom: '0.875rem' }}>
+                  <p style={{ ...sectionLabel, marginBottom: '0.375rem' }}>
+                    Favorites / Regular Items
+                  </p>
+                  {(() => {
+                    const isChecked = checkedIds.has(favoritesRecipe.id);
+                    const subGroups = buildSubCategories(favoritesRecipe.ingredients ?? []);
+                    return (
+                      <div>
+                        <label style={{
+                          display: 'flex', alignItems: 'center', gap: '0.625rem',
+                          padding: '0.5rem 0.625rem', borderRadius: radii.md,
+                          cursor: 'pointer',
+                          background: isChecked ? colors.blueLight : 'transparent',
+                          marginBottom: '0.125rem',
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleId(favoritesRecipe.id)}
+                            style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }}
+                          />
+                          <span style={{ fontSize: fontSizes.md, color: colors.textSecondary, fontFamily: fonts.sans }}>All Favorites</span>
+                        </label>
+                        {isChecked && (
+                          subGroups.length === 0 ? (
+                            <p style={{ paddingLeft: '2.125rem', fontSize: fontSizes.sm, color: colors.textSubtle, fontStyle: 'italic', fontFamily: fonts.sans }}>
+                              No favorites yet — add items in the Recipes tab.
+                            </p>
+                          ) : (
+                            subGroups.map(group => (
+                              <div key={group.name} style={{ paddingLeft: '2.125rem', paddingBottom: '0.375rem' }}>
+                                <p style={{ fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.textMuted, marginBottom: '0.25rem', fontFamily: fonts.sans }}>
+                                  {group.name}
+                                </p>
+                                {group.items.map(ing => {
+                                  const isSelected = selectedOptionals[favoritesRecipe.id]?.has(ing.id) ?? false;
+                                  return (
+                                    <label key={ing.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0.5rem', borderRadius: radii.sm, cursor: 'pointer', background: isSelected ? colors.blueLight : 'transparent', marginBottom: '0.125rem' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => toggleOptional(favoritesRecipe.id, ing.id)}
+                                        style={{ width: '0.875rem', height: '0.875rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }}
+                                      />
+                                      <span style={{ fontSize: fontSizes.base, color: colors.textSecondary, fontFamily: fonts.sans }}>{ing.name}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            ))
+                          )
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               )}
 
               {onNewRecipe && (

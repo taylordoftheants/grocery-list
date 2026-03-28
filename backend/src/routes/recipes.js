@@ -5,7 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 router.use(authMiddleware);
 
-const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
+const CATEGORIES = ['Core Meals', 'Extras / Sauces', 'Favorites / Regular Items'];
 
 function attachIngredients(recipes) {
   if (recipes.length === 0) return recipes;
@@ -27,10 +27,19 @@ function verifyOwnership(id, userId, res) {
   return true;
 }
 
+function ensureFavoritesRecipe(userId) {
+  const existing = db.prepare('SELECT id FROM recipes WHERE user_id = ? AND is_favorites = 1').get(userId);
+  if (existing) return;
+  db.prepare(
+    "INSERT INTO recipes (user_id, title, category, sort_order, is_favorites) VALUES (?, 'Favorites / Regular Items', 'Favorites / Regular Items', 9999, 1)"
+  ).run(userId);
+}
+
 // GET /api/recipes
 router.get('/', (req, res) => {
+  ensureFavoritesRecipe(req.user.id);
   const recipes = db
-    .prepare('SELECT id, user_id, title, category, sort_order, created_at FROM recipes WHERE user_id = ? ORDER BY sort_order ASC, created_at ASC')
+    .prepare('SELECT id, user_id, title, category, sort_order, is_favorites, created_at FROM recipes WHERE user_id = ? ORDER BY sort_order ASC, created_at ASC')
     .all(req.user.id);
   res.json(attachIngredients(recipes));
 });
@@ -41,10 +50,15 @@ router.post('/reorder', (req, res) => {
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'ids must be a non-empty array' });
   }
+  // Exclude the favorites recipe from reordering — it's always pinned last
+  const reorderableIds = ids.filter(id => {
+    const r = db.prepare('SELECT is_favorites FROM recipes WHERE id = ? AND user_id = ?').get(id, req.user.id);
+    return r && !r.is_favorites;
+  });
   const update = db.prepare('UPDATE recipes SET sort_order = ? WHERE id = ? AND user_id = ?');
   db.exec('BEGIN');
   try {
-    ids.forEach((id, i) => update.run(i, id, req.user.id));
+    reorderableIds.forEach((id, i) => update.run(i, id, req.user.id));
     db.exec('COMMIT');
   } catch (e) {
     db.exec('ROLLBACK');
@@ -122,6 +136,8 @@ router.put('/:id', (req, res) => {
 // DELETE /api/recipes/:id
 router.delete('/:id', (req, res) => {
   if (!verifyOwnership(req.params.id, req.user.id, res)) return;
+  const recipe = db.prepare('SELECT is_favorites FROM recipes WHERE id = ?').get(req.params.id);
+  if (recipe?.is_favorites) return res.status(403).json({ error: 'Cannot delete the Favorites recipe' });
   db.prepare('DELETE FROM recipes WHERE id = ?').run(req.params.id);
   res.status(204).send();
 });

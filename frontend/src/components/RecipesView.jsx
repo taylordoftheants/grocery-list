@@ -590,6 +590,269 @@ function RecipeDetail({ recipe, onEdit, onDelete }) {
   );
 }
 
+// ── Shared helper ────────────────────────────────────────────────────────────
+
+export function buildSubCategories(ingredients) {
+  const map = new Map();
+  for (const ing of ingredients) {
+    const cat = ing.optional_category || 'General';
+    if (!map.has(cat)) map.set(cat, []);
+    map.get(cat).push({ id: ing.id, name: ing.name, amount: ing.amount ?? '' });
+  }
+  return [...map.entries()].map(([name, items]) => ({ name, items }));
+}
+
+// ── FavoritesEditor ───────────────────────────────────────────────────────────
+
+function FavoritesEditor({ recipe, onSave, isMobile, onDirtyChange }) {
+  const [subCategories, setSubCategories] = useState(() => buildSubCategories(recipe?.ingredients ?? []));
+  const [editingCatIdx, setEditingCatIdx] = useState(null);
+  const [editingCatName, setEditingCatName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
+  const catInputRef = useRef(null);
+  const newItemRefs = useRef({});
+
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
+
+  const markDirty = () => setIsDirty(true);
+
+  const addSubCategory = () => {
+    markDirty();
+    const newCat = { name: 'New Category', items: [] };
+    setSubCategories(prev => [...prev, newCat]);
+    const newIdx = subCategories.length;
+    setEditingCatIdx(newIdx);
+    setEditingCatName('New Category');
+    setTimeout(() => catInputRef.current?.select(), 0);
+  };
+
+  const startRenameCategory = (idx) => {
+    setEditingCatIdx(idx);
+    setEditingCatName(subCategories[idx].name);
+    setTimeout(() => catInputRef.current?.select(), 0);
+  };
+
+  const commitRenameCategory = () => {
+    if (editingCatIdx === null) return;
+    const trimmed = editingCatName.trim() || 'General';
+    setSubCategories(prev => prev.map((cat, i) => i === editingCatIdx ? { ...cat, name: trimmed } : cat));
+    setEditingCatIdx(null);
+    markDirty();
+  };
+
+  const deleteSubCategory = (idx) => {
+    const cat = subCategories[idx];
+    if (cat.items.filter(i => i.name.trim()).length > 0) {
+      if (!window.confirm(`Delete "${cat.name}" and all its items?`)) return;
+    }
+    setSubCategories(prev => prev.filter((_, i) => i !== idx));
+    markDirty();
+  };
+
+  const addItemToCategory = (catIdx) => {
+    markDirty();
+    setSubCategories(prev => prev.map((cat, i) =>
+      i === catIdx ? { ...cat, items: [...cat.items, { name: '', amount: '' }] } : cat
+    ));
+    setTimeout(() => {
+      const lastIdx = subCategories[catIdx].items.length;
+      newItemRefs.current[`${catIdx}-${lastIdx}`]?.focus();
+    }, 0);
+  };
+
+  const updateItem = (catIdx, itemIdx, field, value) => {
+    markDirty();
+    setSubCategories(prev => prev.map((cat, i) =>
+      i !== catIdx ? cat : {
+        ...cat,
+        items: cat.items.map((item, j) => j === itemIdx ? { ...item, [field]: value } : item)
+      }
+    ));
+  };
+
+  const removeItem = (catIdx, itemIdx) => {
+    markDirty();
+    setSubCategories(prev => prev.map((cat, i) =>
+      i !== catIdx ? cat : { ...cat, items: cat.items.filter((_, j) => j !== itemIdx) }
+    ));
+  };
+
+  const handleSave = async () => {
+    setError(null);
+    const allIngredients = subCategories.flatMap(cat =>
+      cat.items
+        .filter(item => item.name.trim())
+        .map(item => ({
+          name: item.name.trim(),
+          amount: item.amount?.trim() ?? '',
+          is_optional: 1,
+          optional_category: cat.name,
+        }))
+    );
+    setLoading(true);
+    try {
+      const saved = await api.updateRecipe(recipe.id, recipe.title, allIngredients, recipe.category);
+      setIsDirty(false);
+      onSave(saved);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const ingNameStyle = { flex: 1, padding: '0.4rem 0.5rem', border: `1px solid ${colors.borderMid}`, borderRadius: radii.md, fontSize: fontSizes.md, background: colors.white, fontFamily: fonts.sans };
+  const removeBtn = { border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1, padding: '0.25rem', minWidth: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+
+  const mobileFooterStyle = {
+    position: 'fixed',
+    bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+    left: 0,
+    right: 0,
+    background: colors.white,
+    borderTop: `1px solid ${colors.border}`,
+    boxShadow: shadows.navBottom,
+    padding: '0.75rem 1rem',
+    zIndex: 10,
+  };
+
+  const saveArea = (
+    <div style={isMobile ? mobileFooterStyle : { display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+      {showUnsavedConfirm ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+          <p style={{ fontSize: fontSizes.base, color: '#9a3412', fontWeight: fontWeights.medium, margin: 0, fontFamily: fonts.sans }}>
+            Discard unsaved changes?
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="button" onClick={() => { setShowUnsavedConfirm(false); setIsDirty(false); onSave(recipe); }} style={{ ...btnDanger, padding: '0.5rem 1rem', minHeight: '40px', flex: isMobile ? 1 : 'none' }}>
+              Discard
+            </button>
+            <button type="button" onClick={() => setShowUnsavedConfirm(false)} style={{ ...btnSecondary, padding: '0.5rem 1rem', minHeight: '40px', flex: isMobile ? 1 : 'none' }}>
+              Keep Editing
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={handleSave}
+          disabled={loading || !isDirty}
+          style={{
+            ...btnPrimary,
+            background: loading || !isDirty ? colors.borderMid : colors.blue,
+            cursor: loading || !isDirty ? 'default' : 'pointer',
+            flex: isMobile ? 1 : 'none',
+          }}
+        >
+          {loading ? 'Saving...' : 'Save Changes'}
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', fontFamily: fonts.sans }}>
+      <div style={{ padding: '1.5rem 1rem', maxWidth: '520px', paddingBottom: isMobile ? '100px' : '1.5rem' }}>
+        <h2 style={{ fontSize: fontSizes.xl, fontWeight: fontWeights.bold, marginBottom: '0.25rem', color: colors.textPrimary }}>
+          Favorites / Regular Items
+        </h2>
+        <p style={{ fontSize: fontSizes.sm, color: colors.textSubtle, marginBottom: '1.5rem', fontFamily: fonts.sans }}>
+          Organize regularly-bought items by category. Select individual items when adding to your plan.
+        </p>
+
+        {error && (
+          <div style={{ background: colors.errorBg, color: colors.errorText, padding: '0.75rem', borderRadius: radii.md, marginBottom: '1rem', fontSize: fontSizes.base }}>
+            {error}
+          </div>
+        )}
+
+        {subCategories.map((cat, catIdx) => (
+          <div key={catIdx} style={{ marginBottom: '1.25rem', background: colors.bgSurface, border: `1px solid ${colors.border}`, borderRadius: radii.lg, padding: '0.875rem 1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              {editingCatIdx === catIdx ? (
+                <input
+                  ref={catInputRef}
+                  value={editingCatName}
+                  onChange={e => setEditingCatName(e.target.value)}
+                  onBlur={commitRenameCategory}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitRenameCategory(); } }}
+                  style={{ ...ingNameStyle, fontWeight: fontWeights.semibold, fontSize: fontSizes.md, flex: 1 }}
+                  autoFocus
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => startRenameCategory(catIdx)}
+                  title="Click to rename"
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: fontSizes.md, fontWeight: fontWeights.semibold, color: colors.textSecondary, textAlign: 'left', fontFamily: fonts.sans }}
+                >
+                  {cat.name}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => deleteSubCategory(catIdx)}
+                style={{ ...removeBtn, color: colors.textSubtle, marginLeft: '0.5rem', flexShrink: 0 }}
+                title="Delete category"
+              >
+                ×
+              </button>
+            </div>
+
+            {cat.items.map((item, itemIdx) => (
+              <div key={itemIdx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.375rem', alignItems: 'center' }}>
+                <input
+                  ref={el => { newItemRefs.current[`${catIdx}-${itemIdx}`] = el; }}
+                  value={item.name}
+                  onChange={e => updateItem(catIdx, itemIdx, 'name', e.target.value)}
+                  placeholder="Item name"
+                  inputMode="text"
+                  autoCapitalize="words"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      addItemToCategory(catIdx);
+                    }
+                  }}
+                  style={ingNameStyle}
+                />
+                <button type="button" onClick={() => removeItem(catIdx, itemIdx)} style={removeBtn}>×</button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => addItemToCategory(catIdx)}
+              style={{ fontSize: fontSizes.base, color: colors.blue, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.medium, fontFamily: fonts.sans, padding: '0.25rem 0' }}
+            >
+              + Add item
+            </button>
+          </div>
+        ))}
+
+        {subCategories.length === 0 && (
+          <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, marginBottom: '1rem', fontStyle: 'italic' }}>
+            No categories yet. Add a sub-category to get started.
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={addSubCategory}
+          style={{ display: 'block', width: '100%', padding: '0.625rem', border: `1.5px dashed ${colors.borderMid}`, borderRadius: radii.lg, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', textAlign: 'center', fontFamily: fonts.sans }}
+        >
+          + New sub-category
+        </button>
+
+        {!isMobile && saveArea}
+      </div>
+      {isMobile && saveArea}
+    </div>
+  );
+}
+
 // ── RecipesView ───────────────────────────────────────────────────────────────
 
 export default function RecipesView({ isMobile }) {
@@ -671,8 +934,10 @@ export default function RecipesView({ isMobile }) {
     setEditorIsDirty(false);
   };
 
+  const favoritesRecipe = recipes.find(r => r.is_favorites);
   const grouped = CATEGORIES
-    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
+    .filter(cat => cat !== 'Favorites / Regular Items')
+    .map(cat => ({ category: cat, items: recipes.filter(r => !r.is_favorites && r.category === cat) }))
     .filter(g => g.items.length > 0);
 
   const activeRecipe = activeId != null ? recipes.find(r => r.id === activeId) : null;
@@ -745,6 +1010,38 @@ export default function RecipesView({ isMobile }) {
           )}
         </DragOverlay>
       </DndContext>
+
+      {favoritesRecipe && (
+        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: `1px solid ${colors.border}` }}>
+          <p style={{ ...sectionLabel, margin: '0 0 0.25rem 0' }}>
+            Favorites / Regular Items
+          </p>
+          <li style={{ listStyle: 'none', marginBottom: '0.375rem' }}>
+            <button
+              onClick={() => { setSelectedId(favoritesRecipe.id); setIsEditing(false); setShowNew(false); }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '0.5rem 0.75rem',
+                background: selectedId === favoritesRecipe.id ? colors.blueLight : colors.bgCard,
+                border: `1px solid ${selectedId === favoritesRecipe.id ? colors.blueBorder : colors.border}`,
+                borderRadius: radii.md,
+                fontSize: fontSizes.base,
+                color: selectedId === favoritesRecipe.id ? colors.blueDark : colors.textSecondary,
+                fontWeight: selectedId === favoritesRecipe.id ? fontWeights.semibold : fontWeights.normal,
+                cursor: 'pointer',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontFamily: fonts.sans,
+                boxSizing: 'border-box',
+              }}
+            >
+              {favoritesRecipe.title}
+            </button>
+          </li>
+        </div>
+      )}
     </div>
   );
 
@@ -760,14 +1057,22 @@ export default function RecipesView({ isMobile }) {
           onDirtyChange={setEditorIsDirty}
         />
       )}
-      {!showNew && selectedRecipe && !isEditing && (
+      {!showNew && selectedRecipe && selectedRecipe.is_favorites && (
+        <FavoritesEditor
+          recipe={selectedRecipe}
+          onSave={handleSave}
+          isMobile={isMobile}
+          onDirtyChange={setEditorIsDirty}
+        />
+      )}
+      {!showNew && selectedRecipe && !selectedRecipe.is_favorites && !isEditing && (
         <RecipeDetail
           recipe={selectedRecipe}
           onEdit={() => setIsEditing(true)}
           onDelete={() => handleDelete(selectedRecipe.id)}
         />
       )}
-      {!showNew && selectedRecipe && isEditing && (
+      {!showNew && selectedRecipe && !selectedRecipe.is_favorites && isEditing && (
         <RecipeEditor
           recipe={selectedRecipe}
           onSave={handleSave}

@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 19;
+const SCHEMA_VERSION = 20;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -83,6 +83,10 @@ if (user_version === 14) {
 if (user_version === 18) {
   db.exec("ALTER TABLE kroger_product_selections ADD COLUMN image_url TEXT NOT NULL DEFAULT ''");
 }
+// v19 → v20: add is_favorites to recipes
+if (user_version === 19) {
+  db.exec('ALTER TABLE recipes ADD COLUMN is_favorites INTEGER NOT NULL DEFAULT 0');
+}
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -115,12 +119,13 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS recipes (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title      TEXT NOT NULL,
-    category   TEXT NOT NULL DEFAULT 'Core Meals',
-    sort_order INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title        TEXT NOT NULL,
+    category     TEXT NOT NULL DEFAULT 'Core Meals',
+    sort_order   INTEGER NOT NULL DEFAULT 0,
+    is_favorites INTEGER NOT NULL DEFAULT 0,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS recipe_ingredients (

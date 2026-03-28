@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 import AddToListModal from './AddToListModal';
 import AddToDayModal from './AddToDayModal';
+import FavoritesPickerModal from './FavoritesPickerModal';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, sectionLabel } from '../theme';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
@@ -229,7 +230,7 @@ function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker
 
 // ── WeeklyBox ─────────────────────────────────────────────────────────────────
 
-function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDropRef, isOver }) {
+function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, onOpenFavoritesPicker, favoritesRecipe, isMobile, setDropRef, isOver }) {
   if (isMobile) {
     return (
       <div style={{ ...card, padding: '0.75rem', marginBottom: '0.5rem', fontFamily: fonts.sans }}>
@@ -272,12 +273,22 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDrop
           );
         })}
 
-        <button
-          onClick={onOpenPicker}
-          style={{ marginTop: '0.375rem', width: '100%', padding: '0.5rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', minHeight: '44px', fontFamily: fonts.sans }}
-        >
-          + Add
-        </button>
+        <div style={{ display: 'flex', gap: '0.375rem', marginTop: '0.375rem' }}>
+          <button
+            onClick={onOpenPicker}
+            style={{ flex: 1, padding: '0.5rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', minHeight: '44px', fontFamily: fonts.sans }}
+          >
+            + Add
+          </button>
+          {favoritesRecipe && onOpenFavoritesPicker && (
+            <button
+              onClick={onOpenFavoritesPicker}
+              style={{ padding: '0.5rem 0.75rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: '44px', fontFamily: fonts.sans }}
+            >
+              + Favorites
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -297,6 +308,14 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDrop
         >
           + Add
         </button>
+        {favoritesRecipe && onOpenFavoritesPicker && (
+          <button
+            onClick={onOpenFavoritesPicker}
+            style={{ border: `1px dashed ${colors.borderMid}`, borderRadius: radii.full, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, padding: '0.25rem 0.625rem', cursor: 'pointer', flexShrink: 0, fontFamily: fonts.sans }}
+          >
+            + Favorites
+          </button>
+        )}
       </div>
     </div>
   );
@@ -308,6 +327,7 @@ function WeeklyDropZone(props) {
   const { setNodeRef, isOver } = useDroppable({ id: 'weekly' });
   return <WeeklyBox {...props} setDropRef={setNodeRef} isOver={isOver} isMobile={false} />;
 }
+
 
 // ── Mobile vertical layout ────────────────────────────────────────────────────
 
@@ -371,7 +391,7 @@ function MobileDayCard({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPi
   );
 }
 
-function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDeleteEntry, onOpenPicker, onOpenWeeklyPicker, onOpenLeftoversPicker }) {
+function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDeleteEntry, onOpenPicker, onOpenWeeklyPicker, onOpenLeftoversPicker, onOpenFavoritesPicker, favoritesRecipe }) {
   return (
     <div>
       <WeeklyBox
@@ -379,6 +399,8 @@ function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDelet
         recipes={recipes}
         onDelete={onDeleteEntry}
         onOpenPicker={onOpenWeeklyPicker}
+        onOpenFavoritesPicker={onOpenFavoritesPicker}
+        favoritesRecipe={favoritesRecipe}
         isMobile={true}
       />
       {weekDays.map(day => {
@@ -413,6 +435,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
   const [pickingForDate, setPickingForDate] = useState(null);
   const [leftoversMode, setLeftoversMode] = useState(false);
   const [preCheckedRecipeId, setPreCheckedRecipeId] = useState(null);
+  const [showFavoritesPicker, setShowFavoritesPicker] = useState(false);
 const isDraggingRef = useRef(false);
 
   const sensors = useSensors(
@@ -556,9 +579,23 @@ const isDraggingRef = useRef(false);
     }
   };
 
+  const favoritesRecipe = recipes.find(r => r.is_favorites);
   const grouped = CATEGORIES
-    .map(cat => ({ category: cat, items: recipes.filter(r => r.category === cat) }))
+    .map(cat => ({ category: cat, items: recipes.filter(r => !r.is_favorites && r.category === cat) }))
     .filter(g => g.items.length > 0);
+
+  const handleFavoritesPickerConfirm = async (selectedIngredientIds) => {
+    if (favoritesRecipe && selectedIngredientIds.length > 0) {
+      await handleAddEntry({
+        date: formatDateKey(weekStart),
+        recipe_id: favoritesRecipe.id,
+        label: favoritesRecipe.title,
+        is_weekly: 1,
+        selected_optional_ids: selectedIngredientIds,
+      });
+    }
+    setShowFavoritesPicker(false);
+  };
 
   const weekGrid = (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem', minWidth: 0 }}>
@@ -615,6 +652,8 @@ const isDraggingRef = useRef(false);
           onOpenPicker={setPickingForDate}
           onOpenWeeklyPicker={() => setPickingForDate('weekly')}
           onOpenLeftoversPicker={(dateKey) => { setLeftoversMode(true); setPickingForDate(dateKey); }}
+          onOpenFavoritesPicker={() => setShowFavoritesPicker(true)}
+          favoritesRecipe={favoritesRecipe}
         />
       ) : (
         <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
@@ -642,6 +681,12 @@ const isDraggingRef = useRef(false);
                   </button>
                 </div>
               ))}
+              {favoritesRecipe && (
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: `1px solid ${colors.border}` }}>
+                  <p style={{ ...sectionLabel, marginBottom: '0.375rem' }}>Favorites</p>
+                  <SortableRecipe recipe={favoritesRecipe} />
+                </div>
+              )}
             </div>
 
             {/* Week grid + For the Week */}
@@ -652,6 +697,8 @@ const isDraggingRef = useRef(false);
                 recipes={recipes}
                 onDelete={handleDeleteEntry}
                 onOpenPicker={() => setPickingForDate('weekly')}
+                onOpenFavoritesPicker={() => setShowFavoritesPicker(true)}
+                favoritesRecipe={favoritesRecipe}
               />
             </div>
           </div>
@@ -718,6 +765,15 @@ const isDraggingRef = useRef(false);
           onClose={() => { setPickingForDate(null); setPreCheckedRecipeId(null); setLeftoversMode(false); }}
           onNewRecipe={onNavigateToRecipes}
           onSwitchToLeftovers={() => setLeftoversMode(true)}
+          isMobile={isMobile}
+        />
+      )}
+
+      {showFavoritesPicker && favoritesRecipe && (
+        <FavoritesPickerModal
+          recipe={favoritesRecipe}
+          onConfirm={handleFavoritesPickerConfirm}
+          onClose={() => setShowFavoritesPicker(false)}
           isMobile={isMobile}
         />
       )}
