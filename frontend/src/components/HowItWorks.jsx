@@ -195,7 +195,7 @@ export default function HowItWorks({ isMobile }) {
           <StepCard
             n={4} icon="🛒"
             title="Add to Your Kroger Cart"
-            body='Hit "Buy \'em, ant!" and your whole shopping list flies straight into your Kroger cart. Done!'
+            body={`Hit "Buy 'em, ant!" and your whole shopping list flies straight into your Kroger cart. Done!`}
             isMobile={isMobile}
           />
         </div>
