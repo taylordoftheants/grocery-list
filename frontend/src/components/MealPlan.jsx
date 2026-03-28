@@ -436,6 +436,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
   const [leftoversMode, setLeftoversMode] = useState(false);
   const [preCheckedRecipeId, setPreCheckedRecipeId] = useState(null);
   const [showFavoritesPicker, setShowFavoritesPicker] = useState(false);
+  const [favoritesPickerDate, setFavoritesPickerDate] = useState(null);
 const isDraggingRef = useRef(false);
 
   const sensors = useSensors(
@@ -541,6 +542,11 @@ const isDraggingRef = useRef(false);
     if (typeof over.id === 'string') {
       const recipe = recipes.find(r => r.id === active.id);
       if (!recipe) return;
+      if (recipe.is_favorites) {
+        setFavoritesPickerDate(over.id);
+        setShowFavoritesPicker(true);
+        return;
+      }
       const hasOptionals = recipe.ingredients?.some(i => i.is_optional);
       if (hasOptionals) {
         setPreCheckedRecipeId(recipe.id);
@@ -586,15 +592,17 @@ const isDraggingRef = useRef(false);
 
   const handleFavoritesPickerConfirm = async (selectedIngredientIds) => {
     if (favoritesRecipe && selectedIngredientIds.length > 0) {
+      const isWeeklyDrop = !favoritesPickerDate || favoritesPickerDate === 'weekly';
       await handleAddEntry({
-        date: formatDateKey(weekStart),
+        date: isWeeklyDrop ? formatDateKey(weekStart) : favoritesPickerDate,
         recipe_id: favoritesRecipe.id,
         label: favoritesRecipe.title,
-        is_weekly: 1,
+        ...(isWeeklyDrop ? { is_weekly: 1 } : {}),
         selected_optional_ids: selectedIngredientIds,
       });
     }
     setShowFavoritesPicker(false);
+    setFavoritesPickerDate(null);
   };
 
   const weekGrid = (
@@ -773,7 +781,7 @@ const isDraggingRef = useRef(false);
         <FavoritesPickerModal
           recipe={favoritesRecipe}
           onConfirm={handleFavoritesPickerConfirm}
-          onClose={() => setShowFavoritesPicker(false)}
+          onClose={() => { setShowFavoritesPicker(false); setFavoritesPickerDate(null); }}
           isMobile={isMobile}
         />
       )}
