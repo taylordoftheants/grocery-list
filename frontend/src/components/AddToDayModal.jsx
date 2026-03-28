@@ -9,6 +9,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
   const [selectedOptionals, setSelectedOptionals] = useState({});
   const [manualText, setManualText] = useState('');
   const [selectedLeftoversId, setSelectedLeftoversId] = useState(null);
+  const [favExpanded, setFavExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const toggleId = (id) => setCheckedIds(prev => {
@@ -31,14 +32,12 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
   };
 
   const favoritesRecipe = recipes.find(r => r.is_favorites);
-  const favOptCount = favoritesRecipe && checkedIds.has(favoritesRecipe.id)
+  const favOptCount = favoritesRecipe
     ? (selectedOptionals[favoritesRecipe.id]?.size ?? 0)
     : 0;
   const totalCount = leftoversMode
     ? (selectedLeftoversId != null ? 1 : 0)
-    : (checkedIds.size - (favoritesRecipe && checkedIds.has(favoritesRecipe.id) ? 1 : 0))
-      + favOptCount
-      + (manualText.trim() ? 1 : 0);
+    : checkedIds.size + favOptCount + (manualText.trim() ? 1 : 0);
 
   const handleSubmit = async () => {
     if (totalCount === 0) { onClose(); return; }
@@ -53,6 +52,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
       }
       const entries = [];
       for (const recipe of recipes) {
+        if (recipe.is_favorites) continue;
         if (checkedIds.has(recipe.id)) {
           entries.push({
             date,
@@ -61,6 +61,14 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
             selected_optional_ids: [...(selectedOptionals[recipe.id] ?? [])],
           });
         }
+      }
+      if (favoritesRecipe && favOptCount > 0) {
+        entries.push({
+          date,
+          recipe_id: favoritesRecipe.id,
+          label: favoritesRecipe.title,
+          selected_optional_ids: [...(selectedOptionals[favoritesRecipe.id] ?? [])],
+        });
       }
       if (manualText.trim()) {
         entries.push({ date, recipe_id: null, label: manualText.trim() });
@@ -227,26 +235,28 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                     Favorites / Regular Items
                   </p>
                   {(() => {
-                    const isChecked = checkedIds.has(favoritesRecipe.id);
                     const subGroups = buildSubCategories(favoritesRecipe.ingredients ?? []);
                     return (
                       <div>
-                        <label style={{
-                          display: 'flex', alignItems: 'center', gap: '0.625rem',
-                          padding: '0.5rem 0.625rem', borderRadius: radii.md,
-                          cursor: 'pointer',
-                          background: isChecked ? colors.blueLight : 'transparent',
-                          marginBottom: '0.125rem',
-                        }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleId(favoritesRecipe.id)}
-                            style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }}
-                          />
+                        <button
+                          type="button"
+                          onClick={() => setFavExpanded(x => !x)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            width: '100%', padding: '0.5rem 0.625rem', borderRadius: radii.md,
+                            cursor: 'pointer', background: 'transparent', border: 'none',
+                            marginBottom: '0.125rem', textAlign: 'left',
+                          }}
+                        >
+                          <span style={{ fontSize: fontSizes.sm, color: colors.textMuted, lineHeight: 1, transition: 'transform 0.15s', display: 'inline-block', transform: favExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
                           <span style={{ fontSize: fontSizes.md, color: colors.textSecondary, fontFamily: fonts.sans }}>All Favorites</span>
-                        </label>
-                        {isChecked && (
+                          {favOptCount > 0 && (
+                            <span style={{ marginLeft: 'auto', fontSize: fontSizes.xs, fontWeight: fontWeights.semibold, color: colors.blue, background: colors.blueLight, borderRadius: radii.full, padding: '0.125rem 0.5rem', fontFamily: fonts.sans }}>
+                              {favOptCount} selected
+                            </span>
+                          )}
+                        </button>
+                        {favExpanded && (
                           subGroups.length === 0 ? (
                             <p style={{ paddingLeft: '2.125rem', fontSize: fontSizes.sm, color: colors.textSubtle, fontStyle: 'italic', fontFamily: fonts.sans }}>
                               No favorites yet — add items in the Recipes tab.
