@@ -547,7 +547,7 @@ router.post('/cart/add', authMiddleware, async (req, res) => {
     res.json({ added: cartItems.length, skipped: 0, skippedNames: [] });
   } catch (e) {
     console.error('Kroger cart add unexpected error:', e);
-    res.status(500).json({ error: 'Something went wrong adding to cart' });
+    res.status(500).json({ error: `Cart error: ${e?.message || String(e)}` });
   }
 });
 
