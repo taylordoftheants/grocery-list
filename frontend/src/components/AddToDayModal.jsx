@@ -7,7 +7,8 @@ const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
 export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, date, dayLabel, initialCheckedId, onConfirm, onClose, onNewRecipe, onSwitchToLeftovers, isMobile }) {
   const [checkedIds, setCheckedIds] = useState(() => initialCheckedId ? new Set([initialCheckedId]) : new Set());
   const [selectedOptionals, setSelectedOptionals] = useState({});
-  const [manualText, setManualText] = useState('');
+  const [quickInput, setQuickInput] = useState('');
+  const [quickItems, setQuickItems] = useState([]);
   const [selectedLeftoversId, setSelectedLeftoversId] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,6 +32,15 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
   };
 
   const favoritesRecipe = recipes.find(r => r.is_favorites);
+  const stageQuickItem = () => {
+    const val = quickInput.trim();
+    if (!val) return;
+    setQuickItems(prev => [...prev, val]);
+    setQuickInput('');
+  };
+
+  const removeQuickItem = (idx) => setQuickItems(prev => prev.filter((_, i) => i !== idx));
+
   const favOptCount = favoritesRecipe && checkedIds.has(favoritesRecipe.id)
     ? (selectedOptionals[favoritesRecipe.id]?.size ?? 0)
     : 0;
@@ -38,7 +48,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
     ? (selectedLeftoversId != null ? 1 : 0)
     : (checkedIds.size - (favoritesRecipe && checkedIds.has(favoritesRecipe.id) ? 1 : 0))
       + favOptCount
-      + (manualText.trim() ? 1 : 0);
+      + quickItems.length;
 
   const handleSubmit = async () => {
     if (totalCount === 0) { onClose(); return; }
@@ -62,8 +72,8 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
           });
         }
       }
-      if (manualText.trim()) {
-        entries.push({ date, recipe_id: null, label: manualText.trim() });
+      for (const label of quickItems) {
+        entries.push({ date, recipe_id: null, label });
       }
       await onConfirm(entries);
     } finally {
@@ -148,11 +158,45 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
             </>
           ) : (
             <>
-              {grouped.length === 0 ? (
+                  {/* Quick Add */}
+              <div style={{ marginBottom: '0.875rem', paddingBottom: '0.875rem', borderBottom: `1px solid ${colors.border}` }}>
+                <p style={{ ...sectionLabel, marginBottom: '0.375rem' }}>Quick Add</p>
+                <div style={{ display: 'flex', gap: '0.375rem' }}>
+                  <input
+                    value={quickInput}
+                    onChange={e => setQuickInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); stageQuickItem(); } }}
+                    placeholder="Type and press Enter…"
+                    style={{ ...input, flex: 1, margin: 0 }}
+                    autoFocus
+                  />
+                </div>
+                {quickItems.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.5rem' }}>
+                    {quickItems.map((item, idx) => (
+                      <span key={idx} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                        background: colors.bgSurface, border: `1px solid ${colors.borderMid}`,
+                        borderRadius: '1rem', padding: '0.25rem 0.625rem',
+                        fontSize: fontSizes.sm, color: colors.textSecondary, fontFamily: fonts.sans,
+                      }}>
+                        {item}
+                        <button
+                          type="button"
+                          onClick={() => removeQuickItem(idx)}
+                          style={{ background: 'none', border: 'none', padding: '0 0.125rem', cursor: 'pointer', color: colors.textMuted, fontSize: '0.75rem', lineHeight: 1 }}
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+          {grouped.length === 0 && quickItems.length === 0 ? (
                 <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, marginBottom: '0.75rem', fontFamily: fonts.sans }}>
-                  No recipes yet — use the custom entry below.
+                  No recipes yet.
                 </p>
-              ) : (
+              ) : grouped.length === 0 ? null : (
                 grouped.map(group => (
                   <div key={group.category} style={{ marginBottom: '0.875rem' }}>
                     <p style={{ ...sectionLabel, marginBottom: '0.375rem' }}>
@@ -290,17 +334,6 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                   + Create a new recipe
                 </button>
               )}
-
-              <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                <p style={{ fontSize: fontSizes.sm, color: colors.textSubtle, marginBottom: '0.375rem', fontFamily: fonts.sans }}>Or add something custom</p>
-                <input
-                  value={manualText}
-                  onChange={e => setManualText(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && totalCount > 0 && handleSubmit()}
-                  placeholder="e.g. Date night out..."
-                  style={{ ...input }}
-                />
-              </div>
 
               {onSwitchToLeftovers && weekRecipes?.length > 0 && (
                 <button
