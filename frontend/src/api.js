@@ -45,6 +45,7 @@ export const api = {
   clearAddedItems:     (listId, names)               => request('DELETE', `/lists/${listId}/items/by-names`, { names }),
   clearAllItems:       (listId)                      => request('DELETE', `/lists/${listId}/items`),
   moveItem:            (fromListId, itemId, toListId) => request('PATCH',  `/lists/${fromListId}/items/${itemId}/move`, { toListId }),
+  addItemsFromRecipe:  (listId, recipeId, selectedIngredientIds) => request('POST', `/lists/${listId}/items/from-recipe`, { recipeId, selectedIngredientIds }),
 
   // Recipes
   getRecipes:    ()                                  => request('GET',    '/recipes'),

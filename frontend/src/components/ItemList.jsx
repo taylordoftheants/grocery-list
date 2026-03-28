@@ -3,6 +3,8 @@ import { api } from '../api';
 import AddItemForm from './AddItemForm';
 import KrogerModal from './KrogerModal';
 import KrogerSelectionModal from './KrogerSelectionModal';
+import FavoritesPickerModal from './FavoritesPickerModal';
+import AddFromRecipeModal from './AddFromRecipeModal';
 import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary, btnDanger, shadows } from '../theme';
 
 export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey }) {
@@ -12,6 +14,9 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
   const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
   const [purchasedOpen, setPurchasedOpen] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
+  const [recipes, setRecipes] = useState(null);
+  const [showAddFromRecipe, setShowAddFromRecipe] = useState(false);
+  const [showAddFromFavorites, setShowAddFromFavorites] = useState(false);
 
   useEffect(() => {
     api.getItems(list.id).then(setItems);
@@ -35,6 +40,37 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
   const handleDelete = async (itemId) => {
     await api.deleteItem(list.id, itemId);
     setItems(prev => prev.filter(i => i.id !== itemId));
+  };
+
+  const ensureRecipes = async () => {
+    if (recipes !== null) return recipes;
+    const data = await api.getRecipes();
+    setRecipes(data);
+    return data;
+  };
+
+  const handleOpenAddFromRecipe = async () => {
+    await ensureRecipes();
+    setShowAddFromRecipe(true);
+  };
+
+  const handleOpenAddFromFavorites = async () => {
+    await ensureRecipes();
+    setShowAddFromFavorites(true);
+  };
+
+  const handleAddFromRecipe = async (recipeId, selectedIngredientIds) => {
+    await api.addItemsFromRecipe(list.id, recipeId, selectedIngredientIds);
+    setItems(await api.getItems(list.id));
+    setShowAddFromRecipe(false);
+  };
+
+  const handleAddFromFavorites = async (checkedIds) => {
+    const fav = recipes.find(r => r.is_favorites);
+    if (!fav) return;
+    await api.addItemsFromRecipe(list.id, fav.id, checkedIds);
+    setItems(await api.getItems(list.id));
+    setShowAddFromFavorites(false);
   };
 
   const handleClearAll = async () => {
@@ -157,6 +193,20 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
         </div>
       </div>
       <AddItemForm onAdd={handleAdd} />
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={handleOpenAddFromRecipe}
+          style={{ ...btnSecondary, padding: '0.375rem 0.75rem', minHeight: 'unset', fontSize: fontSizes.sm }}
+        >
+          + From Recipe
+        </button>
+        <button
+          onClick={handleOpenAddFromFavorites}
+          style={{ ...btnSecondary, padding: '0.375rem 0.75rem', minHeight: 'unset', fontSize: fontSizes.sm }}
+        >
+          + Favorites
+        </button>
+      </div>
 
       {unpurchased.length === 0 && spiceItems.length === 0 && purchased.length === 0 && (
         <p style={{ color: colors.textSubtle, fontSize: fontSizes.base }}>No items yet. Add one above.</p>
@@ -249,6 +299,25 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
     </main>
     {showKrogerModal && <KrogerModal listId={list.id} isMobile={isMobile} onClose={() => setShowKrogerModal(false)} />}
     {showKrogerSelectionModal && <KrogerSelectionModal list={list} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />}
+    {showAddFromRecipe && recipes !== null && (
+      <AddFromRecipeModal
+        recipes={recipes.filter(r => !r.is_favorites)}
+        onConfirm={handleAddFromRecipe}
+        onClose={() => setShowAddFromRecipe(false)}
+        isMobile={isMobile}
+      />
+    )}
+    {showAddFromFavorites && recipes !== null && (() => {
+      const fav = recipes.find(r => r.is_favorites);
+      return fav ? (
+        <FavoritesPickerModal
+          recipe={fav}
+          onConfirm={handleAddFromFavorites}
+          onClose={() => setShowAddFromFavorites(false)}
+          isMobile={isMobile}
+        />
+      ) : null;
+    })()}
     </>
   );
 }
