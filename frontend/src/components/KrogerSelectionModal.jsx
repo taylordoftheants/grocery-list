@@ -51,6 +51,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
             count: item.count ?? 1,
             quantity: item.count ?? 1,
             amount: item.amount ?? null,
+            lastPurchased: item.lastPurchased ?? null,
             included: classification !== 'pantry',
             pantryClass: classification, // 'buy' | 'check' | 'pantry'
             expanded: false,
@@ -367,7 +368,12 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
                     </span>
                   </button>
 
-                  {pantryExpanded && pantryItems.map(([key, s], idx) => (
+                  {pantryExpanded && [...pantryItems].sort(([, a], [, b]) => {
+                    if (!a.lastPurchased && !b.lastPurchased) return 0;
+                    if (!a.lastPurchased) return 1;
+                    if (!b.lastPurchased) return -1;
+                    return a.lastPurchased < b.lastPurchased ? -1 : 1;
+                  }).map(([key, s], idx) => (
                     <ItemSection
                       key={key}
                       normKey={key}
@@ -439,6 +445,18 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
   );
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatLastBought(str) {
+  if (!str) return null;
+  const d = new Date(str.includes('T') ? str : str.replace(' ', 'T') + 'Z');
+  const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 14) return `${diffDays} days ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // ── Per-item section ──────────────────────────────────────────────────────────
 
 function ItemSection({ normKey, state, isLast, isUserPantry, onUpdate, onSearch, onAddToUserPantry, onRemoveFromUserPantry }) {
@@ -499,6 +517,22 @@ function ItemSection({ normKey, state, isLast, isUserPantry, onUpdate, onSearch,
               whiteSpace: 'nowrap',
             }}>
               check pantry first
+            </span>
+          )}
+          {state.lastPurchased && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: fontSizes.xs,
+              color: colors.textMuted,
+              background: colors.bgSurface,
+              border: `1px solid ${colors.border}`,
+              borderRadius: radii.full,
+              padding: '0.1rem 0.5rem',
+              fontFamily: fonts.sans,
+              whiteSpace: 'nowrap',
+            }}>
+              Last bought {formatLastBought(state.lastPurchased)}
             </span>
           )}
           {state.count > 1 && (

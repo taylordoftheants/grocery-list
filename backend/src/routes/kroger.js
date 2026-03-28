@@ -428,7 +428,7 @@ router.get('/products', authMiddleware, async (req, res) => {
     for (const item of uniqueItems) {
       const products = await searchKrogerProducts(item.name, locationId, ccAccessToken, 8);
       const saved = db.prepare('SELECT * FROM kroger_product_selections WHERE user_id = ? AND item_name = ?').get(req.user.id, item.normalized);
-      results.push({ itemName: item.name, normalizedName: item.normalized, count: item.count, amount: item.amount ?? null, products: applyPreviousSelection(products, saved) });
+      results.push({ itemName: item.name, normalizedName: item.normalized, count: item.count, amount: item.amount ?? null, lastPurchased: saved?.selected_at ?? null, products: applyPreviousSelection(products, saved) });
     }
     res.json({ items: results });
   } catch (e) {
