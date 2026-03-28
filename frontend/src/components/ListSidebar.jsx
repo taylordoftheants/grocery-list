@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import {
   SortableContext, useSortable, verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { colors, fonts, fontSizes, fontWeights, radii, input, btnPrimary, shadows } from '../theme';
 
@@ -224,21 +223,19 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
   );
 }
 
-// ── Mobile chip (droppable for item→list drag) ────────────────────────────────
+// ── Mobile chip ───────────────────────────────────────────────────────────────
 
 function MobileChip({ list, selected, onSelect }) {
-  const { setNodeRef, isOver } = useDroppable({ id: list.id });
   return (
     <button
-      ref={setNodeRef}
       onClick={() => onSelect(list.id)}
       style={{
         flexShrink: 0,
         padding: '0.375rem 0.75rem',
-        border: `1px solid ${isOver ? colors.amber : selected ? colors.amber : colors.border}`,
+        border: `1px solid ${selected ? colors.amber : colors.border}`,
         borderRadius: radii.full,
-        background: isOver ? colors.amberLight : selected ? colors.amber : colors.bgCard,
-        color: selected && !isOver ? colors.charcoal : isOver ? colors.amberDark : colors.textSecondary,
+        background: selected ? colors.amber : colors.bgCard,
+        color: selected ? colors.charcoal : colors.textSecondary,
         fontSize: fontSizes.base,
         fontWeight: selected ? fontWeights.semibold : fontWeights.normal,
         cursor: 'pointer',

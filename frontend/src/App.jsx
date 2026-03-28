@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from './api';
-import { colors, fonts, fontSizes, radii, card } from './theme';
+import { colors, fonts, fontSizes, fontWeights, radii, shadows } from './theme';
 import ListSidebar from './components/ListSidebar';
 import ItemList from './components/ItemList';
 import LandingPage from './components/LandingPage';
@@ -12,7 +12,7 @@ import AdminView from './components/AdminView';
 import KrogerSelectionModal from './components/KrogerSelectionModal';
 import KrogerModal from './components/KrogerModal';
 import {
-  DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, closestCenter,
+  DndContext, DragOverlay, MouseSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -29,13 +29,12 @@ export default function App() {
   const [restoredKrogerSelections, setRestoredKrogerSelections] = useState(null);
   const [showKrogerConnect, setShowKrogerConnect] = useState(false);
   const [krogerConnectMode, setKrogerConnectMode] = useState('connect');
-  const [draggingItem, setDraggingItem] = useState(null);
   const [draggingList, setDraggingList] = useState(null);
   const [itemRefreshKey, setItemRefreshKey] = useState(0);
+  const [toast, setToast] = useState(null); // { message, id }
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   );
 
   useEffect(() => {
@@ -128,49 +127,36 @@ export default function App() {
     await api.reorderLists(ids);
   };
 
-  const handleMoveItem = async (fromListId, itemId, toListId) => {
+  const showToast = (message) => {
+    const id = Date.now();
+    setToast({ message, id });
+    setTimeout(() => setToast(t => t?.id === id ? null : t), 3000);
+  };
+
+  const handleMoveItem = async (fromListId, itemId, toListId, itemName) => {
     try {
       await api.moveItem(fromListId, itemId, toListId);
       setItemRefreshKey(k => k + 1);
+      if (itemName) {
+        const toList = lists.find(l => l.id === toListId);
+        if (toList) showToast(`${itemName} moved to ${toList.name}`);
+      }
     } catch (err) {
       console.error('Failed to move item:', err);
     }
   };
 
   const handleDragStart = ({ active }) => {
-    const activeId = active.id;
-    if (typeof activeId === 'string' && activeId.startsWith('item-')) {
-      setDraggingItem(active.data.current?.item ?? null);
-      setDraggingList(null);
-    } else {
-      setDraggingList(lists.find(l => l.id === activeId) ?? null);
-      setDraggingItem(null);
-    }
+    setDraggingList(lists.find(l => l.id === active.id) ?? null);
   };
 
   const handleDragEnd = ({ active, over }) => {
-    setDraggingItem(null);
     setDraggingList(null);
-    if (!over) return;
-
-    const activeId = active.id;
-    const overId = over.id;
-
-    if (typeof activeId === 'string' && activeId.startsWith('item-')) {
-      // Item drag → drop on a list
-      const item = active.data.current?.item;
-      const toListId = typeof overId === 'number' ? overId : null;
-      if (item && toListId && toListId !== item.list_id) {
-        handleMoveItem(item.list_id, item.id, toListId);
-      }
-    } else if (typeof activeId === 'number' && typeof overId === 'number' && activeId !== overId) {
-      // List drag → reorder
-      const oldIndex = lists.findIndex(l => l.id === activeId);
-      const newIndex = lists.findIndex(l => l.id === overId);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const reordered = arrayMove(lists, oldIndex, newIndex);
-        handleReorderLists(reordered.map(l => l.id));
-      }
+    if (!over || active.id === over.id) return;
+    const oldIndex = lists.findIndex(l => l.id === active.id);
+    const newIndex = lists.findIndex(l => l.id === over.id);
+    if (oldIndex !== -1 && newIndex !== -1) {
+      handleReorderLists(arrayMove(lists, oldIndex, newIndex).map(l => l.id));
     }
   };
 
@@ -204,7 +190,7 @@ export default function App() {
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => { setDraggingItem(null); setDraggingList(null); }}
+      onDragCancel={() => setDraggingList(null)}
     >
       <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', fontFamily: fonts.sans }}>
         {error && (
@@ -276,21 +262,6 @@ export default function App() {
       </div>
 
       <DragOverlay>
-        {draggingItem && (
-          <div style={{
-            ...card,
-            padding: '0.5rem 0.75rem',
-            fontSize: fontSizes.base,
-            fontFamily: fonts.sans,
-            color: colors.textPrimary,
-            borderColor: colors.amberBorder,
-            background: colors.amberLight,
-            borderRadius: radii.md,
-            whiteSpace: 'nowrap',
-          }}>
-            {draggingItem.name}
-          </div>
-        )}
         {draggingList && (
           <div style={{
             padding: '0.5rem 0.75rem',
@@ -306,6 +277,32 @@ export default function App() {
           </div>
         )}
       </DragOverlay>
+      {toast && (
+        <div
+          key={toast.id}
+          style={{
+            position: 'fixed',
+            bottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' : '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: colors.charcoal,
+            color: colors.amberLight,
+            padding: '0.625rem 1.125rem',
+            borderRadius: radii.full,
+            fontSize: fontSizes.base,
+            fontFamily: fonts.sans,
+            fontWeight: fontWeights.medium,
+            boxShadow: shadows.lg,
+            zIndex: 1000,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            animation: 'toastSlideUp 0.25s cubic-bezier(0.34,1.1,0.64,1) both',
+            border: `1px solid ${colors.charcoalBorder}`,
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
     </DndContext>
   );
 }

@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import AddItemForm from './AddItemForm';
 import KrogerModal from './KrogerModal';
 import KrogerSelectionModal from './KrogerSelectionModal';
-import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary, btnDanger } from '../theme';
+import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary, btnDanger, shadows } from '../theme';
 
 export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey }) {
   const [items, setItems] = useState([]);
@@ -172,7 +171,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
               </p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {groupItems.map(item => (
-                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} isMobile={isMobile} />
+                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} />
                 ))}
               </ul>
             </div>
@@ -186,7 +185,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
               )}
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {otherItems.map(item => (
-                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} isMobile={isMobile} />
+                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} />
                 ))}
               </ul>
             </div>
@@ -212,7 +211,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
           </p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {spiceItems.map(item => (
-              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} isMobile={isMobile} />
+              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} />
             ))}
           </ul>
         </div>
@@ -339,13 +338,9 @@ function AggregatedItem({ group, onToggle, onDelete }) {
   );
 }
 
-function Item({ item, onToggle, onDelete, lists, onMoveItem, isMobile }) {
+function Item({ item, onToggle, onDelete, lists, onMoveItem }) {
   const [popping, setPopping] = useState(false);
-
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `item-${item.id}`,
-    data: { item: { ...item, list_id: item.list_id } },
-  });
+  const [showMovePopover, setShowMovePopover] = useState(false);
 
   const handleGotIt = () => {
     if (popping) return;
@@ -355,35 +350,16 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem, isMobile }) {
 
   return (
     <li
-      ref={setNodeRef}
       style={{
         ...card,
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
         gap: '0.5rem',
         padding: '0.5rem 0.75rem',
         marginBottom: '0.375rem',
-        opacity: isDragging ? 0.4 : 1,
       }}
     >
-      {/* Drag handle */}
-      <span
-        {...listeners}
-        {...attributes}
-        style={{
-          cursor: 'grab',
-          color: colors.textSubtle,
-          fontSize: '0.875rem',
-          padding: '0.25rem',
-          lineHeight: 1,
-          touchAction: 'none',
-          flexShrink: 0,
-          userSelect: 'none',
-        }}
-      >
-        ⠿
-      </span>
-
       {/* Got it! button */}
       <button
         onClick={handleGotIt}
@@ -435,32 +411,39 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem, isMobile }) {
           </span>
         )
       )}
-      {isMobile && onMoveItem && lists && lists.length > 1 && (
-        <select
-          value=""
-          onChange={e => {
-            const toListId = Number(e.target.value);
-            if (toListId && toListId !== item.list_id) onMoveItem(item.list_id, item.id, toListId);
-          }}
+      {onMoveItem && lists && lists.length > 1 && (
+        <button
+          onClick={() => setShowMovePopover(v => !v)}
+          aria-label={`Move ${item.name} to another list`}
+          title="Move to list"
           style={{
-            fontSize: fontSizes.xs,
-            border: `1px solid ${colors.border}`,
-            borderRadius: radii.sm,
-            background: colors.bgSurface,
-            color: colors.textSecondary,
-            padding: '0.2rem 0.3rem',
+            border: 'none',
+            background: showMovePopover ? colors.amberLight : 'transparent',
+            color: showMovePopover ? colors.amberDark : colors.textSubtle,
+            fontSize: '1rem',
+            padding: '0.375rem',
+            lineHeight: 1,
             cursor: 'pointer',
+            minWidth: '36px',
+            minHeight: '36px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: radii.sm,
             flexShrink: 0,
-            maxWidth: '90px',
-            fontFamily: fonts.sans,
+            transition: 'background 0.12s, color 0.12s',
           }}
-          aria-label="Move to list"
         >
-          <option value="" disabled>→ Move</option>
-          {lists.filter(l => l.id !== item.list_id).map(l => (
-            <option key={l.id} value={l.id}>{l.name}</option>
-          ))}
-        </select>
+          ↗
+        </button>
+      )}
+      {showMovePopover && lists && lists.length > 1 && (
+        <MovePopover
+          item={item}
+          lists={lists}
+          onMoveItem={onMoveItem}
+          onClose={() => setShowMovePopover(false)}
+        />
       )}
       <button
         onClick={() => onDelete(item.id)}
@@ -484,6 +467,81 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem, isMobile }) {
         ×
       </button>
     </li>
+  );
+}
+
+function MovePopover({ item, lists, onMoveItem, onClose }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: 'absolute',
+        right: '2.75rem',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        background: colors.bgCard,
+        border: `1px solid ${colors.amberBorder}`,
+        borderRadius: radii.lg,
+        boxShadow: shadows.md,
+        zIndex: 50,
+        minWidth: '140px',
+        padding: '0.25rem',
+        animation: 'fadeIn 0.15s ease both',
+      }}
+    >
+      <p style={{
+        fontSize: fontSizes.xs,
+        color: colors.textMuted,
+        padding: '0.25rem 0.5rem 0.125rem',
+        fontWeight: fontWeights.semibold,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        fontFamily: fonts.display,
+        margin: 0,
+      }}>
+        Move to…
+      </p>
+      {lists.filter(l => l.id !== item.list_id).map(l => (
+        <button
+          key={l.id}
+          onClick={() => { onMoveItem(item.list_id, item.id, l.id, item.name); onClose(); }}
+          style={{
+            display: 'block',
+            width: '100%',
+            textAlign: 'left',
+            background: 'transparent',
+            border: 'none',
+            padding: '0.375rem 0.5rem',
+            fontSize: fontSizes.base,
+            color: colors.textSecondary,
+            cursor: 'pointer',
+            borderRadius: radii.md,
+            fontFamily: fonts.sans,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = colors.amberLight; e.currentTarget.style.color = colors.amberDark; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = colors.textSecondary; }}
+        >
+          {l.name}
+        </button>
+      ))}
+    </div>
   );
 }
 

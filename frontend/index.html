@@ -58,6 +58,11 @@
         100% { transform: scale(1); }
       }
 
+      @keyframes toastSlideUp {
+        from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+        to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+
       /* Landing page entrance animations */
       .anim-fade-in       { animation: fadeIn    0.55s ease both; }
       .anim-fade-in-up    { animation: fadeInUp  0.45s ease both; }
