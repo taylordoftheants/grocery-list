@@ -266,6 +266,50 @@ router.get('/auth/callback', async (req, res) => {
   }
 });
 
+// POST /api/kroger/auth/exchange  body: { code, state }
+// Called by the SPA when it receives the OAuth callback URL directly (nginx proxy miss).
+// No authMiddleware — user identity comes from the signed state JWT.
+router.post('/auth/exchange', async (req, res) => {
+  const { code, state } = req.body;
+  if (!code || !state) {
+    return res.status(400).json({ error: 'code and state are required' });
+  }
+  try {
+    const { userId, locationId, locationName } = jwt.verify(state, process.env.JWT_SECRET);
+    const creds = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+    const tokenRes = await fetch(`${KROGER_BASE}/connect/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${creds}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: REDIRECT_URI,
+      }).toString(),
+    });
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text();
+      console.error('Kroger exchange token error:', tokenRes.status, errText);
+      return res.status(502).json({ error: 'Token exchange failed' });
+    }
+    const data = await tokenRes.json();
+    const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
+    db.prepare(`
+      INSERT OR REPLACE INTO kroger_tokens (user_id, access_token, refresh_token, expires_at, location_id, location_name, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+    `).run(userId, encryptToken(data.access_token), encryptToken(data.refresh_token), expiresAt, locationId, locationName || null);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Kroger exchange error:', e);
+    if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
+      return res.status(400).json({ error: 'Invalid or expired state. Please try again.' });
+    }
+    res.status(500).json({ error: 'OAuth exchange failed' });
+  }
+});
+
 // GET /api/kroger/status
 router.get('/status', authMiddleware, async (req, res) => {
   const row = db.prepare('SELECT location_id, location_name, expires_at FROM kroger_tokens WHERE user_id = ?').get(req.user.id);

@@ -64,6 +64,7 @@ export const api = {
   krogerSearchProduct:    (q, itemName) => request('GET', `/kroger/products?q=${encodeURIComponent(q)}&itemName=${encodeURIComponent(itemName)}`),
   krogerGetProductDetail: (upc)         => request('GET', `/kroger/product/${encodeURIComponent(upc)}`),
   krogerAddToCart:        (selections)  => request('POST', '/kroger/cart/add', { selections }),
+  krogerExchangeCode:     (code, state) => request('POST', '/kroger/auth/exchange', { code, state }),
   // Note: kroger auth start is a full browser navigation, not a fetch call:
   // window.location.href = '/api/kroger/auth/start?locationId=' + id
 

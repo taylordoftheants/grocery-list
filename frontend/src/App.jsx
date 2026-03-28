@@ -32,6 +32,7 @@ export default function App() {
   const [pendingKrogerListId, setPendingKrogerListId] = useState(null);
   const [showKrogerConnect, setShowKrogerConnect] = useState(false);
   const [krogerConnectMode, setKrogerConnectMode] = useState('connect');
+  const [krogerExchanging, setKrogerExchanging] = useState(false);
   const [draggingList, setDraggingList] = useState(null);
   const [itemRefreshKey, setItemRefreshKey] = useState(0);
   const [toast, setToast] = useState(null); // { message, id }
@@ -42,10 +43,10 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('kroger_success')) {
-      window.history.replaceState({}, '', window.location.pathname);
-      setCurrentView('lists');
+
+    function popPendingKrogerState() {
       let pending = null;
+      let pendingListId = null;
       try {
         const raw = sessionStorage.getItem('kroger_pending_selections');
         if (raw) {
@@ -59,18 +60,54 @@ export default function App() {
         if (rawListId) {
           sessionStorage.removeItem('kroger_pending_list_id');
           const parsed = parseInt(rawListId, 10);
-          if (!isNaN(parsed)) setPendingKrogerListId(parsed);
+          if (!isNaN(parsed)) pendingListId = parsed;
         }
       } catch { /* ignore */ }
+      return { pending, pendingListId };
+    }
+
+    if (params.get('kroger_success')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      setCurrentView('lists');
+      const { pending, pendingListId } = popPendingKrogerState();
+      if (pendingListId != null) setPendingKrogerListId(pendingListId);
       setRestoredKrogerSelections(pending);
       setShowKrogerSelectionModal(true);
+      return;
     }
+
     if (params.get('kroger_error')) {
       window.history.replaceState({}, '', window.location.pathname);
-      try { sessionStorage.removeItem('kroger_pending_selections'); } catch {}
-      try { sessionStorage.removeItem('kroger_pending_list_id'); } catch {}
+      popPendingKrogerState();
       setCurrentView('lists');
       setError('Harris Teeter connection failed. Please try again.');
+      return;
+    }
+
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state) {
+      // SPA received the raw Kroger OAuth callback — nginx did not proxy it to the backend.
+      window.history.replaceState({}, '', window.location.pathname);
+      setCurrentView('lists');
+      setKrogerExchanging(true);
+
+      (async () => {
+        try {
+          await api.krogerExchangeCode(code, state);
+          const { pending, pendingListId } = popPendingKrogerState();
+          if (pendingListId != null) setPendingKrogerListId(pendingListId);
+          setRestoredKrogerSelections(pending);
+          setShowKrogerSelectionModal(true);
+        } catch (e) {
+          popPendingKrogerState();
+          setError(e.message?.includes('expired') || e.status === 400
+            ? 'Harris Teeter session expired. Please try connecting again.'
+            : 'Harris Teeter connection failed. Please try again.');
+        } finally {
+          setKrogerExchanging(false);
+        }
+      })();
     }
   }, []);
 
@@ -181,7 +218,7 @@ export default function App() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || krogerExchanging) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.charcoal, fontFamily: fonts.sans }}>
         <p style={{ color: colors.amber, fontFamily: fonts.display, letterSpacing: '0.08em', fontSize: fontSizes.base }}>Loading…</p>
