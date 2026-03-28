@@ -24,13 +24,18 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
     try {
       await onCreate(newName.trim());
       setNewName('');
-      // Keep form open for creating multiple lists
       setTimeout(() => addInputRef.current?.focus(), 0);
     } catch (err) {
       setCreateError(err.message || 'Could not create list');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseForm = () => {
+    setShowAddForm(false);
+    setNewName('');
+    setCreateError('');
   };
 
   const handleRenameCommit = async (listId) => {
@@ -75,7 +80,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
                 style={{ ...input, padding: '0.375rem 0.625rem', width: '110px', minHeight: '36px', borderRadius: radii.full }}
               />
               <button type="submit" disabled={loading || !newName.trim()} style={{ padding: '0.375rem 0.625rem', background: colors.amber, color: colors.charcoal, border: 'none', borderRadius: radii.full, fontSize: fontSizes.base, cursor: 'pointer', minHeight: '36px' }}>✓</button>
-              <button type="button" onClick={() => { setShowAddForm(false); setNewName(''); setCreateError(''); }} style={{ padding: '0.375rem 0.625rem', background: 'transparent', border: `1px solid ${colors.borderMid}`, borderRadius: radii.full, fontSize: fontSizes.base, cursor: 'pointer', color: colors.textMuted, minHeight: '36px' }}>✕</button>
+              <button type="button" onClick={handleCloseForm} style={{ padding: '0.375rem 0.625rem', background: 'transparent', border: `1px solid ${colors.borderMid}`, borderRadius: radii.full, fontSize: fontSizes.base, cursor: 'pointer', color: colors.textMuted, minHeight: '36px' }}>✕</button>
             </form>
           ) : (
             <button
@@ -95,7 +100,7 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
     );
   }
 
-  // ── Desktop: sidebar (SortableContext lives here; DndContext is in App) ────────
+  // ── Desktop: sidebar ─────────────────────────────────────────────────────────
   const canSubmit = newName.trim().length > 0 && !loading;
 
   return (
@@ -109,15 +114,90 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
       flexShrink: 0,
       fontFamily: fonts.sans,
     }}>
+      {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <h2 style={{ fontSize: fontSizes.lg, fontWeight: fontWeights.bold, color: colors.textPrimary }}>Lists</h2>
         <button
-          onClick={() => { setShowAddForm(v => !v); setCreateError(''); }}
-          style={{ fontSize: fontSizes.md, color: colors.amber, background: 'none', border: 'none', cursor: 'pointer', fontWeight: fontWeights.semibold, fontFamily: fonts.display }}
+          onClick={() => { setShowAddForm(v => !v); setCreateError(''); if (showAddForm) setNewName(''); }}
+          style={{
+            fontSize: fontSizes.sm,
+            color: showAddForm ? colors.textMuted : colors.amber,
+            background: 'none',
+            border: `1px solid ${showAddForm ? colors.borderMid : colors.amberBorder}`,
+            borderRadius: radii.full,
+            cursor: 'pointer',
+            fontWeight: fontWeights.semibold,
+            fontFamily: fonts.display,
+            padding: '0.2rem 0.625rem',
+            lineHeight: 1.4,
+            transition: 'color 0.15s, border-color 0.15s',
+          }}
         >
-          + New
+          {showAddForm ? '✕' : '+ New'}
         </button>
       </div>
+
+      {/* Add form — appears at the top, right below header */}
+      {showAddForm && (
+        <div style={{
+          marginBottom: '0.75rem',
+          background: colors.bgCard,
+          border: `1px solid ${colors.amberBorder}`,
+          borderRadius: radii.lg,
+          padding: '0.75rem',
+          boxShadow: shadows.sm,
+        }}>
+          {createError && (
+            <p style={{ margin: '0 0 0.375rem', fontSize: fontSizes.xs, color: colors.error, fontFamily: fonts.sans }}>
+              {createError}
+            </p>
+          )}
+          <form onSubmit={handleSubmit}>
+            <input
+              ref={addInputRef}
+              autoFocus
+              value={newName}
+              onChange={e => { setNewName(e.target.value); setCreateError(''); }}
+              placeholder="List name…"
+              style={{ ...input, width: '100%', minHeight: '40px', marginBottom: '0.5rem', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '0.375rem' }}>
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                style={{
+                  ...btnPrimary,
+                  flex: 1,
+                  padding: '0.5rem',
+                  minHeight: '36px',
+                  fontSize: fontSizes.base,
+                  opacity: canSubmit ? 1 : 0.45,
+                  cursor: canSubmit ? 'pointer' : 'default',
+                }}
+              >
+                Add List
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseForm}
+                style={{
+                  border: `1px solid ${colors.borderMid}`,
+                  background: 'transparent',
+                  color: colors.textMuted,
+                  borderRadius: radii.md,
+                  padding: '0.5rem 0.625rem',
+                  fontSize: fontSizes.base,
+                  cursor: 'pointer',
+                  minHeight: '36px',
+                  fontFamily: fonts.sans,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <SortableContext items={lists.map(l => l.id)} strategy={verticalListSortingStrategy}>
         <ul style={{ listStyle: 'none', flex: 1, overflowY: 'auto', padding: 0, margin: 0 }}>
@@ -140,40 +220,6 @@ export default function ListSidebar({ lists, selectedListId, onSelect, onCreate,
           ))}
         </ul>
       </SortableContext>
-
-      {showAddForm && (
-        <div style={{ marginTop: '0.75rem' }}>
-          {createError && (
-            <p style={{ margin: '0 0 0.375rem', fontSize: fontSizes.xs, color: colors.error, fontFamily: fonts.sans }}>
-              {createError}
-            </p>
-          )}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.25rem' }}>
-            <input
-              ref={addInputRef}
-              autoFocus
-              value={newName}
-              onChange={e => { setNewName(e.target.value); setCreateError(''); }}
-              placeholder="List name..."
-              style={{ ...input, flex: 1, width: 'auto', minHeight: '40px' }}
-            />
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              style={{
-                ...btnPrimary,
-                padding: '0.5rem 0.75rem',
-                background: canSubmit ? colors.blue : colors.borderMid,
-                cursor: canSubmit ? 'pointer' : 'default',
-                flexShrink: 0,
-                minHeight: '40px',
-              }}
-            >
-              +
-            </button>
-          </form>
-        </div>
-      )}
     </aside>
   );
 }
@@ -251,54 +297,76 @@ function SortableListItem({ list, selected, confirmDeleteId, editingId, editName
     <li ref={setNodeRef} style={style}>
       <div style={{
         display: 'flex', alignItems: 'center',
-        border: `1px solid ${cardBorder}`,
+        border: `1px solid ${isEditing ? colors.amberBorder : cardBorder}`,
         borderRadius: radii.md,
-        background: cardBg,
+        background: isEditing ? colors.bgCard : cardBg,
         transition: 'background 0.15s ease, border-color 0.15s ease',
+        boxShadow: isEditing ? `0 0 0 2px ${colors.amber}33` : 'none',
       }}>
         {/* Drag handle */}
-        <span
-          {...listeners}
-          {...attributes}
-          style={{
-            cursor: 'grab',
-            color: colors.textSubtle,
-            padding: '0 0.375rem 0 0.5rem',
-            fontSize: '0.875rem',
-            lineHeight: 1,
-            touchAction: 'none',
-            flexShrink: 0,
-            userSelect: 'none',
-          }}
-        >
-          ⠿
-        </span>
+        {!isEditing && (
+          <span
+            {...listeners}
+            {...attributes}
+            style={{
+              cursor: 'grab',
+              color: colors.textSubtle,
+              padding: '0 0.375rem 0 0.5rem',
+              fontSize: '0.875rem',
+              lineHeight: 1,
+              touchAction: 'none',
+              flexShrink: 0,
+              userSelect: 'none',
+            }}
+          >
+            ⠿
+          </span>
+        )}
 
         {isEditing ? (
-          <input
-            autoFocus
-            value={editName}
-            onChange={e => onEditChange(e.target.value)}
-            onBlur={() => onEditCommit(list.id)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); onEditCommit(list.id); }
-              if (e.key === 'Escape') { e.preventDefault(); onEditCancel(); }
-            }}
-            style={{
-              flex: 1,
-              border: 'none',
-              background: 'transparent',
-              padding: '0.5rem 0.25rem',
-              fontSize: fontSizes.base,
-              fontFamily: 'inherit',
-              color: colors.textPrimary,
-              outline: 'none',
-              minWidth: 0,
-            }}
-          />
+          <>
+            <input
+              autoFocus
+              value={editName}
+              onChange={e => onEditChange(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); onEditCommit(list.id); }
+                if (e.key === 'Escape') { e.preventDefault(); onEditCancel(); }
+              }}
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                padding: '0.5rem 0.5rem',
+                fontSize: fontSizes.base,
+                fontFamily: 'inherit',
+                color: colors.textPrimary,
+                outline: 'none',
+                minWidth: 0,
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => onEditCommit(list.id)}
+              title="Save"
+              style={{ border: 'none', background: 'transparent', color: colors.amber, fontSize: '0.9rem', padding: '0.375rem 0.25rem', cursor: 'pointer', flexShrink: 0, lineHeight: 1 }}
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              onClick={onEditCancel}
+              title="Cancel"
+              style={{ border: 'none', background: 'transparent', color: colors.textMuted, fontSize: '0.9rem', padding: '0.375rem 0.5rem', cursor: 'pointer', flexShrink: 0, lineHeight: 1 }}
+            >
+              ✕
+            </button>
+          </>
         ) : (
           <button
             onClick={() => onSelect(list.id)}
+            onDoubleClick={() => onEditStart(list)}
+            title="Double-click to rename"
             style={{
               flex: 1, textAlign: 'left',
               padding: '0.5rem 0.25rem',
@@ -316,25 +384,28 @@ function SortableListItem({ list, selected, confirmDeleteId, editingId, editName
           </button>
         )}
 
-        {/* Rename button */}
+        {/* Rename button — only when not editing */}
         {!isEditing && (
           <button
             onClick={() => onEditStart(list)}
             aria-label={`Rename ${list.name}`}
-            style={{ border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '0.75rem', padding: '0.375rem 0.25rem', lineHeight: 1, cursor: 'pointer', flexShrink: 0 }}
+            title="Rename"
+            style={{ border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '0.8rem', padding: '0.375rem 0.25rem', lineHeight: 1, cursor: 'pointer', flexShrink: 0 }}
           >
             ✏
           </button>
         )}
 
-        {/* Delete button */}
-        <button
-          onClick={() => onSetConfirmDelete(list.id)}
-          aria-label={`Delete ${list.name}`}
-          style={{ border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '1rem', padding: '0.375rem 0.5rem', borderRadius: `0 ${radii.md} ${radii.md} 0`, lineHeight: 1, cursor: 'pointer', flexShrink: 0 }}
-        >
-          ×
-        </button>
+        {/* Delete button — only when not editing */}
+        {!isEditing && (
+          <button
+            onClick={() => onSetConfirmDelete(list.id)}
+            aria-label={`Delete ${list.name}`}
+            style={{ border: 'none', background: 'transparent', color: colors.textSubtle, fontSize: '1rem', padding: '0.375rem 0.5rem', borderRadius: `0 ${radii.md} ${radii.md} 0`, lineHeight: 1, cursor: 'pointer', flexShrink: 0 }}
+          >
+            ×
+          </button>
+        )}
       </div>
     </li>
   );
