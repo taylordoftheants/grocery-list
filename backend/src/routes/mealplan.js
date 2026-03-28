@@ -96,6 +96,7 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
   }
   if (!label?.trim()) return res.status(400).json({ error: 'label is required' });
+  if (label.trim().length > 200) return res.status(400).json({ error: 'label must be 200 characters or fewer' });
 
   if (recipe_id != null) {
     const recipe = db.prepare('SELECT id FROM recipes WHERE id = ? AND user_id = ?').get(recipe_id, req.user.id);

@@ -31,6 +31,8 @@ services:
       - KROGER_CLIENT_ID=${KROGER_CLIENT_ID}
       - KROGER_CLIENT_SECRET=${KROGER_CLIENT_SECRET}
       - KROGER_REDIRECT_URI=${KROGER_REDIRECT_URI}
+      - FRONTEND_URL=${FRONTEND_URL:-https://taykate.com}
+      - TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY}
       - USDA_FDC_API_KEY=${USDA_FDC_API_KEY:-DEMO_KEY}
     volumes:
       - grocery-data:/data

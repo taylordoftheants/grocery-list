@@ -30,7 +30,7 @@ router.post('/', (req, res) => {
   if (!name?.trim()) return res.status(400).json({ error: 'name is required' });
   const result = db
     .prepare('INSERT INTO items (list_id, name, amount) VALUES (?, ?, ?)')
-    .run(req.params.listId, name.trim(), (amount ?? '').toString().trim());
+    .run(req.params.listId, name.trim().slice(0, 200), (amount ?? '').toString().trim().slice(0, 50));
   const item = db.prepare('SELECT * FROM items WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(item);
 });

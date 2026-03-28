@@ -13,6 +13,7 @@ router.use((req, res, next) => {
 
 // GET /api/admin/users
 router.get('/users', (req, res) => {
+  console.log(JSON.stringify({ event: 'admin_access', endpoint: 'GET /api/admin/users', user_id: req.user.id, ts: new Date().toISOString() }));
   const users = db
     .prepare('SELECT id, email, created_at, last_login, is_admin FROM users ORDER BY id ASC')
     .all();

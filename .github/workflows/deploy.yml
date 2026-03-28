@@ -69,6 +69,9 @@ jobs:
             echo "KROGER_CLIENT_ID=${{ secrets.KROGER_CLIENT_ID }}" >> .env
             echo "KROGER_CLIENT_SECRET=${{ secrets.KROGER_CLIENT_SECRET }}" >> .env
             echo "KROGER_REDIRECT_URI=${{ secrets.KROGER_REDIRECT_URI }}" >> .env
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
+            echo "TOKEN_ENCRYPTION_KEY=${{ secrets.TOKEN_ENCRYPTION_KEY }}" >> .env
+            chmod 600 .env
             docker compose pull
             docker compose up -d
             docker image prune -f

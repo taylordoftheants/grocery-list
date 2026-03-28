@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import db from '../db.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -9,6 +10,36 @@ const KROGER_BASE = 'https://api.kroger.com/v1';
 const CLIENT_ID = process.env.KROGER_CLIENT_ID;
 const CLIENT_SECRET = process.env.KROGER_CLIENT_SECRET;
 const REDIRECT_URI = process.env.KROGER_REDIRECT_URI;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://taykate.com';
+
+// AES-256-GCM token encryption — key derived from TOKEN_ENCRYPTION_KEY env var
+const TOKEN_ENC_KEY = process.env.TOKEN_ENCRYPTION_KEY
+  ? createHash('sha256').update(process.env.TOKEN_ENCRYPTION_KEY).digest()
+  : null;
+
+function encryptToken(plaintext) {
+  if (!TOKEN_ENC_KEY) return plaintext;
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', TOKEN_ENC_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return 'enc:' + Buffer.concat([iv, tag, encrypted]).toString('base64');
+}
+
+function decryptToken(value) {
+  if (!TOKEN_ENC_KEY || !value?.startsWith('enc:')) return value;
+  try {
+    const buf = Buffer.from(value.slice(4), 'base64');
+    const iv = buf.subarray(0, 12);
+    const tag = buf.subarray(12, 28);
+    const encrypted = buf.subarray(28);
+    const decipher = createDecipheriv('aes-256-gcm', TOKEN_ENC_KEY, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  } catch {
+    return value; // plaintext fallback for legacy rows
+  }
+}
 
 // Module-level Client Credentials token cache
 let ccToken = null;
@@ -66,7 +97,7 @@ async function refreshKrogerToken(userId) {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': `Basic ${creds}`,
     },
-    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(row.refresh_token)}`,
+    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(decryptToken(row.refresh_token))}`,
   });
   if (!res.ok) throw new Error(`Token refresh failed: ${res.status}`);
   const data = await res.json();
@@ -75,7 +106,7 @@ async function refreshKrogerToken(userId) {
     UPDATE kroger_tokens
     SET access_token = ?, expires_at = ?, updated_at = datetime('now')
     WHERE user_id = ?
-  `).run(data.access_token, expiresAt, userId);
+  `).run(encryptToken(data.access_token), expiresAt, userId);
   return data.access_token;
 }
 
@@ -227,11 +258,11 @@ router.get('/auth/callback', async (req, res) => {
     db.prepare(`
       INSERT OR REPLACE INTO kroger_tokens (user_id, access_token, refresh_token, expires_at, location_id, location_name, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-    `).run(userId, data.access_token, data.refresh_token, expiresAt, locationId, locationName || null);
-    res.redirect(302, 'https://taykate.com/?kroger_success=1');
+    `).run(userId, encryptToken(data.access_token), encryptToken(data.refresh_token), expiresAt, locationId, locationName || null);
+    res.redirect(302, `${FRONTEND_URL}/?kroger_success=1`);
   } catch (e) {
     console.error('Kroger OAuth callback error:', e);
-    res.redirect(302, 'https://taykate.com/?kroger_error=1');
+    res.redirect(302, `${FRONTEND_URL}/?kroger_error=1`);
   }
 });
 
@@ -412,7 +443,7 @@ router.post('/cart/add', authMiddleware, async (req, res) => {
   if (!tokenRow) return res.status(401).json({ error: 'Kroger not connected' });
 
   // Refresh token if expired
-  let userAccessToken = tokenRow.access_token;
+  let userAccessToken = decryptToken(tokenRow.access_token);
   if (Date.now() >= Date.parse(tokenRow.expires_at)) {
     try {
       userAccessToken = await refreshKrogerToken(req.user.id);

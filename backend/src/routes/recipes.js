@@ -69,7 +69,7 @@ router.post('/', (req, res) => {
     const { lastInsertRowid } = insertRecipe.run(req.user.id, title.trim(), category, count);
     recipeId = Number(lastInsertRowid);
     for (const ing of ingredients) {
-      if (ing.name?.trim()) insertIng.run(recipeId, ing.name.trim(), ing.amount?.trim() ?? '', ing.is_optional ? 1 : 0, ing.optional_category ?? '');
+      if (ing.name?.trim()) insertIng.run(recipeId, ing.name.trim().slice(0, 200), (ing.amount?.trim() ?? '').slice(0, 50), ing.is_optional ? 1 : 0, ing.optional_category ?? '');
     }
     db.exec('COMMIT');
   } catch (e) {
@@ -106,7 +106,7 @@ router.put('/:id', (req, res) => {
     updateRecipe.run(title.trim(), category, req.params.id);
     deleteIngs.run(req.params.id);
     for (const ing of ingredients) {
-      if (ing.name?.trim()) insertIng.run(req.params.id, ing.name.trim(), ing.amount?.trim() ?? '', ing.is_optional ? 1 : 0, ing.optional_category ?? '');
+      if (ing.name?.trim()) insertIng.run(req.params.id, ing.name.trim().slice(0, 200), (ing.amount?.trim() ?? '').slice(0, 50), ing.is_optional ? 1 : 0, ing.optional_category ?? '');
     }
     db.exec('COMMIT');
   } catch (e) {
