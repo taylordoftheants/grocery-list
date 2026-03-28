@@ -67,6 +67,9 @@ export const api = {
   // Note: kroger auth start is a full browser navigation, not a fetch call:
   // window.location.href = '/api/kroger/auth/start?locationId=' + id
 
+  // Pantry Intelligence
+  classifyPantryItems: (items) => request('POST', '/pantry/classify', { items }),
+
   // Meal Plan
   getMealPlan:          (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),
   addMealPlanEntry:     (entry)             => request('POST',   '/mealplan',              entry),

@@ -26,11 +26,23 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
 
   useEffect(() => {
     if (initialSelections) return; // already restored from sessionStorage
+
     api.krogerGetProducts(list.id)
-      .then(data => {
+      .then(async data => {
+        // Fire classification in parallel (non-blocking — falls back gracefully)
+        const itemNames = data.items.map(i => i.itemName);
+        let classifications = {};
+        try {
+          const result = await api.classifyPantryItems(itemNames);
+          classifications = result.classifications ?? {};
+        } catch {
+          // Classification failure is non-fatal; all items default to included
+        }
+
         const initial = {};
         for (const item of data.items) {
           const prevSelected = item.products.find(p => p.previouslySelected);
+          const classification = classifications[item.itemName] ?? 'buy';
           initial[item.normalizedName] = {
             itemName: item.itemName,
             products: item.products,
@@ -38,7 +50,8 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
             count: item.count ?? 1,
             quantity: item.count ?? 1,
             amount: item.amount ?? null,
-            included: true,
+            included: classification !== 'pantry',
+            pantryClass: classification, // 'buy' | 'check' | 'pantry'
             expanded: false,
             searchQuery: item.itemName,
             searching: false,
@@ -114,8 +127,14 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
     }
   }
 
+  const [pantryExpanded, setPantryExpanded] = useState(false);
+
   const stateList = Object.entries(itemStates);
   const includedCount = stateList.filter(([, s]) => s.included && s.selectedUpc).length;
+
+  // Group items: buy+check in main list, pantry in collapsible section
+  const mainItems = stateList.filter(([, s]) => s.pantryClass !== 'pantry');
+  const pantryItems = stateList.filter(([, s]) => s.pantryClass === 'pantry');
 
   const modalCard = {
     ...card,
@@ -263,16 +282,75 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
             </div>
           )}
 
-          {step === 'selecting' && stateList.map(([key, s], idx) => (
-            <ItemSection
-              key={key}
-              normKey={key}
-              state={s}
-              isLast={idx === stateList.length - 1}
-              onUpdate={patch => updateItem(key, patch)}
-              onSearch={() => handleSearch(key)}
-            />
-          ))}
+          {step === 'selecting' && (
+            <>
+              {/* Main items: buy + check */}
+              {mainItems.map(([key, s], idx) => (
+                <ItemSection
+                  key={key}
+                  normKey={key}
+                  state={s}
+                  isLast={idx === mainItems.length - 1 && pantryItems.length === 0}
+                  onUpdate={patch => updateItem(key, patch)}
+                  onSearch={() => handleSearch(key)}
+                />
+              ))}
+
+              {/* Pantry staples collapsible section */}
+              {pantryItems.length > 0 && (
+                <div>
+                  <button
+                    onClick={() => setPantryExpanded(p => !p)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.875rem 1.5rem',
+                      background: colors.bgSurface,
+                      border: 'none',
+                      borderTop: mainItems.length > 0 ? `1px solid ${colors.border}` : 'none',
+                      cursor: 'pointer',
+                      fontFamily: fonts.sans,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '1rem' }}>🫙</span>
+                      <span style={{ fontSize: fontSizes.sm, fontWeight: fontWeights.semibold, color: colors.textSecondary, fontFamily: fonts.sans }}>
+                        Pantry Staples — probably have these
+                      </span>
+                      <span style={{
+                        fontSize: fontSizes.xs,
+                        fontWeight: fontWeights.bold,
+                        color: colors.textMuted,
+                        background: colors.bgCard,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: radii.full,
+                        padding: '0.1rem 0.5rem',
+                        fontFamily: fonts.sans,
+                      }}>
+                        {pantryItems.length}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: fontSizes.sm, color: colors.textMuted }}>
+                      {pantryExpanded ? '▲' : '▼'}
+                    </span>
+                  </button>
+
+                  {pantryExpanded && pantryItems.map(([key, s], idx) => (
+                    <ItemSection
+                      key={key}
+                      normKey={key}
+                      state={s}
+                      isLast={idx === pantryItems.length - 1}
+                      onUpdate={patch => updateItem(key, patch)}
+                      onSearch={() => handleSearch(key)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* ── Footer ── */}
@@ -331,6 +409,8 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
 // ── Per-item section ──────────────────────────────────────────────────────────
 
 function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
+  const isCheckFirst = (state.pantryClass ?? 'buy') === 'check';
+  const isPantry = (state.pantryClass ?? 'buy') === 'pantry';
   const [infoOpenUpc, setInfoOpenUpc] = useState(null);
   const visibleProducts = state.expanded ? state.products : state.products.slice(0, 3);
   const canShowMore = !state.expanded;
@@ -351,6 +431,40 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
           <span style={{ fontWeight: fontWeights.semibold, fontSize: fontSizes.base, color: colors.textPrimary, fontFamily: fonts.sans }}>
             {state.itemName}
           </span>
+          {isPantry && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: fontSizes.xs,
+              fontWeight: fontWeights.bold,
+              color: colors.textMuted,
+              background: colors.bgSurface,
+              border: `1px solid ${colors.border}`,
+              borderRadius: radii.full,
+              padding: '0.1rem 0.5rem',
+              fontFamily: fonts.sans,
+              whiteSpace: 'nowrap',
+            }}>
+              🫙 pantry staple
+            </span>
+          )}
+          {isCheckFirst && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: fontSizes.xs,
+              fontWeight: fontWeights.bold,
+              color: colors.amberDark,
+              background: colors.amberLight,
+              border: `1px solid ${colors.amberBorder}`,
+              borderRadius: radii.full,
+              padding: '0.1rem 0.5rem',
+              fontFamily: fonts.sans,
+              whiteSpace: 'nowrap',
+            }}>
+              check pantry first
+            </span>
+          )}
           {state.count > 1 && (
             <span style={{
               display: 'inline-flex',
