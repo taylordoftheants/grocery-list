@@ -331,7 +331,7 @@ function WeeklyDropZone(props) {
 
 // ── Mobile vertical layout ────────────────────────────────────────────────────
 
-function MobileDayCard({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker, onOpenLeftoversPicker }) {
+function MobileDayCard({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker }) {
   return (
     <div style={{ ...card, padding: '0.75rem', marginBottom: '0.5rem', fontFamily: fonts.sans }}>
       <p style={{ fontSize: fontSizes.base, fontWeight: fontWeights.semibold, color: colors.textSecondary, marginBottom: '0.5rem' }}>
@@ -380,18 +380,12 @@ function MobileDayCard({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPi
         >
           + Add
         </button>
-        <button
-          onClick={() => onOpenLeftoversPicker(dateKey)}
-          style={{ padding: '0.5rem 0.625rem', border: `1px dashed ${colors.borderMid}`, borderRadius: radii.md, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: '44px', fontFamily: fonts.sans }}
-        >
-          🍱
-        </button>
       </div>
     </div>
   );
 }
 
-function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDeleteEntry, onOpenPicker, onOpenWeeklyPicker, onOpenLeftoversPicker, onOpenFavoritesPicker, favoritesRecipe }) {
+function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDeleteEntry, onOpenPicker, onOpenWeeklyPicker, onOpenFavoritesPicker, favoritesRecipe }) {
   return (
     <div>
       <WeeklyBox
@@ -414,7 +408,6 @@ function MobilePlanView({ weekDays, entriesByDate, weeklyItems, recipes, onDelet
             recipes={recipes}
             onDelete={onDeleteEntry}
             onOpenPicker={onOpenPicker}
-            onOpenLeftoversPicker={onOpenLeftoversPicker}
           />
         );
       })}
@@ -659,7 +652,6 @@ const isDraggingRef = useRef(false);
           onDeleteEntry={handleDeleteEntry}
           onOpenPicker={setPickingForDate}
           onOpenWeeklyPicker={() => setPickingForDate('weekly')}
-          onOpenLeftoversPicker={(dateKey) => { setLeftoversMode(true); setPickingForDate(dateKey); }}
           onOpenFavoritesPicker={() => setShowFavoritesPicker(true)}
           favoritesRecipe={favoritesRecipe}
         />
