@@ -31,6 +31,7 @@ export default function App() {
   const [krogerConnectMode, setKrogerConnectMode] = useState('connect');
   const [draggingItem, setDraggingItem] = useState(null);
   const [draggingList, setDraggingList] = useState(null);
+  const [itemRefreshKey, setItemRefreshKey] = useState(0);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -128,8 +129,12 @@ export default function App() {
   };
 
   const handleMoveItem = async (fromListId, itemId, toListId) => {
-    await api.moveItem(fromListId, itemId, toListId);
-    // ItemList polls every 5s and will reflect the change
+    try {
+      await api.moveItem(fromListId, itemId, toListId);
+      setItemRefreshKey(k => k + 1);
+    } catch (err) {
+      console.error('Failed to move item:', err);
+    }
   };
 
   const handleDragStart = ({ active }) => {
@@ -243,7 +248,7 @@ export default function App() {
               <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 0 }}>
                 {currentView === 'lists' && (
                   selectedList
-                    ? <ItemList list={selectedList} isMobile={isMobile} />
+                    ? <ItemList list={selectedList} lists={lists} isMobile={isMobile} onMoveItem={handleMoveItem} refreshKey={itemRefreshKey} />
                     : (
                       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textSubtle }}>
                         <p>Create or select a list to get started.</p>

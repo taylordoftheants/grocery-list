@@ -6,7 +6,7 @@ import KrogerModal from './KrogerModal';
 import KrogerSelectionModal from './KrogerSelectionModal';
 import { colors, fonts, fontSizes, fontWeights, radii, card, sectionLabel, btnPrimary, btnSecondary, btnDanger } from '../theme';
 
-export default function ItemList({ list, lists, isMobile, onMoveItem }) {
+export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey }) {
   const [items, setItems] = useState([]);
   const [viewMode, setViewMode] = useState('grouped'); // 'grouped' | 'aggregated'
   const [showKrogerModal, setShowKrogerModal] = useState(false);
@@ -16,7 +16,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
 
   useEffect(() => {
     api.getItems(list.id).then(setItems);
-  }, [list.id]);
+  }, [list.id, refreshKey]);
 
   useEffect(() => {
     const id = setInterval(() => api.getItems(list.id).then(setItems), 5000);
@@ -172,7 +172,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
               </p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {groupItems.map(item => (
-                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
+                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} isMobile={isMobile} />
                 ))}
               </ul>
             </div>
@@ -186,7 +186,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
               )}
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {otherItems.map(item => (
-                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
+                  <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} isMobile={isMobile} />
                 ))}
               </ul>
             </div>
@@ -212,7 +212,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem }) {
           </p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {spiceItems.map(item => (
-              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} />
+              <Item key={item.id} item={item} onToggle={handleToggle} onDelete={handleDelete} lists={lists} onMoveItem={onMoveItem} isMobile={isMobile} />
             ))}
           </ul>
         </div>
@@ -328,7 +328,7 @@ function AggregatedItem({ group, onToggle, onDelete }) {
   );
 }
 
-function Item({ item, onToggle, onDelete }) {
+function Item({ item, onToggle, onDelete, lists, onMoveItem, isMobile }) {
   const [popping, setPopping] = useState(false);
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -412,6 +412,33 @@ function Item({ item, onToggle, onDelete }) {
         }}>
           {item.amount}
         </span>
+      )}
+      {isMobile && onMoveItem && lists && lists.length > 1 && (
+        <select
+          value=""
+          onChange={e => {
+            const toListId = Number(e.target.value);
+            if (toListId && toListId !== item.list_id) onMoveItem(item.list_id, item.id, toListId);
+          }}
+          style={{
+            fontSize: fontSizes.xs,
+            border: `1px solid ${colors.border}`,
+            borderRadius: radii.sm,
+            background: colors.bgSurface,
+            color: colors.textSecondary,
+            padding: '0.2rem 0.3rem',
+            cursor: 'pointer',
+            flexShrink: 0,
+            maxWidth: '90px',
+            fontFamily: fonts.sans,
+          }}
+          aria-label="Move to list"
+        >
+          <option value="" disabled>→ Move</option>
+          {lists.filter(l => l.id !== item.list_id).map(l => (
+            <option key={l.id} value={l.id}>{l.name}</option>
+          ))}
+        </select>
       )}
       <button
         onClick={() => onDelete(item.id)}
