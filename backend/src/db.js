@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 20;
+const SCHEMA_VERSION = 21;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -89,6 +89,13 @@ if (user_version < 19) {
 // v19 → v20: add is_favorites to recipes
 if (user_version === 19) {
   db.exec('ALTER TABLE recipes ADD COLUMN is_favorites INTEGER NOT NULL DEFAULT 0');
+}
+// v20 → v21: ensure image_url exists in kroger_product_selections (was missed on DBs that jumped versions)
+if (user_version === 20) {
+  const cols = db.prepare('PRAGMA table_info(kroger_product_selections)').all();
+  if (!cols.some(c => c.name === 'image_url')) {
+    db.exec("ALTER TABLE kroger_product_selections ADD COLUMN image_url TEXT NOT NULL DEFAULT ''");
+  }
 }
 
 if (user_version < SCHEMA_VERSION) {
