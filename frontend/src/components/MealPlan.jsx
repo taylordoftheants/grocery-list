@@ -139,6 +139,87 @@ function getSelectedOptionalNames(entry, recipes) {
   return recipe.ingredients.filter(i => ids.includes(i.id)).map(i => i.name);
 }
 
+// ── DraggableEntry ────────────────────────────────────────────────────────────
+
+function DraggableEntry({ entry, recipes, onDelete, variant = 'day' }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `entry-${entry.id}` });
+  const optNames = getSelectedOptionalNames(entry, recipes);
+  const isLeftovers = entry.is_leftovers;
+
+  if (variant === 'weekly') {
+    return (
+      <span
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        style={{
+          display: 'inline-flex', alignItems: 'flex-start', gap: '0.25rem',
+          background: isLeftovers ? '#f3f4f6' : entry.recipe_id ? '#eff6ff' : '#fefce8',
+          border: `1px solid ${isLeftovers ? '#d1d5db' : entry.recipe_id ? '#bfdbfe' : '#fde68a'}`,
+          borderRadius: '1rem',
+          padding: '0.25rem 0.625rem',
+          fontSize: '0.875rem',
+          color: isLeftovers ? '#6b7280' : '#374151',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          opacity: isDragging ? 0.4 : 1,
+          userSelect: 'none',
+          touchAction: 'none',
+        }}
+      >
+        <span>
+          <span style={{ display: 'block' }}>{isLeftovers ? `🍱 ${entry.label}` : entry.label}</span>
+          {optNames.map((name, i) => (
+            <span key={i} style={{ display: 'block', fontSize: '0.6875rem', color: '#6b7280', paddingLeft: '0.25rem' }}>· {name}</span>
+          ))}
+        </span>
+        <button
+          onClick={() => onDelete(entry.id)}
+          style={{ border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1, padding: '0', flexShrink: 0, marginTop: '0.125rem' }}
+        >
+          ×
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: '0.25rem',
+        background: isLeftovers ? '#f3f4f6' : entry.recipe_id ? '#eff6ff' : '#f0fdf4',
+        border: `1px solid ${isLeftovers ? '#d1d5db' : entry.recipe_id ? '#bfdbfe' : '#bbf7d0'}`,
+        borderRadius: '0.25rem',
+        padding: '0.25rem 0.375rem',
+        marginBottom: '0.25rem',
+        fontSize: '0.8125rem',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        opacity: isDragging ? 0.4 : 1,
+        userSelect: 'none',
+        touchAction: 'none',
+        transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined,
+      }}
+    >
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: isLeftovers ? '#6b7280' : '#374151' }}>
+          {isLeftovers ? `🍱 ${entry.label}` : entry.label}
+        </span>
+        {optNames.map((name, i) => (
+          <span key={i} style={{ display: 'block', fontSize: '0.625rem', color: '#6b7280', paddingLeft: '0.375rem' }}>· {name}</span>
+        ))}
+      </div>
+      <button
+        onClick={() => onDelete(entry.id)}
+        style={{ border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', lineHeight: 1, fontSize: '0.875rem', padding: '0 0.125rem', flexShrink: 0 }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 // ── DayColumn (desktop) ───────────────────────────────────────────────────────
 
 function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker }) {
@@ -164,36 +245,9 @@ function DayColumn({ dateKey, dayLabel, entries, recipes, onDelete, onOpenPicker
       </p>
 
       <div style={{ flex: 1 }}>
-        {entries.map(entry => {
-          const optNames = getSelectedOptionalNames(entry, recipes);
-          const isLeftovers = entry.is_leftovers;
-          return (
-            <div key={entry.id} style={{
-              display: 'flex', alignItems: 'flex-start', gap: '0.25rem',
-              background: isLeftovers ? '#f3f4f6' : entry.recipe_id ? '#eff6ff' : '#f0fdf4',
-              border: `1px solid ${isLeftovers ? '#d1d5db' : entry.recipe_id ? '#bfdbfe' : '#bbf7d0'}`,
-              borderRadius: '0.25rem',
-              padding: '0.25rem 0.375rem',
-              marginBottom: '0.25rem',
-              fontSize: '0.8125rem',
-            }}>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: isLeftovers ? '#6b7280' : '#374151' }}>
-                  {isLeftovers ? `🍱 ${entry.label}` : entry.label}
-                </span>
-                {optNames.map((name, i) => (
-                  <span key={i} style={{ display: 'block', fontSize: '0.625rem', color: '#6b7280', paddingLeft: '0.375rem' }}>· {name}</span>
-                ))}
-              </div>
-              <button
-                onClick={() => onDelete(entry.id)}
-                style={{ border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', lineHeight: 1, fontSize: '0.875rem', padding: '0 0.125rem', flexShrink: 0 }}
-              >
-                ×
-              </button>
-            </div>
-          );
-        })}
+        {entries.map(entry => (
+          <DraggableEntry key={entry.id} entry={entry} recipes={recipes} onDelete={onDelete} />
+        ))}
       </div>
 
       <button
@@ -267,26 +321,9 @@ function WeeklyBox({ entries, recipes, onDelete, onOpenPicker, isMobile, setDrop
         <span style={{ ...sectionLabel, marginRight: '0.25rem', flexShrink: 0, paddingTop: '0.25rem' }}>
           For the Week
         </span>
-        {entries.map(entry => {
-          const optNames = getSelectedOptionalNames(entry, recipes);
-          const isLeftovers = entry.is_leftovers;
-          return (
-            <span key={entry.id} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.25rem', background: isLeftovers ? '#f3f4f6' : entry.recipe_id ? '#eff6ff' : '#fefce8', border: `1px solid ${isLeftovers ? '#d1d5db' : entry.recipe_id ? '#bfdbfe' : '#fde68a'}`, borderRadius: '1rem', padding: '0.25rem 0.625rem', fontSize: '0.875rem', color: isLeftovers ? '#6b7280' : '#374151' }}>
-              <span>
-                <span style={{ display: 'block' }}>{isLeftovers ? `🍱 ${entry.label}` : entry.label}</span>
-                {optNames.map((name, i) => (
-                  <span key={i} style={{ display: 'block', fontSize: '0.6875rem', color: '#6b7280', paddingLeft: '0.25rem' }}>· {name}</span>
-                ))}
-              </span>
-              <button
-                onClick={() => onDelete(entry.id)}
-                style={{ border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer', fontSize: '0.875rem', lineHeight: 1, padding: '0', flexShrink: 0, marginTop: '0.125rem' }}
-              >
-                ×
-              </button>
-            </span>
-          );
-        })}
+        {entries.map(entry => (
+          <DraggableEntry key={entry.id} entry={entry} recipes={recipes} onDelete={onDelete} variant="weekly" />
+        ))}
         <button
           onClick={onOpenPicker}
           style={{ border: `1px dashed ${colors.borderMid}`, borderRadius: radii.full, background: 'transparent', color: colors.textMuted, fontSize: fontSizes.base, padding: '0.25rem 0.625rem', cursor: 'pointer', flexShrink: 0, fontFamily: fonts.sans }}
@@ -406,6 +443,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
   const [addToListLoading, setAddToListLoading] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState(null);
   const [activeIsLeftovers, setActiveIsLeftovers] = useState(false);
+  const [activeEntry, setActiveEntry] = useState(null);
   const [pickingForDate, setPickingForDate] = useState(null);
   const [leftoversMode, setLeftoversMode] = useState(false);
   const [preCheckedRecipeId, setPreCheckedRecipeId] = useState(null);
@@ -473,13 +511,27 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
     setLeftoversMode(false);
   };
 
+  const handleMoveEntry = async (entryId, targetDropId) => {
+    const isWeekly = targetDropId === 'weekly' ? 1 : 0;
+    const date = isWeekly ? formatDateKey(weekStart) : targetDropId;
+    setEntries(prev => prev.map(e => e.id === entryId ? { ...e, date, is_weekly: isWeekly } : e));
+    await api.updateMealPlanEntry(entryId, { date, is_weekly: isWeekly });
+  };
+
   const handleDragStart = (event) => {
     isDraggingRef.current = true;
     if (event.active.id === LEFTOVERS_DRAG_ID) {
       setActiveIsLeftovers(true);
       setActiveRecipe(null);
+      setActiveEntry(null);
+    } else if (typeof event.active.id === 'string' && event.active.id.startsWith('entry-')) {
+      const id = Number(event.active.id.replace('entry-', ''));
+      setActiveEntry(entries.find(e => e.id === id) ?? null);
+      setActiveRecipe(null);
+      setActiveIsLeftovers(false);
     } else {
       setActiveIsLeftovers(false);
+      setActiveEntry(null);
       const recipe = recipes.find(r => r.id === event.active.id);
       setActiveRecipe(recipe ?? null);
     }
@@ -489,7 +541,19 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
     isDraggingRef.current = false;
     setActiveRecipe(null);
     setActiveIsLeftovers(false);
+    setActiveEntry(null);
     const { active, over } = event;
+
+    if (typeof active.id === 'string' && active.id.startsWith('entry-')) {
+      if (!over) return;
+      const entryId = Number(active.id.replace('entry-', ''));
+      const entry = entries.find(e => e.id === entryId);
+      const sameDay = entry && !entry.is_weekly && over.id === entry.date;
+      const sameWeekly = entry && entry.is_weekly && over.id === 'weekly';
+      if (!sameDay && !sameWeekly) handleMoveEntry(entryId, over.id);
+      return;
+    }
+
     if (!over) return;
 
     if (active.id === LEFTOVERS_DRAG_ID) {
@@ -528,6 +592,7 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
     isDraggingRef.current = false;
     setActiveRecipe(null);
     setActiveIsLeftovers(false);
+    setActiveEntry(null);
   };
 
   const handleAddToList = async (listId) => {
@@ -642,6 +707,25 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
           </div>
 
           <DragOverlay>
+            {activeEntry && (
+              <div style={{
+                padding: '0.25rem 0.375rem',
+                background: activeEntry.is_leftovers ? '#f3f4f6' : activeEntry.recipe_id ? '#eff6ff' : '#f0fdf4',
+                border: `1px solid ${activeEntry.is_leftovers ? '#d1d5db' : activeEntry.recipe_id ? '#bfdbfe' : '#bbf7d0'}`,
+                borderRadius: '0.25rem',
+                fontSize: '0.8125rem',
+                color: activeEntry.is_leftovers ? '#6b7280' : '#374151',
+                boxShadow: shadows.md,
+                cursor: 'grabbing',
+                fontFamily: fonts.sans,
+                maxWidth: '160px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                {activeEntry.is_leftovers ? `🍱 ${activeEntry.label}` : activeEntry.label}
+              </div>
+            )}
             {activeIsLeftovers && (
               <div style={{
                 padding: '0.5rem 0.75rem',

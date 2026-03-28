@@ -68,8 +68,9 @@ export const api = {
   // window.location.href = '/api/kroger/auth/start?locationId=' + id
 
   // Meal Plan
-  getMealPlan:         (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),
-  addMealPlanEntry:    (entry)              => request('POST',   '/mealplan',              entry),
-  deleteMealPlanEntry: (id)                 => request('DELETE', `/mealplan/${id}`),
-  addMealPlanToList:   (listId, weekStart)  => request('POST',   '/mealplan/add-to-list',  { listId, weekStart }),
+  getMealPlan:          (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),
+  addMealPlanEntry:     (entry)             => request('POST',   '/mealplan',              entry),
+  updateMealPlanEntry:  (id, data)          => request('PATCH',  `/mealplan/${id}`,        data),
+  deleteMealPlanEntry:  (id)                => request('DELETE', `/mealplan/${id}`),
+  addMealPlanToList:    (listId, weekStart) => request('POST',   '/mealplan/add-to-list',  { listId, weekStart }),
 };

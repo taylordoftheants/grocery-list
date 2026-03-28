@@ -125,6 +125,21 @@ router.post('/', (req, res) => {
   res.status(201).json(entry);
 });
 
+// PATCH /api/mealplan/:entryId — move entry to a different date/weekly
+router.patch('/:entryId', (req, res) => {
+  const { date, is_weekly } = req.body;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+  }
+  const isWeekly = is_weekly ? 1 : 0;
+  const info = db
+    .prepare('UPDATE meal_plan_entries SET date = ?, is_weekly = ? WHERE id = ? AND user_id = ?')
+    .run(date, isWeekly, req.params.entryId, req.user.id);
+  if (info.changes === 0) return res.status(404).json({ error: 'Not found' });
+  const entry = db.prepare('SELECT * FROM meal_plan_entries WHERE id = ?').get(req.params.entryId);
+  res.json(entry);
+});
+
 // DELETE /api/mealplan/:entryId
 router.delete('/:entryId', (req, res) => {
   const info = db
