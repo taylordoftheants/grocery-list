@@ -15,7 +15,7 @@ export async function classifyPantryItems(itemNames) {
   const prompt = `You are a pantry assistant. Classify each grocery ingredient as one of:
 - "pantry": dry spices, herbs, salt, pepper, seasonings, cooking oils, vinegars, flour, sugar, baking staples (baking powder, baking soda, vanilla extract, cornstarch) — items that live in the pantry essentially indefinitely and a home cook almost certainly already has.
 - "buy": fresh produce, fresh meat, seafood, fresh dairy (milk, cream, fresh cheeses like ricotta/mozzarella/cottage cheese), fresh bread/bakery, fresh herbs — perishable items almost certainly needing purchase.
-- "check": everything else that doesn't clearly fit the above — canned goods, sauces, condiments, hot sauce, soy sauce, broth/stock, dried pasta, dried beans, breadcrumbs, butter, eggs, block/shredded cheeses, frozen items, tortillas, heavy cream, sour cream. These are things the user might or might not have depending on what they've cooked recently.
+- "check": everything else that doesn't clearly fit the above — canned goods (including canned beans of any kind: black beans, chickpeas, kidney beans, cannellini beans, lentils, etc.), sauces, condiments, hot sauce, soy sauce, broth/stock, dried pasta, dried beans, breadcrumbs, butter, eggs, block/shredded cheeses, frozen items, tortillas, heavy cream, sour cream. These are things the user might or might not have depending on what they've cooked recently.
 
 Return ONLY valid JSON with no markdown fences and no explanation. Use the exact item name from the input as the key.
 Format: { "item name": "pantry|buy|check", ... }
