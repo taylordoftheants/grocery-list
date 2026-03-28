@@ -26,7 +26,7 @@ app.use(cors({ origin: allowedOrigin, credentials: true }));
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 10,
+  limit: 20,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Too many attempts, please try again later' },
