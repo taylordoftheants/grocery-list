@@ -88,7 +88,7 @@ export default function ItemMemoryView() {
           🧠 Ant's Memory
         </h1>
         <p style={{ fontSize: fontSizes.base, color: colors.textMuted, margin: 0 }}>
-          Everything Ant knows about your items — pantry tags you've set and Kroger purchase history.
+          Everything Ant knows about your items — pantry tags you've set and Harris Teeter purchase history.
         </p>
       </div>
 
@@ -120,7 +120,7 @@ export default function ItemMemoryView() {
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: fontSizes.sm, color: colors.textMuted }}>
-                    Remove all Kroger history?
+                    Remove all Harris Teeter history?
                   </span>
                   <button
                     onClick={handleClearAll}
@@ -153,7 +153,7 @@ export default function ItemMemoryView() {
               <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🐜</p>
               <p style={{ fontSize: fontSizes.base, margin: '0 0 0.25rem' }}>Ant doesn't know anything yet.</p>
               <p style={{ fontSize: fontSizes.sm, margin: 0 }}>
-                Items appear here when you tag them "I have this" or purchase through Kroger.
+                Items appear here when you tag them "I have this" or purchase through Harris Teeter.
               </p>
             </div>
           )}

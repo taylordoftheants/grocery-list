@@ -197,7 +197,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 style={{ margin: 0, fontSize: fontSizes.xl, fontWeight: fontWeights.bold, color: colors.textPrimary, fontFamily: fonts.display }}>
-              Add to Kroger Cart
+              Add to Harris Teeter Cart
             </h2>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: fontSizes.xl, color: colors.textMuted, lineHeight: 1, padding: '0.25rem' }}>
               ×
@@ -235,7 +235,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
           {step === 'adding' && (
             <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
               <p style={{ color: colors.textMuted, fontFamily: fonts.sans, fontSize: fontSizes.base }}>
-                Adding {includedCount} {includedCount === 1 ? 'item' : 'items'} to your Kroger cart…
+                Adding {includedCount} {includedCount === 1 ? 'item' : 'items'} to your Harris Teeter cart…
               </p>
             </div>
           )}
@@ -284,7 +284,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
           {step === 'reconnect' && (
             <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
               <p style={{ fontSize: fontSizes.base, color: colors.textPrimary, fontFamily: fonts.sans, marginBottom: '0.5rem', fontWeight: fontWeights.semibold }}>
-                Your Kroger session expired.
+                Your Harris Teeter session expired.
               </p>
               <p style={{ fontSize: fontSizes.sm, color: colors.textMuted, fontFamily: fonts.sans, marginBottom: '1.5rem' }}>
                 Please reconnect to add items to your cart.
@@ -304,7 +304,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
                 disabled={!locationId}
                 style={{ ...btnPrimary, width: '100%', marginBottom: '0.75rem', opacity: locationId ? 1 : 0.5 }}
               >
-                Reconnect with Kroger
+                Reconnect with Harris Teeter
               </button>
               <button onClick={onClose} style={{ ...btnSecondary, width: '100%' }}>Cancel</button>
             </div>

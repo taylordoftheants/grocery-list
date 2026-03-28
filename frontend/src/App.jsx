@@ -59,7 +59,7 @@ export default function App() {
     if (params.get('kroger_error')) {
       window.history.replaceState({}, '', window.location.pathname);
       try { sessionStorage.removeItem('kroger_pending_selections'); } catch {}
-      setError('Kroger login failed. Please try again.');
+      setError('Harris Teeter login failed. Please try again.');
     }
   }, []);
 

@@ -409,8 +409,8 @@ export default function HowItWorks({ isMobile }) {
             />
             <Arrow isMobile={isMobile} />
             <StepCard n={4} icon="🛒"
-              title="Add to Your Kroger Cart"
-              body={`Hit "Buy 'em, ant!" and your whole list flies straight into your Kroger cart. Done!`}
+              title="Add to Your Harris Teeter Cart"
+              body={`Hit "Buy 'em, ant!" and your whole list flies straight into your Harris Teeter cart. Done!`}
               isMobile={isMobile}
             />
           </div>
@@ -486,17 +486,17 @@ export default function HowItWorks({ isMobile }) {
         {/* ── Kroger Connection ── */}
         <div className="hiw-section" style={{ marginBottom: '3rem' }}>
           <SectionMarker label="Store integration" />
-          <SectionHeading>How the Kroger Connection Works 🔗</SectionHeading>
+          <SectionHeading>How the Harris Teeter Connection Works 🔗</SectionHeading>
           <SectionSubtitle>
-            Ant connects to your real Kroger (or Harris Teeter) account so it can add items directly to your cart.
+            Ant connects to your real Harris Teeter account so it can add items directly to your cart.
           </SectionSubtitle>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {[
               ['🏪', 'Pick your store', 'Enter your zip code and choose the location you shop at. Ant remembers it for next time.'],
-              ['🔑', 'Log in once', 'Sign in to your Kroger account one time. After that, Ant handles everything automatically — no passwords to type again.'],
+              ['🔑', 'Log in once', 'Sign in to your Harris Teeter account one time. After that, Ant handles everything automatically — no passwords to type again.'],
               ['🛍️', 'Choose your products', 'For each item on your list, Ant shows you real products from your store. Pick what you like best. Ant remembers your picks for next time too!'],
-              ['✅', 'One tap to cart', 'Hit the big button and everything you selected gets added to your Kroger cart at once. Then just check out — in the app or at the store.'],
+              ['✅', 'One tap to cart', 'Hit the big button and everything you selected gets added to your Harris Teeter cart at once. Then just check out — in the app or at the store.'],
             ].map(([icon, title, body]) => (
               <KrogerStep key={title} icon={icon} title={title} body={body} />
             ))}
@@ -525,12 +525,12 @@ export default function HowItWorks({ isMobile }) {
             <InfoCard
               icon="🛡️"
               title="CSRF protection on every request"
-              body="Every state-changing request (adding items, connecting Kroger, etc.) is verified with a CSRF token so other websites can't trick your browser into taking actions on your behalf."
+              body="Every state-changing request (adding items, connecting Harris Teeter, etc.) is verified with a CSRF token so other websites can't trick your browser into taking actions on your behalf."
             />
             <InfoCard
               icon="🔐"
-              title="Kroger credentials stay with Kroger"
-              body="We never see your Kroger password. The connection uses OAuth — you log in directly on Kroger's site, and they send us a limited-access token. We can add items to your cart, but we can't access your payment info or account settings."
+              title="Harris Teeter credentials stay with Harris Teeter"
+              body="We never see your Harris Teeter password. The connection uses OAuth — you log in directly on Harris Teeter's site, and they send us a limited-access token. We can add items to your cart, but we can't access your payment info or account settings."
             />
             <InfoCard
               icon="📦"
