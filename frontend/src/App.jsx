@@ -232,7 +232,7 @@ export default function App() {
                 <ListSidebar {...sidebarProps} isMobile={true} />
               )}
 
-              <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto', paddingBottom: isMobile ? 'calc(56px + env(safe-area-inset-bottom, 0px))' : 0, background: colors.bgPage }}>
                 {currentView === 'lists' && (
                   selectedList
                     ? <ItemList list={selectedList} lists={lists} isMobile={isMobile} onMoveItem={handleMoveItem} refreshKey={itemRefreshKey} />
