@@ -195,7 +195,7 @@ export default function App() {
     >
       <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden', fontFamily: fonts.sans }}>
         {error && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: colors.errorBg, color: colors.errorText, padding: '0.75rem 1rem', zIndex: 400, borderBottom: `2px solid ${colors.errorBorder}`, fontFamily: fonts.sans }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: colors.errorBg, color: colors.errorText, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)', paddingBottom: '0.75rem', paddingLeft: '1rem', paddingRight: '1rem', zIndex: 400, borderBottom: `2px solid ${colors.errorBorder}`, fontFamily: fonts.sans }}>
             {error} <button onClick={() => setError(null)} style={{ marginLeft: '1rem', cursor: 'pointer', fontWeight: '600' }}>Dismiss</button>
           </div>
         )}
