@@ -23,7 +23,6 @@ import AddToDayModal from './AddToDayModal';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, sectionLabel } from '../theme';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
-const LEFTOVERS_DRAG_ID = '__leftovers__';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -91,38 +90,6 @@ function SortableRecipe({ recipe }) {
       }}
     >
       {recipe.title}
-    </div>
-  );
-}
-
-// ── LeftoversTile ─────────────────────────────────────────────────────────────
-
-function LeftoversTile() {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: LEFTOVERS_DRAG_ID });
-
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      style={{
-        transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined,
-        padding: '0.5rem 0.75rem',
-        background: isDragging ? colors.bgPage : colors.bgSurface,
-        border: `1px dashed ${colors.borderMid}`,
-        borderRadius: radii.md,
-        marginTop: '0.75rem',
-        fontSize: fontSizes.base,
-        color: colors.textMuted,
-        cursor: 'grab',
-        opacity: isDragging ? 0.4 : 1,
-        userSelect: 'none',
-        touchAction: 'none',
-        textAlign: 'center',
-        fontFamily: fonts.sans,
-      }}
-    >
-      🍱 Leftovers
     </div>
   );
 }
@@ -442,7 +409,6 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
   const [isAddToListOpen, setIsAddToListOpen] = useState(false);
   const [addToListLoading, setAddToListLoading] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState(null);
-  const [activeIsLeftovers, setActiveIsLeftovers] = useState(false);
   const [activeEntry, setActiveEntry] = useState(null);
   const [pickingForDate, setPickingForDate] = useState(null);
   const [leftoversMode, setLeftoversMode] = useState(false);
@@ -520,17 +486,11 @@ const isDraggingRef = useRef(false);
 
   const handleDragStart = (event) => {
     isDraggingRef.current = true;
-    if (event.active.id === LEFTOVERS_DRAG_ID) {
-      setActiveIsLeftovers(true);
-      setActiveRecipe(null);
-      setActiveEntry(null);
-    } else if (typeof event.active.id === 'string' && event.active.id.startsWith('entry-')) {
+    if (typeof event.active.id === 'string' && event.active.id.startsWith('entry-')) {
       const id = Number(event.active.id.replace('entry-', ''));
       setActiveEntry(entries.find(e => e.id === id) ?? null);
       setActiveRecipe(null);
-      setActiveIsLeftovers(false);
     } else {
-      setActiveIsLeftovers(false);
       setActiveEntry(null);
       const recipe = recipes.find(r => r.id === event.active.id);
       setActiveRecipe(recipe ?? null);
@@ -540,7 +500,6 @@ const isDraggingRef = useRef(false);
   const handleDragEnd = (event) => {
     isDraggingRef.current = false;
     setActiveRecipe(null);
-    setActiveIsLeftovers(false);
     setActiveEntry(null);
     const { active, over } = event;
 
@@ -555,14 +514,6 @@ const isDraggingRef = useRef(false);
     }
 
     if (!over) return;
-
-    if (active.id === LEFTOVERS_DRAG_ID) {
-      if (typeof over.id === 'string') {
-        setLeftoversMode(true);
-        setPickingForDate(over.id);
-      }
-      return;
-    }
 
     if (typeof over.id === 'string') {
       const recipe = recipes.find(r => r.id === active.id);
@@ -591,7 +542,6 @@ const isDraggingRef = useRef(false);
   const handleDragCancel = () => {
     isDraggingRef.current = false;
     setActiveRecipe(null);
-    setActiveIsLeftovers(false);
     setActiveEntry(null);
   };
 
@@ -692,8 +642,6 @@ const isDraggingRef = useRef(false);
                   </button>
                 </div>
               ))}
-              {/* Leftovers draggable tile */}
-              <LeftoversTile />
             </div>
 
             {/* Week grid + For the Week */}
@@ -726,21 +674,6 @@ const isDraggingRef = useRef(false);
                 textOverflow: 'ellipsis',
               }}>
                 {activeEntry.is_leftovers ? `🍱 ${activeEntry.label}` : activeEntry.label}
-              </div>
-            )}
-            {activeIsLeftovers && (
-              <div style={{
-                padding: '0.5rem 0.75rem',
-                background: colors.bgSurface,
-                border: `1px dashed ${colors.borderMid}`,
-                borderRadius: radii.md,
-                fontSize: fontSizes.base,
-                color: colors.textMuted,
-                boxShadow: shadows.md,
-                cursor: 'grabbing',
-                fontFamily: fonts.sans,
-              }}>
-                🍱 Leftovers
               </div>
             )}
             {activeRecipe && (
