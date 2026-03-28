@@ -426,20 +426,22 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem }) {
         onClick={handleGotIt}
         aria-label={`Got it: ${item.name}`}
         style={{
-          border: 'none',
-          background: 'transparent',
-          color: popping ? colors.amber : colors.textSubtle,
-          fontSize: '1.25rem',
-          padding: '0.375rem',
+          border: `1.5px solid ${popping ? colors.amber : colors.borderMid}`,
+          background: popping ? colors.amber : 'transparent',
+          color: popping ? colors.charcoal : colors.textSubtle,
+          fontSize: '1.1rem',
+          padding: '0.25rem',
           lineHeight: 1,
           cursor: 'pointer',
-          minWidth: '44px',
-          minHeight: '44px',
+          width: '32px',
+          height: '32px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: radii.sm,
+          flexShrink: 0,
           animation: popping ? 'gotItPop 0.36s ease' : 'none',
+          transition: 'border-color 0.15s, background 0.15s',
         }}
       >
         ×
