@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { api } from '../api';
 import AddToListModal from './AddToListModal';
 import AddToDayModal from './AddToDayModal';
+import NutritionSummary from './NutritionSummary';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, sectionLabel } from '../theme';
 
 const CATEGORIES = ['Core Meals', 'Extras / Sauces'];
@@ -447,6 +448,10 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
   const [pickingForDate, setPickingForDate] = useState(null);
   const [leftoversMode, setLeftoversMode] = useState(false);
   const [preCheckedRecipeId, setPreCheckedRecipeId] = useState(null);
+  const [showNutrition, setShowNutrition] = useState(false);
+  const [nutritionData, setNutritionData] = useState(null);
+  const [nutritionLoading, setNutritionLoading] = useState(false);
+  const [nutritionError, setNutritionError] = useState(false);
   const isDraggingRef = useRef(false);
 
   const sensors = useSensors(
@@ -477,6 +482,15 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
     }, 5000);
     return () => clearInterval(id);
   }, [weekStart]);
+
+  useEffect(() => {
+    if (!showNutrition) return;
+    setNutritionLoading(true);
+    setNutritionError(false);
+    api.getNutritionForWeek(formatDateKey(weekStart))
+      .then(data => { setNutritionData(data); setNutritionLoading(false); })
+      .catch(() => { setNutritionError(true); setNutritionLoading(false); });
+  }, [showNutrition, weekStart]);
 
   const weekDays = getWeekDays(weekStart);
 
@@ -644,13 +658,41 @@ export default function MealPlan({ lists, isMobile, onCreateList, onNavigateToRe
             Next →
           </button>
         </div>
-        <button
-          onClick={() => setIsAddToListOpen(true)}
-          style={{ padding: '0.5rem 1rem', background: colors.navy, color: colors.white, border: 'none', borderRadius: radii.md, fontSize: fontSizes.base, fontWeight: fontWeights.semibold, cursor: 'pointer', minHeight: '40px', fontFamily: fonts.sans }}
-        >
-          Add Meals to Shopping List →
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowNutrition(n => !n)}
+            style={{
+              padding: '0.5rem 0.875rem',
+              background: showNutrition ? colors.amberLight : colors.bgCard,
+              color: showNutrition ? colors.amberDark : colors.textSecondary,
+              border: `1px solid ${showNutrition ? colors.amberBorder : colors.borderMid}`,
+              borderRadius: radii.md,
+              fontSize: fontSizes.base,
+              cursor: 'pointer',
+              minHeight: '40px',
+              fontFamily: fonts.sans,
+            }}
+          >
+            ~ Nutrition
+          </button>
+          <button
+            onClick={() => setIsAddToListOpen(true)}
+            style={{ padding: '0.5rem 1rem', background: colors.navy, color: colors.white, border: 'none', borderRadius: radii.md, fontSize: fontSizes.base, fontWeight: fontWeights.semibold, cursor: 'pointer', minHeight: '40px', fontFamily: fonts.sans }}
+          >
+            Add Meals to Shopping List →
+          </button>
+        </div>
       </div>
+
+      {showNutrition && (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <NutritionSummary
+            data={nutritionData}
+            loading={nutritionLoading}
+            error={nutritionError}
+          />
+        </div>
+      )}
 
       {/* Main content */}
       {isMobile ? (

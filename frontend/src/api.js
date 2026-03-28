@@ -78,4 +78,7 @@ export const api = {
   updateMealPlanEntry:  (id, data)          => request('PATCH',  `/mealplan/${id}`,        data),
   deleteMealPlanEntry:  (id)                => request('DELETE', `/mealplan/${id}`),
   addMealPlanToList:    (listId, weekStart) => request('POST',   '/mealplan/add-to-list',  { listId, weekStart }),
+
+  // Nutrition
+  getNutritionForWeek: (weekStart) => request('GET', `/nutrition/week?weekStart=${weekStart}`),
 };

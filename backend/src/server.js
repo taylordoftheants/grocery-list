@@ -10,6 +10,7 @@ import mealplanRouter from './routes/mealplan.js';
 import adminRouter from './routes/admin.js';
 import krogerRouter from './routes/kroger.js';
 import pantryRouter from './routes/pantry.js';
+import nutritionRouter from './routes/nutrition.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -43,6 +44,7 @@ app.use('/api/mealplan', mealplanRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/kroger', krogerRouter);
 app.use('/api/pantry', pantryRouter);
+app.use('/api/nutrition', nutritionRouter);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

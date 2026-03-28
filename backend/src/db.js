@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 17;
+const SCHEMA_VERSION = 18;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -78,6 +78,7 @@ if (user_version === 14) {
 }
 // v15 → v16: add item_classifications cache table (new table only, no ALTER TABLE needed)
 // v16 → v17: add user_pantry table (new table only, no ALTER TABLE needed)
+// v17 → v18: add nutrition_cache table (new table only, no ALTER TABLE needed)
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -170,6 +171,15 @@ db.exec(`
     size        TEXT NOT NULL DEFAULT '',
     selected_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, item_name)
+  );
+
+  CREATE TABLE IF NOT EXISTS nutrition_cache (
+    ingredient_name    TEXT PRIMARY KEY,
+    calories_per_100g  REAL NOT NULL DEFAULT 0,
+    protein_per_100g   REAL NOT NULL DEFAULT 0,
+    fat_per_100g       REAL NOT NULL DEFAULT 0,
+    carbs_per_100g     REAL NOT NULL DEFAULT 0,
+    cached_at          TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
 
