@@ -141,7 +141,7 @@ function MobileTopBar({ user, onProfileClick }) {
       alignItems: 'center',
       justifyContent: 'space-between',
       background: colors.charcoal,
-      height: '48px',
+      minHeight: 'calc(48px + env(safe-area-inset-top, 0px))',
       paddingLeft: '1rem',
       paddingRight: '0.75rem',
       flexShrink: 0,
