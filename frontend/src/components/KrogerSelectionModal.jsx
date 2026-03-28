@@ -7,6 +7,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
   const [step, setStep] = useState(initialSelections ? 'selecting' : 'loading'); // 'loading' | 'selecting' | 'adding' | 'result' | 'reconnect'
   const [itemStates, setItemStates] = useState(initialSelections ?? {});
   const [result, setResult] = useState(null);
+  const [addedNames, setAddedNames] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [locationName, setLocationName] = useState(null);
   const [locationId, setLocationId] = useState(null);
@@ -74,7 +75,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
 
   async function handleClearPurchased() {
     try {
-      await api.clearPurchasedItems(list.id);
+      await api.clearAddedItems(list.id, addedNames);
     } catch {
       // ignore — best effort
     }
@@ -96,6 +97,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
           size: product?.size || '',
         };
       });
+    setAddedNames(selections.map(s => s.itemName));
     try {
       const data = await api.krogerAddToCart(selections);
       setResult(data);

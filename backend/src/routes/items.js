@@ -52,6 +52,20 @@ router.delete('/', (req, res) => {
   res.json({ deleted: info.changes });
 });
 
+// Must be registered before /:itemId to avoid Express treating "by-names" as itemId
+router.delete('/by-names', (req, res) => {
+  if (!verifyListOwnership(req.params.listId, req.user.id, res)) return;
+  const { names } = req.body;
+  if (!Array.isArray(names) || names.length === 0)
+    return res.status(400).json({ error: 'names array required' });
+  const placeholders = names.map(() => '?').join(', ');
+  const lowerNames = names.map(n => n.toLowerCase().trim());
+  const info = db
+    .prepare(`DELETE FROM items WHERE list_id = ? AND LOWER(TRIM(name)) IN (${placeholders})`)
+    .run(req.params.listId, ...lowerNames);
+  res.json({ deleted: info.changes });
+});
+
 router.patch('/:itemId/move', (req, res) => {
   if (!verifyListOwnership(req.params.listId, req.user.id, res)) return;
   const { toListId } = req.body;

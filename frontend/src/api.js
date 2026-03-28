@@ -41,6 +41,7 @@ export const api = {
   toggleItem:          (listId, itemId, purchased)   => request('PATCH',  `/lists/${listId}/items/${itemId}`,          { purchased }),
   deleteItem:          (listId, itemId)              => request('DELETE', `/lists/${listId}/items/${itemId}`),
   clearPurchasedItems: (listId)                      => request('DELETE', `/lists/${listId}/items/purchased`),
+  clearAddedItems:     (listId, names)               => request('DELETE', `/lists/${listId}/items/by-names`, { names }),
   clearAllItems:       (listId)                      => request('DELETE', `/lists/${listId}/items`),
   moveItem:            (fromListId, itemId, toListId) => request('PATCH',  `/lists/${fromListId}/items/${itemId}/move`, { toListId }),
 
