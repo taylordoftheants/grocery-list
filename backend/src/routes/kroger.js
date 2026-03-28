@@ -483,52 +483,72 @@ router.get('/products', authMiddleware, async (req, res) => {
 
 // POST /api/kroger/cart/add  body: { selections: [{ upc, quantity, itemName, description, brand, size }] }
 router.post('/cart/add', authMiddleware, async (req, res) => {
-  const { selections } = req.body;
-  if (!selections || !Array.isArray(selections) || selections.length === 0) {
-    return res.status(400).json({ error: 'selections array is required' });
-  }
-
-  // Load user's Kroger token
-  let tokenRow = db.prepare('SELECT * FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
-  if (!tokenRow) return res.status(401).json({ error: 'Kroger not connected' });
-
-  // Refresh token if expired
-  let userAccessToken = decryptToken(tokenRow.access_token);
-  if (Date.now() >= Date.parse(tokenRow.expires_at)) {
-    try {
-      userAccessToken = await refreshKrogerToken(req.user.id);
-    } catch (e) {
-      return res.status(401).json({ error: 'Kroger session expired, please reconnect' });
+  try {
+    const { selections } = req.body;
+    if (!selections || !Array.isArray(selections) || selections.length === 0) {
+      return res.status(400).json({ error: 'selections array is required' });
     }
+
+    // Load user's Kroger token
+    let tokenRow = db.prepare('SELECT * FROM kroger_tokens WHERE user_id = ?').get(req.user.id);
+    if (!tokenRow) return res.status(401).json({ error: 'Kroger not connected' });
+
+    // Refresh token if expired per stored expiry
+    let userAccessToken = decryptToken(tokenRow.access_token);
+    if (Date.now() >= Date.parse(tokenRow.expires_at)) {
+      try {
+        userAccessToken = await refreshKrogerToken(req.user.id);
+      } catch {
+        return res.status(401).json({ error: 'Kroger session expired, please reconnect' });
+      }
+    }
+
+    // Persist each selection for future sessions
+    const upsertSel = db.prepare(`
+      INSERT OR REPLACE INTO kroger_product_selections (user_id, item_name, upc, description, brand, size, image_url, selected_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `);
+    for (const sel of selections) {
+      upsertSel.run(req.user.id, sel.itemName.toLowerCase().trim(), sel.upc, sel.description || '', sel.brand || '', sel.size || '', sel.imageUrl || '');
+    }
+
+    const cartItems = selections.map(sel => ({ upc: sel.upc, quantity: sel.quantity || 1, modality: 'PICKUP' }));
+
+    async function callKrogerCart(accessToken) {
+      return fetch(`${KROGER_BASE}/cart/add`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ items: cartItems }),
+      });
+    }
+
+    let cartRes = await callKrogerCart(userAccessToken);
+
+    // If Kroger rejects the token (revoked before our stored expiry), refresh and retry once
+    if (cartRes.status === 401) {
+      try {
+        userAccessToken = await refreshKrogerToken(req.user.id);
+        cartRes = await callKrogerCart(userAccessToken);
+      } catch {
+        return res.status(401).json({ error: 'Kroger session expired, please reconnect' });
+      }
+    }
+
+    if (!cartRes.ok) {
+      const errText = await cartRes.text();
+      console.error('Kroger cart add error:', cartRes.status, errText);
+      return res.status(502).json({ error: 'Failed to add items to Kroger cart' });
+    }
+
+    res.json({ added: cartItems.length, skipped: 0, skippedNames: [] });
+  } catch (e) {
+    console.error('Kroger cart add unexpected error:', e);
+    res.status(500).json({ error: 'Something went wrong adding to cart' });
   }
-
-  // Persist each selection for future sessions
-  const upsertSel = db.prepare(`
-    INSERT OR REPLACE INTO kroger_product_selections (user_id, item_name, upc, description, brand, size, image_url, selected_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-  `);
-  for (const sel of selections) {
-    upsertSel.run(req.user.id, sel.itemName.toLowerCase().trim(), sel.upc, sel.description || '', sel.brand || '', sel.size || '', sel.imageUrl || '');
-  }
-
-  const cartItems = selections.map(sel => ({ upc: sel.upc, quantity: sel.quantity || 1, modality: 'PICKUP' }));
-
-  const cartRes = await fetch(`${KROGER_BASE}/cart/add`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${userAccessToken}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({ items: cartItems }),
-  });
-  if (!cartRes.ok) {
-    const errText = await cartRes.text();
-    console.error('Kroger cart add error:', cartRes.status, errText);
-    return res.status(502).json({ error: 'Failed to add items to Kroger cart' });
-  }
-
-  res.json({ added: cartItems.length, skipped: 0, skippedNames: [] });
 });
 
 export default router;
