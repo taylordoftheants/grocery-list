@@ -68,7 +68,9 @@ export const api = {
   // window.location.href = '/api/kroger/auth/start?locationId=' + id
 
   // Pantry Intelligence
-  classifyPantryItems: (items) => request('POST', '/pantry/classify', { items }),
+  classifyPantryItems:  (items)    => request('POST',   '/pantry/classify', { items }),
+  addToUserPantry:      (itemName) => request('POST',   '/pantry/have', { itemName }),
+  removeFromUserPantry: (itemName) => request('DELETE', `/pantry/have/${encodeURIComponent(itemName)}`),
 
   // Meal Plan
   getMealPlan:          (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),

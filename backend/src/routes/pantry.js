@@ -90,7 +90,41 @@ router.post('/classify', async (req, res) => {
     }
   }
 
-  res.json({ classifications });
+  // 5. Apply user_pantry overrides — forces item to 'check' (never auto-unchecks)
+  const userPantryRows = db
+    .prepare('SELECT item_name FROM user_pantry WHERE user_id = ?')
+    .all(req.user.id);
+  const userPantrySet = new Set(userPantryRows.map(r => r.item_name));
+  const userPantryMatched = [];
+
+  for (const [origName] of Object.entries(classifications)) {
+    if (userPantrySet.has(origName.toLowerCase().trim())) {
+      classifications[origName] = 'check';
+      userPantryMatched.push(origName);
+    }
+  }
+
+  res.json({ classifications, userPantryItems: userPantryMatched });
+});
+
+// POST /api/pantry/have — save an item to the user's personal pantry
+router.post('/have', (req, res) => {
+  const { itemName } = req.body;
+  if (!itemName?.trim()) return res.status(400).json({ error: 'itemName is required' });
+  db.prepare(`
+    INSERT INTO user_pantry (user_id, item_name)
+    VALUES (?, ?)
+    ON CONFLICT(user_id, item_name) DO NOTHING
+  `).run(req.user.id, itemName.toLowerCase().trim());
+  res.json({ ok: true });
+});
+
+// DELETE /api/pantry/have/:name — remove an item from the user's personal pantry
+router.delete('/have/:name', (req, res) => {
+  const itemName = decodeURIComponent(req.params.name).toLowerCase().trim();
+  db.prepare('DELETE FROM user_pantry WHERE user_id = ? AND item_name = ?')
+    .run(req.user.id, itemName);
+  res.json({ ok: true });
 });
 
 export default router;

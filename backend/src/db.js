@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 16;
+const SCHEMA_VERSION = 17;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -77,6 +77,7 @@ if (user_version === 14) {
   db.exec('ALTER TABLE kroger_tokens ADD COLUMN location_name TEXT');
 }
 // v15 → v16: add item_classifications cache table (new table only, no ALTER TABLE needed)
+// v16 → v17: add user_pantry table (new table only, no ALTER TABLE needed)
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -146,6 +147,12 @@ db.exec(`
     location_id   TEXT NOT NULL,
     location_name TEXT,
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS user_pantry (
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item_name TEXT NOT NULL,
+    PRIMARY KEY (user_id, item_name)
   );
 
   CREATE TABLE IF NOT EXISTS item_classifications (

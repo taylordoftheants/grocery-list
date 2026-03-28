@@ -35,6 +35,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
         try {
           const result = await api.classifyPantryItems(itemNames);
           classifications = result.classifications ?? {};
+          setUserPantryItems(new Set(result.userPantryItems ?? []));
         } catch {
           // Classification failure is non-fatal; all items default to included
         }
@@ -128,6 +129,31 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
   }
 
   const [pantryExpanded, setPantryExpanded] = useState(true);
+  const [userPantryItems, setUserPantryItems] = useState(new Set());
+
+  async function handleAddToUserPantry(key, itemName) {
+    try {
+      await api.addToUserPantry(itemName);
+      setUserPantryItems(prev => new Set([...prev, itemName]));
+      updateItem(key, { pantryClass: 'check' });
+    } catch {
+      // ignore — best effort
+    }
+  }
+
+  async function handleRemoveFromUserPantry(key, itemName) {
+    try {
+      await api.removeFromUserPantry(itemName);
+      setUserPantryItems(prev => {
+        const next = new Set(prev);
+        next.delete(itemName);
+        return next;
+      });
+      updateItem(key, { pantryClass: 'buy' });
+    } catch {
+      // ignore — best effort
+    }
+  }
 
   const stateList = Object.entries(itemStates);
   const includedCount = stateList.filter(([, s]) => s.included && s.selectedUpc).length;
@@ -291,8 +317,11 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
                   normKey={key}
                   state={s}
                   isLast={idx === mainItems.length - 1 && pantryItems.length === 0}
+                  isUserPantry={userPantryItems.has(s.itemName)}
                   onUpdate={patch => updateItem(key, patch)}
                   onSearch={() => handleSearch(key)}
+                  onAddToUserPantry={() => handleAddToUserPantry(key, s.itemName)}
+                  onRemoveFromUserPantry={() => handleRemoveFromUserPantry(key, s.itemName)}
                 />
               ))}
 
@@ -343,8 +372,11 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
                       normKey={key}
                       state={s}
                       isLast={idx === pantryItems.length - 1}
+                      isUserPantry={userPantryItems.has(s.itemName)}
                       onUpdate={patch => updateItem(key, patch)}
                       onSearch={() => handleSearch(key)}
+                      onAddToUserPantry={() => handleAddToUserPantry(key, s.itemName)}
+                      onRemoveFromUserPantry={() => handleRemoveFromUserPantry(key, s.itemName)}
                     />
                   ))}
                 </div>
@@ -408,9 +440,12 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
 
 // ── Per-item section ──────────────────────────────────────────────────────────
 
-function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
-  const isCheckFirst = (state.pantryClass ?? 'buy') === 'check';
-  const isPantry = (state.pantryClass ?? 'buy') === 'pantry';
+function ItemSection({ normKey, state, isLast, isUserPantry, onUpdate, onSearch, onAddToUserPantry, onRemoveFromUserPantry }) {
+  const pantryClass = state.pantryClass ?? 'buy';
+  const isCheckFirst = pantryClass === 'check';
+  const isPantry = pantryClass === 'pantry';
+  const showHaveThis = pantryClass === 'buy';
+  const showRemove = isUserPantry;
   const [infoOpenUpc, setInfoOpenUpc] = useState(null);
   const visibleProducts = state.expanded ? state.products : state.products.slice(0, 3);
   const canShowMore = !state.expanded;
@@ -510,6 +545,28 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
           Include
         </label>
       </div>
+
+      {/* Pantry action links */}
+      {(showHaveThis || showRemove) && (
+        <div style={{ marginBottom: '0.5rem', marginTop: '-0.25rem' }}>
+          {showHaveThis && (
+            <button
+              onClick={onAddToUserPantry}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textSubtle, fontSize: fontSizes.xs, fontFamily: fonts.sans, padding: 0 }}
+            >
+              + I have this
+            </button>
+          )}
+          {showRemove && (
+            <button
+              onClick={onRemoveFromUserPantry}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textSubtle, fontSize: fontSizes.xs, fontFamily: fonts.sans, padding: 0 }}
+            >
+              × Remove from my pantry
+            </button>
+          )}
+        </div>
+      )}
 
       {state.included && (
         <>
