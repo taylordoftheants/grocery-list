@@ -352,17 +352,19 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
           </span>
           {state.count > 1 && (
             <span style={{
-              fontSize: fontSizes.xs,
-              fontWeight: fontWeights.semibold,
-              color: colors.amber,
-              background: `${colors.amber}22`,
-              border: `1px solid ${colors.amber}55`,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              fontSize: fontSizes.sm,
+              fontWeight: fontWeights.bold,
+              color: '#ffffff',
+              background: colors.charcoal,
               borderRadius: radii.full,
-              padding: '0.125rem 0.5rem',
+              padding: '0.25rem 0.625rem',
               fontFamily: fonts.sans,
               whiteSpace: 'nowrap',
             }}>
-              Need {state.count}×
+              ⚠ Need {state.count}×
             </span>
           )}
         </div>
