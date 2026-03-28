@@ -9,6 +9,7 @@ import RecipesView from './components/RecipesView';
 import MealPlan from './components/MealPlan';
 import ProfileMenu from './components/ProfileMenu';
 import AdminView from './components/AdminView';
+import HowItWorks from './components/HowItWorks';
 import KrogerSelectionModal from './components/KrogerSelectionModal';
 import KrogerModal from './components/KrogerModal';
 import {
@@ -244,6 +245,7 @@ export default function App() {
                 {currentView === 'recipes' && <RecipesView isMobile={isMobile} />}
                 {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} onNavigateToRecipes={() => setCurrentView('recipes')} onNavigateToList={(listId) => { setSelected(listId); setCurrentView('lists'); }} />}
                 {currentView === 'admin' && <AdminView />}
+                {currentView === 'howitworks' && <HowItWorks isMobile={isMobile} />}
               </div>
             </div>
           </div>

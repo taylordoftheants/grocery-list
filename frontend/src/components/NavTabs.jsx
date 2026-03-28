@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows } from '../theme';
 
 const TABS = [
-  { id: 'mealplan', label: 'Meal Plan', icon: '🗓' },
-  { id: 'lists',    label: 'Lists',     icon: '🛒' },
-  { id: 'recipes',  label: 'Recipes',   icon: '📖' },
+  { id: 'mealplan',    label: 'Meal Plan',     icon: '🗓' },
+  { id: 'lists',       label: 'Lists',         icon: '🛒' },
+  { id: 'recipes',     label: 'Recipes',       icon: '📖' },
+  { id: 'howitworks',  label: 'How Ant Works', icon: '💡' },
 ];
 
 // ── Desktop top nav bar ────────────────────────────────────────────────────────
