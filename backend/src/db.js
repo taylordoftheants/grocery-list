@@ -13,7 +13,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL');
 db.exec('PRAGMA foreign_keys = ON');
 
-const SCHEMA_VERSION = 18;
+const SCHEMA_VERSION = 19;
 const { user_version } = db.prepare('PRAGMA user_version').get();
 
 if (user_version < 1) {
@@ -79,6 +79,10 @@ if (user_version === 14) {
 // v15 → v16: add item_classifications cache table (new table only, no ALTER TABLE needed)
 // v16 → v17: add user_pantry table (new table only, no ALTER TABLE needed)
 // v17 → v18: add nutrition_cache table (new table only, no ALTER TABLE needed)
+// v18 → v19: add image_url to kroger_product_selections
+if (user_version === 18) {
+  db.exec("ALTER TABLE kroger_product_selections ADD COLUMN image_url TEXT NOT NULL DEFAULT ''");
+}
 
 if (user_version < SCHEMA_VERSION) {
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -169,6 +173,7 @@ db.exec(`
     description TEXT NOT NULL DEFAULT '',
     brand       TEXT NOT NULL DEFAULT '',
     size        TEXT NOT NULL DEFAULT '',
+    image_url   TEXT NOT NULL DEFAULT '',
     selected_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, item_name)
   );

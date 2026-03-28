@@ -165,7 +165,7 @@ function applyPreviousSelection(products, savedRow) {
     brand: savedRow.brand,
     size: savedRow.size,
     price: null,
-    imageUrl: null,
+    imageUrl: savedRow.image_url || null,
     previouslySelected: true,
   };
   return [prev, ...products];
@@ -460,11 +460,11 @@ router.post('/cart/add', authMiddleware, async (req, res) => {
 
   // Persist each selection for future sessions
   const upsertSel = db.prepare(`
-    INSERT OR REPLACE INTO kroger_product_selections (user_id, item_name, upc, description, brand, size, selected_at)
-    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+    INSERT OR REPLACE INTO kroger_product_selections (user_id, item_name, upc, description, brand, size, image_url, selected_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
   `);
   for (const sel of selections) {
-    upsertSel.run(req.user.id, sel.itemName.toLowerCase().trim(), sel.upc, sel.description || '', sel.brand || '', sel.size || '');
+    upsertSel.run(req.user.id, sel.itemName.toLowerCase().trim(), sel.upc, sel.description || '', sel.brand || '', sel.size || '', sel.imageUrl || '');
   }
 
   const cartItems = selections.map(sel => ({ upc: sel.upc, quantity: sel.quantity || 1, modality: 'PICKUP' }));

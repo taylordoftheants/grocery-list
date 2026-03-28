@@ -111,6 +111,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
           description: product?.description || '',
           brand: product?.brand || '',
           size: product?.size || '',
+          imageUrl: product?.imageUrl || '',
         };
       });
     setAddedNames(selections.map(s => s.itemName));
