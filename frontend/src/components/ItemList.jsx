@@ -305,10 +305,10 @@ function AggregatedItem({ group, onToggle, onDelete }) {
           {sharedAmount && items.some(i => i.source_recipe) && (
             <span style={{
               fontSize: fontSizes.xs, fontWeight: fontWeights.semibold,
-              color: colors.charcoal, background: colors.amber,
+              color: colors.amberDark, background: colors.amberLight,
               borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
             }}>
-              Recipe calls for Qty: {sharedAmount}
+              Qty: {sharedAmount}
             </span>
           )}
         </div>
@@ -372,11 +372,11 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem }) {
         item.source_recipe ? (
           <span style={{
             fontSize: fontSizes.xs, fontWeight: fontWeights.semibold,
-            color: colors.charcoal, background: colors.amber,
+            color: colors.amberDark, background: colors.amberLight,
             borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
             whiteSpace: 'nowrap',
           }}>
-            Recipe calls for Qty: {item.amount}
+            Qty: {item.amount}
           </span>
         ) : (
           <span style={{
