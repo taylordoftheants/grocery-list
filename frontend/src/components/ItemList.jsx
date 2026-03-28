@@ -360,29 +360,6 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem }) {
         marginBottom: '0.375rem',
       }}
     >
-      {/* Got it! button */}
-      <button
-        onClick={handleGotIt}
-        style={{
-          background: popping ? colors.amber : colors.bgSurface,
-          color: popping ? colors.charcoal : colors.textMuted,
-          border: `1.5px solid ${popping ? colors.amber : colors.borderMid}`,
-          borderRadius: radii.full,
-          padding: '0.25rem 0.625rem',
-          fontSize: fontSizes.xs,
-          fontWeight: fontWeights.semibold,
-          cursor: 'pointer',
-          animation: popping ? 'gotItPop 0.36s ease' : 'none',
-          minHeight: '32px',
-          minWidth: '56px',
-          fontFamily: fonts.sans,
-          flexShrink: 0,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        Got it!
-      </button>
-
       <span style={{
         flex: 1,
         fontSize: fontSizes.base,
@@ -446,13 +423,13 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem }) {
         />
       )}
       <button
-        onClick={() => onDelete(item.id)}
-        aria-label={`Remove ${item.name}`}
+        onClick={handleGotIt}
+        aria-label={`Got it: ${item.name}`}
         style={{
           border: 'none',
           background: 'transparent',
-          color: colors.textSubtle,
-          fontSize: '1rem',
+          color: popping ? colors.amber : colors.textSubtle,
+          fontSize: '1.25rem',
           padding: '0.375rem',
           lineHeight: 1,
           cursor: 'pointer',
@@ -462,6 +439,7 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem }) {
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: radii.sm,
+          animation: popping ? 'gotItPop 0.36s ease' : 'none',
         }}
       >
         ×
