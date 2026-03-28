@@ -24,6 +24,7 @@ const STYLES = `
   .hiw-section:nth-child(4) { animation-delay: 0.28s; }
   .hiw-section:nth-child(5) { animation-delay: 0.36s; }
   .hiw-section:nth-child(6) { animation-delay: 0.44s; }
+  .hiw-section:nth-child(7) { animation-delay: 0.52s; }
 
   .hiw-hero-ant {
     display: inline-block;
@@ -499,6 +500,43 @@ export default function HowItWorks({ isMobile }) {
             ].map(([icon, title, body]) => (
               <KrogerStep key={title} icon={icon} title={title} body={body} />
             ))}
+          </div>
+        </div>
+
+        {/* ── Security ── */}
+        <div className="hiw-section" style={{ marginBottom: '3rem' }}>
+          <SectionMarker label="Security" />
+          <SectionHeading>How We Keep Your Data Secure 🔒</SectionHeading>
+          <SectionSubtitle>
+            Your account and grocery data are protected at every step — here's exactly what we do.
+          </SectionSubtitle>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            <InfoCard
+              icon="🔑"
+              title="Passwords are never stored"
+              body="Your password is hashed with bcrypt before it ever touches our database. That means we store a one-way fingerprint — not your actual password. Even we can't see it."
+            />
+            <InfoCard
+              icon="🍪"
+              title="Sessions use secure, HttpOnly cookies"
+              body="After you log in, your session is tracked with a cookie that JavaScript can't read. This protects you from cross-site scripting attacks trying to steal your login."
+            />
+            <InfoCard
+              icon="🛡️"
+              title="CSRF protection on every request"
+              body="Every state-changing request (adding items, connecting Kroger, etc.) is verified with a CSRF token so other websites can't trick your browser into taking actions on your behalf."
+            />
+            <InfoCard
+              icon="🔐"
+              title="Kroger credentials stay with Kroger"
+              body="We never see your Kroger password. The connection uses OAuth — you log in directly on Kroger's site, and they send us a limited-access token. We can add items to your cart, but we can't access your payment info or account settings."
+            />
+            <InfoCard
+              icon="📦"
+              title="Only your data, only for you"
+              body="Your grocery lists, meal plans, and shopping history are tied to your account and are never shared with other users. Each API request is authenticated and scoped to you."
+            />
           </div>
         </div>
 
