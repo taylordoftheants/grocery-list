@@ -247,7 +247,7 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
         </>
       )}
     </main>
-    {showKrogerModal && <KrogerModal isMobile={isMobile} onClose={() => setShowKrogerModal(false)} />}
+    {showKrogerModal && <KrogerModal listId={list.id} isMobile={isMobile} onClose={() => setShowKrogerModal(false)} />}
     {showKrogerSelectionModal && <KrogerSelectionModal list={list} isMobile={isMobile} onClose={() => setShowKrogerSelectionModal(false)} />}
     </>
   );

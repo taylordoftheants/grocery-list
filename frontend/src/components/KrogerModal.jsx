@@ -5,7 +5,7 @@ import { colors, fonts, fontSizes, fontWeights, radii, shadows, card, btnPrimary
 const HARRIS_TEETER_CHAIN = 'HART';
 
 // mode: 'connect' (full OAuth) | 'change' (just update stored location, no re-auth)
-export default function KrogerModal({ isMobile, onClose, mode = 'connect' }) {
+export default function KrogerModal({ isMobile, onClose, mode = 'connect', listId = null }) {
   const [step, setStep] = useState('zip'); // 'zip' | 'loading' | 'store' | 'error' | 'saving'
   const [zipCode, setZipCode] = useState('');
   const [locations, setLocations] = useState([]);
@@ -40,6 +40,9 @@ export default function KrogerModal({ isMobile, onClose, mode = 'connect' }) {
         setStep('error');
       }
     } else {
+      if (listId != null) {
+        try { sessionStorage.setItem('kroger_pending_list_id', String(listId)); } catch { /* ignore */ }
+      }
       window.location.href = `/api/kroger/auth/start?locationId=${locationId}&locationName=${encodeURIComponent(locationName || '')}`;
     }
   }

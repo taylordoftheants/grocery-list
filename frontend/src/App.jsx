@@ -29,6 +29,7 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showKrogerSelectionModal, setShowKrogerSelectionModal] = useState(false);
   const [restoredKrogerSelections, setRestoredKrogerSelections] = useState(null);
+  const [pendingKrogerListId, setPendingKrogerListId] = useState(null);
   const [showKrogerConnect, setShowKrogerConnect] = useState(false);
   const [krogerConnectMode, setKrogerConnectMode] = useState('connect');
   const [draggingList, setDraggingList] = useState(null);
@@ -53,13 +54,23 @@ export default function App() {
           sessionStorage.removeItem('kroger_pending_selections');
         }
       } catch { /* ignore */ }
+      try {
+        const rawListId = sessionStorage.getItem('kroger_pending_list_id');
+        if (rawListId) {
+          sessionStorage.removeItem('kroger_pending_list_id');
+          const parsed = parseInt(rawListId, 10);
+          if (!isNaN(parsed)) setPendingKrogerListId(parsed);
+        }
+      } catch { /* ignore */ }
       setRestoredKrogerSelections(pending);
       setShowKrogerSelectionModal(true);
     }
     if (params.get('kroger_error')) {
       window.history.replaceState({}, '', window.location.pathname);
       try { sessionStorage.removeItem('kroger_pending_selections'); } catch {}
-      setError('Harris Teeter login failed. Please try again.');
+      try { sessionStorage.removeItem('kroger_pending_list_id'); } catch {}
+      setCurrentView('lists');
+      setError('Harris Teeter connection failed. Please try again.');
     }
   }, []);
 
@@ -79,6 +90,14 @@ export default function App() {
       })
       .catch(e => setError(e.message));
   }, [user]);
+
+  // After OAuth redirect: once lists load, select the list the user was shopping from
+  useEffect(() => {
+    if (!pendingKrogerListId || lists.length === 0) return;
+    const target = lists.find(l => l.id === pendingKrogerListId);
+    if (target) setSelected(target.id);
+    setPendingKrogerListId(null);
+  }, [pendingKrogerListId, lists]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
