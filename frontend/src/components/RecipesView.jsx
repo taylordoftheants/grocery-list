@@ -952,7 +952,7 @@ export default function RecipesView({ isMobile }) {
       display: 'flex',
       flexDirection: 'column',
       padding: '1rem',
-      overflowY: 'auto',
+      overflowY: isMobile ? 'visible' : 'auto',
       fontFamily: fonts.sans,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -1107,7 +1107,7 @@ export default function RecipesView({ isMobile }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', ...(isMobile ? { minHeight: '100%' } : { height: '100%' }) }}>
       {listPanel}
       {mainPanel}
     </div>
