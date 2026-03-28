@@ -10,6 +10,7 @@ import MealPlan from './components/MealPlan';
 import ProfileMenu from './components/ProfileMenu';
 import AdminView from './components/AdminView';
 import HowItWorks from './components/HowItWorks';
+import ItemMemoryView from './components/ItemMemoryView';
 import KrogerSelectionModal from './components/KrogerSelectionModal';
 import KrogerModal from './components/KrogerModal';
 import {
@@ -214,6 +215,7 @@ export default function App() {
                 user={user}
                 onLogout={handleLogout}
                 onNavigateAdmin={() => setCurrentView('admin')}
+                onNavigateItemMemory={() => { setCurrentView('items'); setShowProfile(false); }}
                 onClose={() => setShowProfile(false)}
                 onOpenKroger={(mode) => { setKrogerConnectMode(mode); setShowKrogerConnect(true); setShowProfile(false); }}
               />
@@ -246,6 +248,7 @@ export default function App() {
                 {currentView === 'mealplan' && <MealPlan lists={lists} isMobile={isMobile} onCreateList={handleCreateList} onNavigateToRecipes={() => setCurrentView('recipes')} onNavigateToList={(listId) => { setSelected(listId); setCurrentView('lists'); }} />}
                 {currentView === 'admin' && <AdminView />}
                 {currentView === 'howitworks' && <HowItWorks isMobile={isMobile} />}
+                {currentView === 'items' && <ItemMemoryView />}
               </div>
             </div>
           </div>

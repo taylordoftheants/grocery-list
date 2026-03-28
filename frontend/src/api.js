@@ -70,7 +70,10 @@ export const api = {
   // Pantry Intelligence
   classifyPantryItems:  (items)    => request('POST',   '/pantry/classify', { items }),
   addToUserPantry:      (itemName) => request('POST',   '/pantry/have', { itemName }),
-  removeFromUserPantry: (itemName) => request('DELETE', `/pantry/have/${encodeURIComponent(itemName)}`),
+  removeFromUserPantry:     (itemName) => request('DELETE', `/pantry/have/${encodeURIComponent(itemName)}`),
+  getPantryMemory:          ()         => request('GET',    '/pantry/memory'),
+  clearAllPurchaseHistory:  ()         => request('DELETE', '/pantry/history'),
+  clearItemPurchaseHistory: (name)     => request('DELETE', `/pantry/history/${encodeURIComponent(name)}`),
 
   // Meal Plan
   getMealPlan:          (weekStart)          => request('GET',    `/mealplan?weekStart=${weekStart}`),

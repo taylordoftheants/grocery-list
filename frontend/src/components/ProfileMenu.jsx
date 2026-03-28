@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { colors, fonts, fontSizes, fontWeights, radii, shadows, input, btnPrimary } from '../theme';
 
-export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose, onOpenKroger }) {
+export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onNavigateItemMemory, onClose, onOpenKroger }) {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -151,6 +151,15 @@ export default function ProfileMenu({ user, onLogout, onNavigateAdmin, onClose, 
             ⚙ Admin Console
           </button>
         )}
+
+        {/* Ant's Memory */}
+        <button
+          onClick={() => { onNavigateItemMemory(); onClose(); }}
+          style={menuBtnStyle}
+          title="What Ant remembers about your items"
+        >
+          🧠 Ant's Memory
+        </button>
 
         {/* Kroger connection */}
         <div style={{ borderTop: `1px solid ${colors.charcoalBorder}`, marginTop: '0.25rem', paddingTop: '0.25rem' }}>

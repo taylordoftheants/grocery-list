@@ -127,4 +127,32 @@ router.delete('/have/:name', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/pantry/memory — return all items Ant knows about for this user
+router.get('/memory', (req, res) => {
+  const pantryRows = db
+    .prepare('SELECT item_name FROM user_pantry WHERE user_id = ?')
+    .all(req.user.id);
+  const historyRows = db
+    .prepare('SELECT item_name, selected_at FROM kroger_product_selections WHERE user_id = ? ORDER BY selected_at DESC')
+    .all(req.user.id);
+  res.json({
+    pantryItems:     pantryRows.map(r => ({ itemName: r.item_name })),
+    purchaseHistory: historyRows.map(r => ({ itemName: r.item_name, lastPurchased: r.selected_at })),
+  });
+});
+
+// DELETE /api/pantry/history — clear ALL kroger purchase history for user (must come before /:name)
+router.delete('/history', (req, res) => {
+  db.prepare('DELETE FROM kroger_product_selections WHERE user_id = ?').run(req.user.id);
+  res.json({ ok: true });
+});
+
+// DELETE /api/pantry/history/:name — clear purchase history for a single item
+router.delete('/history/:name', (req, res) => {
+  const itemName = decodeURIComponent(req.params.name).toLowerCase().trim();
+  db.prepare('DELETE FROM kroger_product_selections WHERE user_id = ? AND LOWER(TRIM(item_name)) = ?')
+    .run(req.user.id, itemName);
+  res.json({ ok: true });
+});
+
 export default router;
