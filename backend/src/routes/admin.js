@@ -20,4 +20,11 @@ router.get('/users', (req, res) => {
   res.json(users);
 });
 
+// DELETE /api/admin/pantry-cache — wipe the global item_classifications cache
+router.delete('/pantry-cache', (req, res) => {
+  console.log(JSON.stringify({ event: 'admin_access', endpoint: 'DELETE /api/admin/pantry-cache', user_id: req.user.id, ts: new Date().toISOString() }));
+  const { changes } = db.prepare('DELETE FROM item_classifications').run();
+  res.json({ ok: true, cleared: changes });
+});
+
 export default router;

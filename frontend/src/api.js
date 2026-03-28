@@ -26,7 +26,8 @@ export const api = {
   changePassword:  (currentPassword, newPassword)    => request('POST',   '/auth/change-password', { currentPassword, newPassword }),
 
   // Admin
-  getAdminUsers:   ()                                => request('GET',    '/admin/users'),
+  getAdminUsers:    () => request('GET',    '/admin/users'),
+  clearPantryCache: () => request('DELETE', '/admin/pantry-cache'),
 
   // Lists
   getLists:            ()                          => request('GET',    '/lists'),

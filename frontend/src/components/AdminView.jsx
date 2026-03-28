@@ -13,6 +13,8 @@ export default function AdminView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [antHovered, setAntHovered] = useState(false);
+  const [cacheMsg, setCacheMsg] = useState(null);
+  const [cacheClearing, setCacheClearing] = useState(false);
 
   useEffect(() => {
     api.getAdminUsers()
@@ -20,6 +22,17 @@ export default function AdminView() {
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  function handleClearCache() {
+    setCacheClearing(true);
+    api.clearPantryCache()
+      .then(({ cleared }) => {
+        setCacheMsg(`Cleared ${cleared} cached classification${cleared === 1 ? '' : 's'}`);
+        setTimeout(() => setCacheMsg(null), 4000);
+      })
+      .catch(err => setCacheMsg(`Error: ${err.message}`))
+      .finally(() => setCacheClearing(false));
+  }
 
   return (
     <main style={{ padding: '1.5rem 1rem', background: colors.bgPage, minHeight: '100%', fontFamily: fonts.sans }}>
@@ -93,6 +106,44 @@ export default function AdminView() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div style={{ marginTop: '1.5rem' }}>
+          <p style={{ ...sectionLabel, marginBottom: '0.75rem' }}>Classifier</p>
+          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: fontSizes.base, color: colors.textPrimary, fontWeight: fontWeights.medium, margin: 0 }}>
+                Clear classification cache
+              </p>
+              <p style={{ fontSize: fontSizes.sm, color: colors.textMuted, margin: '0.2rem 0 0' }}>
+                Forces all items to be re-classified on next Kroger modal open. Use after prompt changes or to fix bad classifications.
+              </p>
+            </div>
+            <button
+              onClick={handleClearCache}
+              disabled={cacheClearing}
+              style={{
+                padding: '0.5rem 1.25rem',
+                borderRadius: radii.md,
+                border: `1px solid ${colors.border}`,
+                background: cacheClearing ? colors.bgSurface : colors.bgPage,
+                color: cacheClearing ? colors.textSubtle : colors.textPrimary,
+                fontSize: fontSizes.sm,
+                fontWeight: fontWeights.medium,
+                cursor: cacheClearing ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {cacheClearing ? 'Clearing…' : 'Clear cache'}
+            </button>
+            {cacheMsg && (
+              <span style={{ fontSize: fontSizes.sm, color: colors.textMuted, fontStyle: 'italic' }}>
+                {cacheMsg}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </main>
