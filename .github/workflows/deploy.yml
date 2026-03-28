@@ -71,6 +71,7 @@ jobs:
             echo "KROGER_REDIRECT_URI=${{ secrets.KROGER_REDIRECT_URI }}" >> .env
             echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
             echo "TOKEN_ENCRYPTION_KEY=${{ secrets.TOKEN_ENCRYPTION_KEY }}" >> .env
+            echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
             chmod 600 .env
             docker compose pull
             docker compose up -d
