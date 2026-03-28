@@ -9,7 +9,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
   const [selectedOptionals, setSelectedOptionals] = useState({});
   const [quickInput, setQuickInput] = useState('');
   const [quickItems, setQuickItems] = useState([]);
-  const [selectedLeftoversId, setSelectedLeftoversId] = useState(null);
+  const [selectedLeftoversId, setSelectedLeftoversId] = useState('generic');
   const [loading, setLoading] = useState(false);
 
   const toggleId = (id) => setCheckedIds(prev => {
@@ -45,7 +45,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
     ? (selectedOptionals[favoritesRecipe.id]?.size ?? 0)
     : 0;
   const totalCount = leftoversMode
-    ? (selectedLeftoversId != null ? 1 : 0)
+    ? 1
     : (checkedIds.size - (favoritesRecipe && checkedIds.has(favoritesRecipe.id) ? 1 : 0))
       + favOptCount
       + quickItems.length;
@@ -55,10 +55,10 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
     setLoading(true);
     try {
       if (leftoversMode) {
-        const recipe = weekRecipes?.find(r => r.id === selectedLeftoversId);
-        if (recipe) {
-          await onConfirm([{ date, recipe_id: null, label: `Leftovers – ${recipe.title}`, is_leftovers: 1 }]);
-        }
+        const label = selectedLeftoversId === 'generic'
+          ? 'Leftovers'
+          : `Leftovers – ${weekRecipes?.find(r => r.id === selectedLeftoversId)?.title ?? 'Leftovers'}`;
+        await onConfirm([{ date, recipe_id: null, label, is_leftovers: 1 }]);
         return;
       }
       const entries = [];
@@ -127,34 +127,30 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
           {leftoversMode ? (
             <>
               <p style={{ fontSize: fontSizes.sm, color: colors.textMuted, marginBottom: '0.75rem', fontFamily: fonts.sans }}>
-                Choose which recipe's leftovers:
+                Which leftovers?
               </p>
-              {!weekRecipes?.length ? (
-                <p style={{ color: colors.textSubtle, fontSize: fontSizes.base, fontFamily: fonts.sans }}>No recipes planned this week yet.</p>
-              ) : (
-                weekRecipes.map(recipe => {
-                  const isSelected = selectedLeftoversId === recipe.id;
-                  return (
-                    <label key={recipe.id} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.625rem',
-                      padding: '0.5rem 0.625rem', borderRadius: radii.md,
-                      cursor: 'pointer',
-                      background: isSelected ? colors.bgSurface : 'transparent',
-                      marginBottom: '0.125rem',
-                      border: `1px solid ${isSelected ? colors.borderMid : 'transparent'}`,
-                    }}>
-                      <input
-                        type="radio"
-                        name="leftovers-pick"
-                        checked={isSelected}
-                        onChange={() => setSelectedLeftoversId(recipe.id)}
-                        style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }}
-                      />
-                      <span style={{ fontSize: fontSizes.md, color: colors.textSecondary, fontFamily: fonts.sans }}>{recipe.title}</span>
-                    </label>
-                  );
-                })
-              )}
+              {[{ id: 'generic', title: 'Just leftovers' }, ...(weekRecipes ?? [])].map(recipe => {
+                const isSelected = selectedLeftoversId === recipe.id;
+                return (
+                  <label key={recipe.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.625rem',
+                    padding: '0.5rem 0.625rem', borderRadius: radii.md,
+                    cursor: 'pointer',
+                    background: isSelected ? colors.bgSurface : 'transparent',
+                    marginBottom: '0.125rem',
+                    border: `1px solid ${isSelected ? colors.borderMid : 'transparent'}`,
+                  }}>
+                    <input
+                      type="radio"
+                      name="leftovers-pick"
+                      checked={isSelected}
+                      onChange={() => setSelectedLeftoversId(recipe.id)}
+                      style={{ width: '1rem', height: '1rem', cursor: 'pointer', flexShrink: 0, accentColor: colors.blue }}
+                    />
+                    <span style={{ fontSize: fontSizes.md, color: recipe.id === 'generic' ? colors.textMuted : colors.textSecondary, fontFamily: fonts.sans, fontStyle: recipe.id === 'generic' ? 'italic' : 'normal' }}>{recipe.title}</span>
+                  </label>
+                );
+              })}
             </>
           ) : (
             <>
@@ -335,7 +331,7 @@ export default function AddToDayModal({ recipes, weekRecipes, leftoversMode, dat
                 </button>
               )}
 
-              {onSwitchToLeftovers && weekRecipes?.length > 0 && (
+              {onSwitchToLeftovers && (
                 <button
                   type="button"
                   onClick={onSwitchToLeftovers}
