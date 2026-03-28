@@ -382,7 +382,7 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
               fontFamily: fonts.sans,
               whiteSpace: 'nowrap',
             }}>
-              ! Recipe calls for Qty: {state.amount}
+              Recipe calls for Qty: {state.amount}
             </span>
           )}
         </div>

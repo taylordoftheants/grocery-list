@@ -309,7 +309,7 @@ function AggregatedItem({ group, onToggle, onDelete }) {
               color: colors.charcoal, background: colors.amber,
               borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
             }}>
-              ! Recipe calls for Qty: {sharedAmount}
+              Recipe calls for Qty: {sharedAmount}
             </span>
           )}
         </div>
@@ -423,7 +423,7 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem, isMobile }) {
             borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
             whiteSpace: 'nowrap',
           }}>
-            ! Recipe calls for Qty: {item.amount}
+            Recipe calls for Qty: {item.amount}
           </span>
         ) : (
           <span style={{
