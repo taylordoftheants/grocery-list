@@ -35,7 +35,8 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
             itemName: item.itemName,
             products: item.products,
             selectedUpc: prevSelected?.upc ?? item.products[0]?.upc ?? null,
-            quantity: 1,
+            count: item.count ?? 1,
+            quantity: item.count ?? 1,
             included: true,
             expanded: false,
             searchQuery: item.itemName,
@@ -345,9 +346,26 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
     }}>
       {/* Item name + include toggle */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-        <span style={{ fontWeight: fontWeights.semibold, fontSize: fontSizes.base, color: colors.textPrimary, fontFamily: fonts.sans }}>
-          {state.itemName}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontWeight: fontWeights.semibold, fontSize: fontSizes.base, color: colors.textPrimary, fontFamily: fonts.sans }}>
+            {state.itemName}
+          </span>
+          {state.count > 1 && (
+            <span style={{
+              fontSize: fontSizes.xs,
+              fontWeight: fontWeights.semibold,
+              color: colors.amber,
+              background: `${colors.amber}22`,
+              border: `1px solid ${colors.amber}55`,
+              borderRadius: radii.full,
+              padding: '0.125rem 0.5rem',
+              fontFamily: fonts.sans,
+              whiteSpace: 'nowrap',
+            }}>
+              Need {state.count}×
+            </span>
+          )}
+        </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', cursor: 'pointer', fontSize: fontSizes.sm, color: colors.textMuted, fontFamily: fonts.sans, userSelect: 'none' }}>
           <input
             type="checkbox"

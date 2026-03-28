@@ -378,19 +378,20 @@ router.get('/products', authMiddleware, async (req, res) => {
     if (!list) return res.status(404).json({ error: 'List not found' });
 
     const rows = db.prepare('SELECT name FROM items WHERE list_id = ? AND purchased = 0').all(listId);
-    // Deduplicate by normalized name, preserve original casing
-    const seen = new Set();
-    const uniqueItems = [];
+    // Deduplicate by normalized name, preserve original casing, track count
+    const countMap = new Map();
     for (const row of rows) {
       const key = row.name.toLowerCase().trim();
-      if (!seen.has(key)) { seen.add(key); uniqueItems.push({ name: row.name, normalized: key }); }
+      if (!countMap.has(key)) countMap.set(key, { name: row.name, count: 0 });
+      countMap.get(key).count++;
     }
+    const uniqueItems = [...countMap.entries()].map(([key, val]) => ({ name: val.name, normalized: key, count: val.count }));
 
     const results = [];
     for (const item of uniqueItems) {
       const products = await searchKrogerProducts(item.name, locationId, ccAccessToken, 8);
       const saved = db.prepare('SELECT * FROM kroger_product_selections WHERE user_id = ? AND item_name = ?').get(req.user.id, item.normalized);
-      results.push({ itemName: item.name, normalizedName: item.normalized, products: applyPreviousSelection(products, saved) });
+      results.push({ itemName: item.name, normalizedName: item.normalized, count: item.count, products: applyPreviousSelection(products, saved) });
     }
     res.json({ items: results });
   } catch (e) {
