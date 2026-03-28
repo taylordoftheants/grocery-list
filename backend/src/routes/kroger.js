@@ -408,21 +408,27 @@ router.get('/products', authMiddleware, async (req, res) => {
     const list = db.prepare('SELECT id FROM lists WHERE id = ? AND user_id = ?').get(listId, req.user.id);
     if (!list) return res.status(404).json({ error: 'List not found' });
 
-    const rows = db.prepare('SELECT name FROM items WHERE list_id = ? AND purchased = 0').all(listId);
-    // Deduplicate by normalized name, preserve original casing, track count
+    const rows = db.prepare('SELECT name, amount FROM items WHERE list_id = ? AND purchased = 0').all(listId);
+    // Deduplicate by normalized name, preserve original casing, track count and amounts
     const countMap = new Map();
     for (const row of rows) {
       const key = row.name.toLowerCase().trim();
-      if (!countMap.has(key)) countMap.set(key, { name: row.name, count: 0 });
+      if (!countMap.has(key)) countMap.set(key, { name: row.name, count: 0, amounts: new Set() });
       countMap.get(key).count++;
+      if (row.amount) countMap.get(key).amounts.add(row.amount.trim());
     }
-    const uniqueItems = [...countMap.entries()].map(([key, val]) => ({ name: val.name, normalized: key, count: val.count }));
+    const uniqueItems = [...countMap.entries()].map(([key, val]) => ({
+      name: val.name,
+      normalized: key,
+      count: val.count,
+      amount: val.amounts.size === 1 ? [...val.amounts][0] : null,
+    }));
 
     const results = [];
     for (const item of uniqueItems) {
       const products = await searchKrogerProducts(item.name, locationId, ccAccessToken, 8);
       const saved = db.prepare('SELECT * FROM kroger_product_selections WHERE user_id = ? AND item_name = ?').get(req.user.id, item.normalized);
-      results.push({ itemName: item.name, normalizedName: item.normalized, count: item.count, products: applyPreviousSelection(products, saved) });
+      results.push({ itemName: item.name, normalizedName: item.normalized, count: item.count, amount: item.amount ?? null, products: applyPreviousSelection(products, saved) });
     }
     res.json({ items: results });
   } catch (e) {

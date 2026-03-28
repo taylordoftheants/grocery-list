@@ -37,6 +37,7 @@ export default function KrogerSelectionModal({ list, isMobile, onClose, initialS
             selectedUpc: prevSelected?.upc ?? item.products[0]?.upc ?? null,
             count: item.count ?? 1,
             quantity: item.count ?? 1,
+            amount: item.amount ?? null,
             included: true,
             expanded: false,
             searchQuery: item.itemName,
@@ -365,6 +366,23 @@ function ItemSection({ normKey, state, isLast, onUpdate, onSearch }) {
               whiteSpace: 'nowrap',
             }}>
               ⚠ Need {state.count}×
+            </span>
+          )}
+          {state.amount && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              fontSize: fontSizes.sm,
+              fontWeight: fontWeights.bold,
+              color: colors.charcoal,
+              background: colors.amber,
+              borderRadius: radii.full,
+              padding: '0.25rem 0.625rem',
+              fontFamily: fonts.sans,
+              whiteSpace: 'nowrap',
+            }}>
+              ! Recipe calls for Qty: {state.amount}
             </span>
           )}
         </div>

@@ -257,6 +257,8 @@ export default function ItemList({ list, lists, isMobile, onMoveItem, refreshKey
 function AggregatedItem({ group, onToggle, onDelete }) {
   const { name, items, recipes } = group;
   const count = items.length;
+  const amounts = [...new Set(items.map(i => i.amount).filter(Boolean))];
+  const sharedAmount = amounts.length === 1 ? amounts[0] : null;
   const bullets = items.map(item => ({
     label: item.source_recipe ?? 'Added manually',
     amount: item.amount ?? '',
@@ -299,6 +301,15 @@ function AggregatedItem({ group, onToggle, onDelete }) {
               borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
             }}>
               used {count}x
+            </span>
+          )}
+          {sharedAmount && items.some(i => i.source_recipe) && (
+            <span style={{
+              fontSize: fontSizes.xs, fontWeight: fontWeights.semibold,
+              color: colors.charcoal, background: colors.amber,
+              borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
+            }}>
+              ! Recipe calls for Qty: {sharedAmount}
             </span>
           )}
         </div>
@@ -405,13 +416,24 @@ function Item({ item, onToggle, onDelete, lists, onMoveItem, isMobile }) {
         {item.name}
       </span>
       {item.amount && (
-        <span style={{
-          fontSize: fontSizes.sm,
-          color: colors.textSubtle,
-          whiteSpace: 'nowrap',
-        }}>
-          {item.amount}
-        </span>
+        item.source_recipe ? (
+          <span style={{
+            fontSize: fontSizes.xs, fontWeight: fontWeights.semibold,
+            color: colors.charcoal, background: colors.amber,
+            borderRadius: radii.full, padding: '0.1rem 0.4rem', lineHeight: 1.4,
+            whiteSpace: 'nowrap',
+          }}>
+            ! Recipe calls for Qty: {item.amount}
+          </span>
+        ) : (
+          <span style={{
+            fontSize: fontSizes.sm,
+            color: colors.textSubtle,
+            whiteSpace: 'nowrap',
+          }}>
+            {item.amount}
+          </span>
+        )
       )}
       {isMobile && onMoveItem && lists && lists.length > 1 && (
         <select
